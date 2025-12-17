@@ -17,6 +17,7 @@ const Navbar = () => {
                 <Link to="/shops" className={isActive('/shops')}>Shops</Link>
                 <Link to="/items" className={isActive('/items')}>Items</Link>
                 <Link to="/stock" className={isActive('/stock')}>Stock</Link>
+                <Link to="/storekeeper" className={isActive('/storekeeper')}>Storekeeper</Link>
             </div>
         </nav>
     );

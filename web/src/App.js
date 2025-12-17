@@ -6,6 +6,7 @@ import Users from './pages/Users';
 import Shops from './pages/Shops';
 import Items from './pages/Items';
 import Stock from './pages/Stock';
+import Storekeeper from './pages/Storekeeper';
 import './App.css';
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
             <Route path="/shops" element={<Shops />} />
             <Route path="/items" element={<Items />} />
             <Route path="/stock" element={<Stock />} />
+            <Route path="/storekeeper" element={<Storekeeper />} />
           </Routes>
         </div>
       </div>

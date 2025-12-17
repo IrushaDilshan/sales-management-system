@@ -250,8 +250,128 @@ code {
   }
 }
 
-.empty-state {
-  text-align: center;
-  padding: 4rem 0;
+/* Storekeeper Dashboard Styles */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.overview-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid var(--primary-color);
+}
+
+.overview-card h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.overview-card .card-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.overview-card.warning {
+  border-left-color: #f59e0b;
+}
+
+.overview-card.success {
+  border-left-color: var(--success-color);
+}
+
+/* Status Badges */
+.status-ok {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.status-low {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.status-out {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+/* Alerts */
+.alert {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+}
+
+.alert.error {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.alert.success {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+/* Utilities */
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+.font-bold { font-weight: 700; }
+.text-muted { color: var(--text-secondary); }
+.header-margin { margin-top: 2rem; }
+
+/* Buttons */
+.btn-text {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
+  margin-left: 0.5rem;
   color: var(--text-secondary);
 }
+
+.btn-text:hover { text-decoration: underline; }
+.btn-text.primary { color: var(--primary-color); }
+.btn-text.warning { color: #d97706; }
+
+/* Modal tweaks */
+.wide-modal { max-width: 800px; }
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.modal-header h2 { margin: 0; }
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.small-table th, .small-table td { padding: 0.75rem 1rem; }
+.badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.badge.IN { background-color: #d1fae5; color: #065f46; }
+.badge.OUT { background-color: #fee2e2; color: #991b1b; }
+.badge.RETURN { background-color: #fef3c7; color: #92400e; }
