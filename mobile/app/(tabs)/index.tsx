@@ -30,16 +30,48 @@ export default function HomeScreen() {
         >
           <Text style={styles.buttonText}>New Sales Request</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: '#4CAF50' }]}
+          onPress={() => router.push('/shop-owner/submit-income')}
+        >
+          <Text style={styles.buttonText}>Submit Daily Income</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: '#9C27B0' }]}
+          onPress={() => router.push('/salesman/income-history')}
+        >
+          <Text style={styles.buttonText}>View Income History</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: '#FF9800' }]}
+          onPress={() => router.push('/salesman/request-history')}
+        >
+          <Text style={styles.buttonText}>View Request History</Text>
+        </TouchableOpacity>
       </ThemedView>
 
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Representative Actions</ThemedText>
 
         <TouchableOpacity
-          style={[styles.button, { backgroundColor: '#4CAF50' }]}
+          style={[styles.button, { backgroundColor: '#2196F3' }]}
           onPress={() => router.push('/rep')}
         >
           <Text style={styles.buttonText}>Pending Requests (Rep)</Text>
+        </TouchableOpacity>
+      </ThemedView>
+
+      <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">Storekeeper Actions</ThemedText>
+
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: '#FF9800' }]}
+          onPress={() => router.push('/storekeeper')}
+        >
+          <Text style={styles.buttonText}>Storekeeper Dashboard</Text>
         </TouchableOpacity>
       </ThemedView>
     </ParallaxScrollView>

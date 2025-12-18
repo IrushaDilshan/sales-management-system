@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../shared/supabaseClient';
+import '../shared/ModernPage.css';
 
 const Items = () => {
     const [items, setItems] = useState([]);
@@ -125,7 +126,7 @@ const Items = () => {
                             <thead>
                                 <tr>
                                     <th>Name</th>
-                                    <th style={{ textAlign: 'right' }}>Actions</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>

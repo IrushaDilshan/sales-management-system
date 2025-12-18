@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../shared/supabaseClient';
+import '../shared/ModernPage.css';
 
 const Storekeeper = () => {
     // State
@@ -179,6 +180,25 @@ const Storekeeper = () => {
 
             if (transError) throw transError;
 
+            // Update Stock Cache Table
+            let newQty = item.qty;
+            if (type === 'ADD' || type === 'RETURN') {
+                newQty += qty;
+            } else if (type === 'ISSUE') {
+                newQty -= qty;
+            }
+
+            const { error: stockError } = await supabase
+                .from('stock')
+                .upsert(
+                    { item_id: item.id, qty: newQty },
+                    { onConflict: 'item_id' }
+                );
+
+            if (stockError) {
+                console.error('Failed to update stock cache:', stockError);
+            }
+
             await fetchData(); // Refresh UI
             setSuccessMsg(`Successfully ${type === 'ADD' ? 'added' : (type === 'ISSUE' ? 'issued' : 'returned')} stock for ${item.name}`);
             handleCloseModal();
@@ -202,6 +222,12 @@ const Storekeeper = () => {
         <div className="page-container">
             <div className="page-header">
                 <h1 className="page-title">Storekeeper Dashboard</h1>
+                <button
+                    className="btn-primary"
+                    onClick={() => window.location.href = '/items'}
+                >
+                    <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>+</span> New Item
+                </button>
             </div>
 
             {/* ERROR / SUCCESS MESSAGES */}

@@ -1,13 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../shared/supabaseClient';
+import '../shared/ModernPage.css';
 
 const Shops = () => {
     const [shops, setShops] = useState([]);
     const [reps, setReps] = useState([]);
+    const [routes, setRoutes] = useState([]);
+    const [salesmen, setSalesmen] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [formData, setFormData] = useState({ id: null, name: '', rep_id: '' });
+    const [formData, setFormData] = useState({ id: null, name: '', rep_id: '', route_id: '', salesman_id: '' });
     const [error, setError] = useState(null);
+
+    // Simple filter states - just search and route
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedRoute, setSelectedRoute] = useState('all');
 
     useEffect(() => {
         fetchData();
@@ -17,7 +24,6 @@ const Shops = () => {
         try {
             setLoading(true);
 
-            // Fetch Shops
             const { data: shopsData, error: shopsError } = await supabase
                 .from('shops')
                 .select('*')
@@ -25,22 +31,46 @@ const Shops = () => {
 
             if (shopsError) throw shopsError;
 
-            // Fetch Reps
             const { data: repsData, error: repsError } = await supabase
                 .from('users')
                 .select('id, name')
-                .eq('role', 'rep'); // Strict check for role 'rep'
+                .eq('role', 'rep');
 
             if (repsError) throw repsError;
 
-            setReps(repsData || []);
+            const { data: routesData, error: routesError } = await supabase
+                .from('routes')
+                .select('id, name')
+                .order('name');
 
-            // Manual Join
+            if (routesError && routesError.code !== 'PGRST116') throw routesError;
+
+            const { data: salesmenData, error: salesmenError } = await supabase
+                .from('users')
+                .select('id, name, shop_id')
+                .eq('role', 'salesman')
+                .order('name');
+
+            if (salesmenError && salesmenError.code !== 'PGRST116') throw salesmenError;
+
+            setReps(repsData || []);
+            setRoutes(routesData || []);
+            setSalesmen(salesmenData || []);
+
             const formattedShops = (shopsData || []).map(shop => {
-                const assignedRep = repsData.find(r => r.id === shop.rep_id);
+                const assignedRep = repsData?.find(r => r.id === shop.rep_id);
+                const assignedRoute = routesData?.find(r => r.id === shop.route_id);
+                let assignedSalesman = salesmenData?.find(s => s.id === shop.salesman_id);
+
+                if (!assignedSalesman) {
+                    assignedSalesman = salesmenData?.find(s => s.shop_id === shop.id);
+                }
+
                 return {
                     ...shop,
-                    rep: assignedRep || null
+                    rep: assignedRep || null,
+                    route: assignedRoute || null,
+                    salesman: assignedSalesman || null
                 };
             });
 
@@ -53,18 +83,17 @@ const Shops = () => {
         }
     };
 
-    // Removed separate fetchReps and fetchShops calls in favor of single fetchData
-
-
     const handleOpenModal = (shop = null) => {
         if (shop) {
             setFormData({
                 id: shop.id,
                 name: shop.name || '',
-                rep_id: shop.rep_id || ''
+                rep_id: shop.rep_id || '',
+                route_id: shop.route_id || '',
+                salesman_id: shop.salesman_id || ''
             });
         } else {
-            setFormData({ id: null, name: '', rep_id: '' });
+            setFormData({ id: null, name: '', rep_id: '', route_id: '', salesman_id: '' });
         }
         setIsModalOpen(true);
         setError(null);
@@ -72,7 +101,7 @@ const Shops = () => {
 
     const handleCloseModal = () => {
         setIsModalOpen(false);
-        setFormData({ id: null, name: '', rep_id: '' });
+        setFormData({ id: null, name: '', rep_id: '', route_id: '', salesman_id: '' });
     };
 
     const handleInputChange = (e) => {
@@ -83,10 +112,11 @@ const Shops = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            // Schema: shops(id, name, rep_id)
             const updates = {
                 name: formData.name,
-                rep_id: formData.rep_id || null
+                rep_id: formData.rep_id || null,
+                route_id: formData.route_id || null,
+                salesman_id: formData.salesman_id || null
             };
 
             let error;
@@ -129,6 +159,29 @@ const Shops = () => {
         }
     };
 
+    // Simple filtering: search + route
+    const filteredShops = shops.filter(shop => {
+        // Search filter
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            const matchName = shop.name?.toLowerCase().includes(query);
+            const matchRoute = shop.route?.name?.toLowerCase().includes(query);
+            const matchSalesman = shop.salesman?.name?.toLowerCase().includes(query);
+            const matchRep = shop.rep?.name?.toLowerCase().includes(query);
+
+            if (!matchName && !matchRoute && !matchSalesman && !matchRep) {
+                return false;
+            }
+        }
+
+        // Route filter
+        if (selectedRoute !== 'all' && shop.route_id !== selectedRoute) {
+            return false;
+        }
+
+        return true;
+    });
+
     return (
         <div className="page-container">
             <div className="page-header">
@@ -143,42 +196,150 @@ const Shops = () => {
                     <div className="loading-spinner"></div>
                 </div>
             ) : (
-                <div className="table-container">
-                    {shops.length === 0 ? (
-                        <div className="empty-state">
-                            <h3>No shops found</h3>
-                            <p>Click "Add Shop" to create your first shop.</p>
+                <>
+                    {/* SIMPLE FILTERS */}
+                    <div style={{
+                        backgroundColor: 'white',
+                        padding: '1.5rem',
+                        borderRadius: '8px',
+                        marginBottom: '1.5rem',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                    }}>
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: '3fr 2fr auto',
+                            gap: '1rem',
+                            alignItems: 'end'
+                        }}>
+                            {/* Search */}
+                            <div>
+                                <label style={{
+                                    display: 'block',
+                                    marginBottom: '0.5rem',
+                                    fontSize: '0.9rem',
+                                    fontWeight: '600',
+                                    color: '#374151'
+                                }}>
+                                    Search Shops
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="Search by shop, route, salesman, or rep..."
+                                    className="form-input"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    style={{ width: '100%' }}
+                                />
+                            </div>
+
+                            {/* Route Filter */}
+                            <div>
+                                <label style={{
+                                    display: 'block',
+                                    marginBottom: '0.5rem',
+                                    fontSize: '0.9rem',
+                                    fontWeight: '600',
+                                    color: '#374151'
+                                }}>
+                                    Filter by Route
+                                </label>
+                                <select
+                                    className="form-select"
+                                    value={selectedRoute}
+                                    onChange={(e) => setSelectedRoute(e.target.value)}
+                                    style={{ width: '100%' }}
+                                >
+                                    <option value="all">All Routes</option>
+                                    {routes.map(route => (
+                                        <option key={route.id} value={route.id}>{route.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Clear Button */}
+                            <div>
+                                <button
+                                    className="btn-secondary"
+                                    onClick={() => {
+                                        setSearchQuery('');
+                                        setSelectedRoute('all');
+                                    }}
+                                    style={{
+                                        padding: '0.6rem 1.2rem',
+                                        fontSize: '0.9rem'
+                                    }}
+                                >
+                                    Clear
+                                </button>
+                            </div>
                         </div>
-                    ) : (
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Shop Name</th>
-                                    <th>Assigned Rep</th>
-                                    <th style={{ textAlign: 'right' }}>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {shops.map((shop) => (
-                                    <tr key={shop.id || Math.random()}>
-                                        <td>{shop.name}</td>
-                                        <td>{shop.rep ? shop.rep.name : <span style={{ color: '#9ca3af' }}>Unassigned</span>}</td>
-                                        <td style={{ textAlign: 'right' }}>
-                                            <button className="action-btn btn-edit" onClick={() => handleOpenModal(shop)}>
-                                                Edit
-                                            </button>
-                                            <button className="action-btn btn-delete" onClick={() => handleDelete(shop.id)}>
-                                                Delete
-                                            </button>
-                                        </td>
+
+                        {/* Results Count */}
+                        <div style={{
+                            marginTop: '1rem',
+                            fontSize: '0.9rem',
+                            color: '#6B7280',
+                            fontWeight: '500'
+                        }}>
+                            Showing {filteredShops.length} of {shops.length} shops
+                        </div>
+                    </div>
+
+                    {/* TABLE */}
+                    <div className="table-container">
+                        {filteredShops.length === 0 ? (
+                            <div className="empty-state">
+                                <h3>No shops found</h3>
+                                <p>{searchQuery || selectedRoute !== 'all' ? 'No shops match your filters. Try clearing filters.' : 'Click "Add Shop" to create your first shop.'}</p>
+                            </div>
+                        ) : (
+                            <table className="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Shop Name</th>
+                                        <th>Route</th>
+                                        <th>Salesman</th>
+                                        <th>Assigned Rep</th>
+                                        <th style={{ textAlign: 'right' }}>Actions</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
-                </div>
+                                </thead>
+                                <tbody>
+                                    {filteredShops.map((shop) => (
+                                        <tr key={shop.id || Math.random()}>
+                                            <td>{shop.name}</td>
+                                            <td>
+                                                {shop.route ? (
+                                                    <span style={{ color: '#2196F3', fontWeight: '600' }}>{shop.route.name}</span>
+                                                ) : (
+                                                    <span style={{ color: '#9ca3af' }}>No route</span>
+                                                )}
+                                            </td>
+                                            <td>
+                                                {shop.salesman ? (
+                                                    <span style={{ color: '#4CAF50', fontWeight: '600' }}>{shop.salesman.name}</span>
+                                                ) : (
+                                                    <span style={{ color: '#9ca3af' }}>No salesman</span>
+                                                )}
+                                            </td>
+                                            <td>{shop.rep ? shop.rep.name : <span style={{ color: '#9ca3af' }}>Unassigned</span>}</td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <button className="action-btn btn-edit" onClick={() => handleOpenModal(shop)}>
+                                                    Edit
+                                                </button>
+                                                <button className="action-btn btn-delete" onClick={() => handleDelete(shop.id)}>
+                                                    Delete
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                </>
             )}
 
+            {/* MODAL */}
             {isModalOpen && (
                 <div className="modal-overlay">
                     <div className="modal-content">
@@ -207,7 +368,43 @@ const Shops = () => {
                             </div>
 
                             <div className="form-group">
-                                <label className="form-label">Assign Representative</label>
+                                <label className="form-label">Assign Route</label>
+                                <select
+                                    className="form-select"
+                                    name="route_id"
+                                    value={formData.route_id}
+                                    onChange={handleInputChange}
+                                >
+                                    <option value="">-- No Route --</option>
+                                    {routes.map(route => (
+                                        <option key={route.id} value={route.id}>{route.name}</option>
+                                    ))}
+                                </select>
+                                <small style={{ color: '#666', fontSize: '0.85rem', marginTop: '0.5rem', display: 'block' }}>
+                                    Assign this shop to a route for territory organization
+                                </small>
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Assign Salesman</label>
+                                <select
+                                    className="form-select"
+                                    name="salesman_id"
+                                    value={formData.salesman_id}
+                                    onChange={handleInputChange}
+                                >
+                                    <option value="">-- No Salesman --</option>
+                                    {salesmen.map(salesman => (
+                                        <option key={salesman.id} value={salesman.id}>{salesman.name}</option>
+                                    ))}
+                                </select>
+                                <small style={{ color: '#666', fontSize: '0.85rem', marginTop: '0.5rem', display: 'block' }}>
+                                    The salesman who manages this shop
+                                </small>
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Assign Representative (Optional)</label>
                                 <select
                                     className="form-select"
                                     name="rep_id"
@@ -219,6 +416,9 @@ const Shops = () => {
                                         <option key={rep.id} value={rep.id}>{rep.name}</option>
                                     ))}
                                 </select>
+                                <small style={{ color: '#666', fontSize: '0.85rem', marginTop: '0.5rem', display: 'block' }}>
+                                    Individual rep assignment (overrides route assignment)
+                                </small>
                             </div>
 
                             <div className="modal-actions">

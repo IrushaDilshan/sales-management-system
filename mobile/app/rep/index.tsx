@@ -68,19 +68,85 @@ export default function RepDashboard() {
 
             if (productsError) throw productsError;
 
-            // 2.5b Fetch Stock levels
-            const { data: stockData, error: stockError } = await supabase
-                .from('stock')
-                .select('item_id, qty')
+            // 2.5b Fetch current user (rep) and their assigned stock
+            const { data: userData } = await supabase.auth.getUser();
+            const authUserId = userData?.user?.id;
+            const userEmail = userData?.user?.email;
+
+            // Get the user's ID from the users table (not auth ID)
+            let currentUserId = null;
+            if (userEmail) {
+                const { data: userRecord } = await supabase
+                    .from('users')
+                    .select('id')
+                    .eq('email', userEmail)
+                    .single();
+                currentUserId = userRecord?.id;
+                console.log('Rep User ID from users table:', currentUserId);
+            }
+
+            // Validate user ID exists
+            if (!currentUserId) {
+                console.warn('No user record found for email:', userEmail);
+                // Continue with empty stock
+                const itemsMap = new Map();
+                const repStockMap = new Map();
+                productsData?.forEach((p: any) => itemsMap.set(p.id, p.name));
+
+                // STEP 3: Aggregate with zero stock
+                const itemsAggregationMap = new Map<number, PendingItem>();
+                itemsData?.forEach((row: any) => {
+                    const pending = row.qty - (row.delivered_qty || 0);
+                    if (pending <= 0) return;
+                    const itemId = row.item_id;
+                    if (!itemId) return;
+
+                    const itemName = itemsMap.get(itemId) || 'Unknown Item';
+
+                    if (itemsAggregationMap.has(itemId)) {
+                        const existing = itemsAggregationMap.get(itemId)!;
+                        existing.totalPendingQty += pending;
+                    } else {
+                        itemsAggregationMap.set(itemId, {
+                            itemId: itemId,
+                            itemName: itemName,
+                            totalPendingQty: pending,
+                            availableStock: 0
+                        });
+                    }
+                });
+
+                setPendingItems(Array.from(itemsAggregationMap.values()));
+                return;
+            }
+
+            // Fetch rep's stock from stock_transactions (what storekeeper issued to them)
+            const { data: repTransactions, error: stockError } = await supabase
+                .from('stock_transactions')
+                .select('item_id, qty, type')
+                .eq('rep_id', currentUserId)
                 .in('item_id', itemIds);
 
             if (stockError && stockError.code !== 'PGRST116') throw stockError;
 
+            console.log('Rep Stock Transactions:', repTransactions);
+
             const itemsMap = new Map();
-            const stockMap = new Map();
+            const repStockMap = new Map();
 
             productsData?.forEach((p: any) => itemsMap.set(p.id, p.name));
-            stockData?.forEach((s: any) => stockMap.set(s.item_id, s.qty));
+
+            // Calculate rep's available stock per item from transactions
+            repTransactions?.forEach((trans: any) => {
+                const currentStock = repStockMap.get(trans.item_id) || 0;
+                if (trans.type === 'OUT') {
+                    // Stock issued to this rep
+                    repStockMap.set(trans.item_id, currentStock + trans.qty);
+                }
+                // Future: handle RETURN transactions if needed
+            });
+
+            console.log('Calculated Rep Stock Map:', Array.from(repStockMap.entries()));
 
             // STEP 3: Aggregate in Memory
             const itemsAggregationMap = new Map<number, PendingItem>();
@@ -94,7 +160,7 @@ export default function RepDashboard() {
                 if (!itemId) return;
 
                 const itemName = itemsMap.get(itemId) || 'Unknown Item';
-                const currentStock = stockMap.get(itemId) || 0;
+                const currentStock = repStockMap.get(itemId) || 0;
 
                 if (itemsAggregationMap.has(itemId)) {
                     const existing = itemsAggregationMap.get(itemId)!;
@@ -139,9 +205,17 @@ export default function RepDashboard() {
         <View style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.title}>Rep Dashboard</Text>
-                <TouchableOpacity onPress={fetchPendingRequests}>
-                    <Ionicons name="refresh" size={24} color="#007AFF" />
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 16 }}>
+                    <TouchableOpacity onPress={fetchPendingRequests}>
+                        <Ionicons name="refresh" size={24} color="#007AFF" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={async () => {
+                        await supabase.auth.signOut();
+                        router.replace('/login' as any);
+                    }}>
+                        <Ionicons name="log-out-outline" size={24} color="#007AFF" />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <View style={styles.navContainer}>
@@ -151,7 +225,7 @@ export default function RepDashboard() {
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.navButton, { backgroundColor: '#FF9800' }]} onPress={navigateToStock}>
                     <Ionicons name="cube-outline" size={24} color="white" />
-                    <Text style={styles.navButtonText}>Company Stock</Text>
+                    <Text style={styles.navButtonText}>My Stock</Text>
                 </TouchableOpacity>
             </View>
 
@@ -173,20 +247,114 @@ export default function RepDashboard() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, marginTop: 40 },
-    title: { fontSize: 24, fontWeight: 'bold' },
-    navContainer: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-    navButton: { flex: 1, backgroundColor: '#2196F3', padding: 15, borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-    navButtonText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
-    sectionTitle: { fontSize: 18, fontWeight: '600', marginBottom: 10, color: '#333' },
-    list: { paddingBottom: 20 },
-    card: { backgroundColor: 'white', borderRadius: 12, marginBottom: 12, overflow: 'hidden', elevation: 2 },
-    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: 'white' },
-    headerTitle: { flex: 1 },
-    itemName: { fontSize: 18, fontWeight: '600', color: '#333' },
-    badgeContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 10 },
-    totalBadge: { fontSize: 14, color: '#e65100', fontWeight: 'bold' },
-    stockBadge: { fontSize: 14, fontWeight: 'bold' },
-    emptyText: { textAlign: 'center', marginTop: 40, color: '#999', fontSize: 16 }
+    container: {
+        flex: 1,
+        backgroundColor: '#f8f9fa'
+    },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 24,
+        marginTop: 50,
+        paddingHorizontal: 20
+    },
+    title: {
+        fontSize: 32,
+        fontWeight: '800',
+        color: '#1a1a2e',
+        letterSpacing: -0.5
+    },
+    navContainer: {
+        flexDirection: 'row',
+        gap: 12,
+        marginBottom: 24,
+        paddingHorizontal: 20
+    },
+    navButton: {
+        flex: 1,
+        backgroundColor: '#2196F3',
+        padding: 18,
+        borderRadius: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        shadowColor: '#2196F3',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6
+    },
+    navButtonText: {
+        color: 'white',
+        fontWeight: '700',
+        fontSize: 15,
+        letterSpacing: 0.3
+    },
+    sectionTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        marginBottom: 16,
+        color: '#1a1a2e',
+        paddingHorizontal: 20,
+        letterSpacing: -0.3
+    },
+    list: {
+        paddingBottom: 30,
+        paddingHorizontal: 20
+    },
+    card: {
+        backgroundColor: 'white',
+        borderRadius: 20,
+        marginBottom: 14,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 3,
+        borderWidth: 1,
+        borderColor: '#f0f0f0'
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 20,
+        backgroundColor: 'white'
+    },
+    headerTitle: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center'
+    },
+    itemName: {
+        fontSize: 17,
+        fontWeight: '600',
+        color: '#1a1a2e',
+        letterSpacing: -0.2
+    },
+    badgeContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 6,
+        gap: 12
+    },
+    totalBadge: {
+        fontSize: 15,
+        color: '#ff6b35',
+        fontWeight: '700'
+    },
+    stockBadge: {
+        fontSize: 15,
+        fontWeight: '700'
+    },
+    emptyText: {
+        textAlign: 'center',
+        marginTop: 60,
+        color: '#9ca3af',
+        fontSize: 16,
+        fontWeight: '500'
+    }
 });

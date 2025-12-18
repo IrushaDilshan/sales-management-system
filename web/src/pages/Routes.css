@@ -1,0 +1,179 @@
+.routes-container {
+    padding: 0;
+}
+
+.routes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+.route-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e5e7eb;
+    transition: all 0.3s;
+}
+
+.route-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+}
+
+.route-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.route-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin: 0;
+}
+
+.route-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.route-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.info-label {
+    font-size: 0.9rem;
+    color: #666;
+    font-weight: 600;
+    min-width: 80px;
+}
+
+.info-value {
+    font-size: 0.95rem;
+    color: #1a1a2e;
+    font-weight: 500;
+}
+
+.route-shops {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+.shops-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #666;
+    margin: 0 0 0.5rem 0;
+}
+
+.shops-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.shops-list li {
+    font-size: 0.9rem;
+    color: #2196F3;
+    padding-left: 1rem;
+    position: relative;
+}
+
+.shops-list li:before {
+    content: "🏪";
+    position: absolute;
+    left: 0;
+}
+
+.modal-wide {
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.shops-checklist {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1rem;
+    background: #f8f9fa;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.checkbox-label:hover {
+    background: #e3f2fd;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.checkbox-label span {
+    font-size: 0.95rem;
+    color: #1a1a2e;
+}
+
+.shop-warning {
+    font-size: 0.8rem !important;
+    color: #FF9800 !important;
+    font-style: italic;
+    margin-left: auto;
+}
+
+.error-message {
+    background-color: #fee2e2;
+    color: #991b1b;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+    .routes-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .route-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .route-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}

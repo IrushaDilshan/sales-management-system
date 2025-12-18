@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../shared/supabaseClient';
+import '../shared/ModernPage.css';
 
 const Stock = () => {
     const [stocks, setStocks] = useState([]);
@@ -25,22 +26,31 @@ const Stock = () => {
 
             if (itemsError) throw itemsError;
 
-            // 2. Fetch All Stock Records
-            const { data: stockData, error: stockError } = await supabase
-                .from('stock')
+            // 2. Fetch All Stock Transactions
+            const { data: transData, error: transError } = await supabase
+                .from('stock_transactions')
                 .select('*');
 
-            if (stockError && stockError.code !== 'PGRST116') {
-                // Ignore 406/PGRST116 (JSON return type) errors if table is empty/weird
-                console.error('Stock fetch error:', stockError);
+            if (transError && transError.code !== 'PGRST116') {
+                console.error('Stock fetch error:', transError);
             }
 
-            // 3. Merge Data (Left Join: Show all items, attach stock if exists)
+            const transactionsList = transData || [];
+
+            // 3. Merge Data: Calculate stock from transactions
             const formattedData = (itemsData || []).map(item => {
-                const stockEntry = (stockData || []).find(s => s.item_id === item.id);
+                const itemTrans = transactionsList.filter(t => t.item_id === item.id);
+
+                // Calculate stock: IN + RETURN - OUT
+                const currentQty = itemTrans.reduce((acc, t) => {
+                    if (t.type === 'IN' || t.type === 'RETURN') return acc + t.qty;
+                    if (t.type === 'OUT') return acc - t.qty;
+                    return acc;
+                }, 0);
+
                 return {
                     ...item,
-                    qty: stockEntry ? stockEntry.qty : 0
+                    qty: currentQty
                 };
             });
 
@@ -74,9 +84,32 @@ const Stock = () => {
                 throw new Error('Please enter a valid non-negative quantity');
             }
 
-            // Schema: stock(item_id, qty)
-            // We need to upsert (insert or update) based on item_id
+            // Calculate difference
+            const currentQty = selectedItem.qty;
+            const diff = newQuantity - currentQty;
 
+            if (diff === 0) {
+                handleCloseModal();
+                return;
+            }
+
+            const type = diff > 0 ? 'IN' : 'OUT';
+            const qty = Math.abs(diff);
+
+            // Insert adjustment transaction
+            const { error: insertError } = await supabase
+                .from('stock_transactions')
+                .insert({
+                    item_id: selectedItem.id,
+                    type: type,
+                    qty: qty,
+                    remarks: 'Manual Adjustment (Admin)',
+                    created_at: new Date().toISOString()
+                });
+
+            if (insertError) throw insertError;
+
+            // Update cache table 'stock'
             const { error: upsertError } = await supabase
                 .from('stock')
                 .upsert(
@@ -84,7 +117,10 @@ const Stock = () => {
                     { onConflict: 'item_id' }
                 );
 
-            if (upsertError) throw upsertError;
+            if (upsertError) {
+                console.error('Failed to update stock cache:', upsertError);
+                // Don't throw, since transaction is recorded
+            }
 
             fetchData();
             handleCloseModal();
@@ -116,7 +152,7 @@ const Stock = () => {
                                 <tr>
                                     <th>Item Name</th>
                                     <th>Current Stock (Qty)</th>
-                                    <th style={{ textAlign: 'right' }}>Actions</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>

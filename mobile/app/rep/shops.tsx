@@ -89,13 +89,36 @@ export default function ShopsListScreen() {
             onPress={() => router.push(`/rep/request/${item.shopId}`)}
         >
             <View style={styles.cardHeader}>
-                <Ionicons name="storefront" size={24} color="#FF9800" />
-                <View style={{ marginLeft: 12 }}>
+                <View style={{
+                    backgroundColor: '#fff3e0',
+                    padding: 12,
+                    borderRadius: 14,
+                    marginRight: 14
+                }}>
+                    <Ionicons name="storefront" size={28} color="#FF9800" />
+                </View>
+                <View style={{ flex: 1 }}>
                     <Text style={styles.shopName}>{item.shopName}</Text>
-                    <Text style={styles.subtitle}>{item.requestCount} Active Requests</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                        <View style={{
+                            backgroundColor: '#dbeafe',
+                            paddingHorizontal: 10,
+                            paddingVertical: 4,
+                            borderRadius: 8
+                        }}>
+                            <Text style={{
+                                color: '#2196F3',
+                                fontSize: 13,
+                                fontWeight: '700',
+                                letterSpacing: 0.2
+                            }}>
+                                {item.requestCount} {item.requestCount === 1 ? 'Request' : 'Requests'}
+                            </Text>
+                        </View>
+                    </View>
                 </View>
             </View>
-            <Ionicons name="chevron-forward" size={24} color="#ccc" />
+            <Ionicons name="chevron-forward" size={24} color="#d1d5db" />
         </TouchableOpacity>
     );
 
@@ -134,16 +157,101 @@ export default function ShopsListScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
-    header: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, marginTop: 40 },
-    backBtn: { marginRight: 16 },
-    title: { fontSize: 24, fontWeight: 'bold' },
-    searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', padding: 12, borderRadius: 10, marginBottom: 16, elevation: 1 },
-    searchInput: { flex: 1, fontSize: 16 },
-    list: { paddingBottom: 20 },
-    card: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'white', padding: 16, borderRadius: 12, marginBottom: 10, elevation: 1 },
-    cardHeader: { flexDirection: 'row', alignItems: 'center' },
-    shopName: { fontSize: 18, fontWeight: '600', color: '#333' },
-    subtitle: { color: '#666', marginTop: 4 },
-    emptyText: { textAlign: 'center', marginTop: 40, color: '#999', fontSize: 16 }
+    container: {
+        flex: 1,
+        backgroundColor: '#f8f9fa'
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 24,
+        marginTop: 50,
+        paddingHorizontal: 20
+    },
+    backBtn: {
+        marginRight: 16,
+        padding: 8,
+        borderRadius: 12,
+        backgroundColor: 'white',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 2
+    },
+    title: {
+        fontSize: 32,
+        fontWeight: '800',
+        color: '#1a1a2e',
+        letterSpacing: -0.5
+    },
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'white',
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        borderRadius: 16,
+        marginBottom: 20,
+        marginHorizontal: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 3,
+        borderWidth: 1,
+        borderColor: '#f0f0f0'
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 16,
+        marginLeft: 12,
+        color: '#1a1a2e',
+        fontWeight: '500'
+    },
+    list: {
+        paddingBottom: 30,
+        paddingHorizontal: 20
+    },
+    card: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: 'white',
+        padding: 18,
+        borderRadius: 20,
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 3,
+        borderWidth: 1,
+        borderColor: '#f0f0f0'
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1
+    },
+    shopName: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#1a1a2e',
+        letterSpacing: -0.3,
+        marginBottom: 4
+    },
+    subtitle: {
+        color: '#6b7280',
+        marginTop: 4,
+        fontSize: 14,
+        fontWeight: '500'
+    },
+    emptyText: {
+        textAlign: 'center',
+        marginTop: 60,
+        color: '#9ca3af',
+        fontSize: 16,
+        fontWeight: '500'
+    }
 });

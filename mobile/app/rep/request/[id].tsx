@@ -37,6 +37,7 @@ export default function ShopRequestDetails() {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
     const [inputs, setInputs] = useState<{ [key: string]: string }>({});
+    const [collapsedSections, setCollapsedSections] = useState<{ [key: string]: boolean }>({});
     const router = useRouter();
 
     useEffect(() => {
@@ -97,15 +98,52 @@ export default function ShopRequestDetails() {
 
             if (itemsError) throw itemsError;
 
-            // 4. Products & Stock
+            // 4. Get current user (rep) ID from users table
+            const { data: userData } = await supabase.auth.getUser();
+            const userEmail = userData?.user?.email;
+
+            // Get the user's ID from the users table (not auth ID)
+            let currentUserId = null;
+            if (userEmail) {
+                const { data: userRecord } = await supabase
+                    .from('users')
+                    .select('id')
+                    .eq('email', userEmail)
+                    .single();
+                currentUserId = userRecord?.id;
+            }
+
+            // 5. Products & Rep Stock
             const itemIds = Array.from(new Set(requestItemsData.map((r: any) => r.item_id)));
             const { data: productsData } = await supabase.from('items').select('id, name').in('id', itemIds);
-            const { data: stockData } = await supabase.from('stock').select('item_id, qty').in('item_id', itemIds);
 
             const itemsMap = new Map();
-            const stockMap = new Map();
+            const repStockMap = new Map();
+
             productsData?.forEach((p: any) => itemsMap.set(p.id, p.name));
-            stockData?.forEach((s: any) => stockMap.set(s.item_id, s.qty));
+
+            // Only fetch rep stock if we have a valid user ID
+            if (currentUserId) {
+                // Instead of warehouse stock, get rep's assigned stock from stock_transactions
+                // Rep stock = SUM(OUT transactions for this rep) - (stock already delivered in requests)
+                const { data: repTransactions } = await supabase
+                    .from('stock_transactions')
+                    .select('item_id, qty, type')
+                    .eq('rep_id', currentUserId)
+                    .in('item_id', itemIds);
+
+                // Calculate rep's available stock per item
+                repTransactions?.forEach((trans: any) => {
+                    const currentStock = repStockMap.get(trans.item_id) || 0;
+                    if (trans.type === 'OUT') {
+                        // Stock issued to rep
+                        repStockMap.set(trans.item_id, currentStock + trans.qty);
+                    }
+                    // Note: If rep returns stock, it would be type='RETURN' and we'd subtract
+                });
+            } else {
+                console.warn('No user ID found, stock will show as 0');
+            }
 
             // 5. Group by Date then Item
             const dateGroups: { [date: string]: { [itemId: number]: RequestItem } } = {};
@@ -141,7 +179,7 @@ export default function ShopRequestDetails() {
                         qty: 0,
                         deliveredQty: 0,
                         pendingQty: 0,
-                        availableStock: stockMap.get(itemId) || 0,
+                        availableStock: repStockMap.get(itemId) || 0,
                         status: 'pending',
                         requestDate: dateStr,
                         subItems: []
@@ -165,11 +203,32 @@ export default function ShopRequestDetails() {
                 data: Object.values(dateGroups[date])
             }));
 
+            // Sort sections by date (newest first)
+            sectionData.sort((a, b) => {
+                const dateA = new Date(a.data[0]?.requestDate || 0);
+                const dateB = new Date(b.data[0]?.requestDate || 0);
+                return dateB.getTime() - dateA.getTime();
+            });
+
             setSections(sectionData);
 
         } catch (err: any) {
-            console.error(err);
-            Alert.alert('Error', err.message);
+            console.error('Fetch Details Error:', err);
+            const errorMessage = err.message || 'Unknown error occurred';
+
+            // Check if it's a network error
+            if (errorMessage.includes('Network') || errorMessage.includes('connection')) {
+                Alert.alert(
+                    'Connection Error',
+                    'Unable to connect to the server. Please check your internet connection and try again.',
+                    [
+                        { text: 'Cancel', style: 'cancel' },
+                        { text: 'Retry', onPress: () => fetchDetails() }
+                    ]
+                );
+            } else {
+                Alert.alert('Error', errorMessage);
+            }
         } finally {
             setLoading(false);
         }
@@ -229,54 +288,116 @@ export default function ShopRequestDetails() {
         }
     };
 
-    const renderItem = ({ item }: { item: RequestItem }) => (
-        <View style={styles.card}>
-            <View style={styles.itemHeader}>
-                <Text style={styles.itemName}>{item.itemName}</Text>
-                {activeTab === 'pending' && (
-                    <Text style={styles.stockText}>In Stock: {item.availableStock}</Text>
-                )}
-            </View>
+    const renderItem = ({ item, section }: { item: RequestItem; section: SectionData }) => {
+        // Don't render if section is collapsed
+        if (collapsedSections[section.title]) {
+            return null;
+        }
 
-            <View style={styles.statRow}>
-                <View style={styles.stat}>
-                    <Text style={styles.statLabel}>Ordered</Text>
-                    <Text style={styles.statValue}>{item.qty}</Text>
+        // Determine status color based on pending quantity
+        const statusColor = item.pendingQty > 50 ? '#ef4444' : item.pendingQty > 20 ? '#f59e0b' : '#10b981';
+
+        return (
+            <View style={[styles.card, { borderLeftWidth: 4, borderLeftColor: activeTab === 'pending' ? statusColor : '#10b981' }]}>
+                <View style={styles.itemHeader}>
+                    <Text style={styles.itemName}>{item.itemName}</Text>
+                    {activeTab === 'pending' && (
+                        <Text style={styles.stockText}>Stock: {item.availableStock}</Text>
+                    )}
                 </View>
-                <View style={styles.stat}>
-                    <Text style={styles.statLabel}>Delivered</Text>
-                    <Text style={[styles.statValue, { color: 'green' }]}>{item.deliveredQty}</Text>
-                </View>
-                {activeTab === 'pending' && (
+
+                <View style={styles.statRow}>
                     <View style={styles.stat}>
-                        <Text style={styles.statLabel}>Pending</Text>
-                        <Text style={[styles.statValue, { color: '#e65100' }]}>{item.pendingQty}</Text>
+                        <Text style={styles.statLabel}>Ordered</Text>
+                        <Text style={styles.statValue}>{item.qty}</Text>
+                    </View>
+                    <View style={styles.stat}>
+                        <Text style={styles.statLabel}>Delivered</Text>
+                        <Text style={[styles.statValue, { color: '#10b981' }]}>{item.deliveredQty}</Text>
+                    </View>
+                    {activeTab === 'pending' && (
+                        <View style={styles.stat}>
+                            <Text style={styles.statLabel}>Pending</Text>
+                            <Text style={[styles.statValue, { color: '#ff6b35' }]}>{item.pendingQty}</Text>
+                        </View>
+                    )}
+                </View>
+
+                {activeTab === 'pending' && (
+                    <View style={styles.actionRow}>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Enter quantity"
+                            placeholderTextColor="#9ca3af"
+                            keyboardType="numeric"
+                            value={inputs[item.id] || ''}
+                            onChangeText={(text) => setInputs(prev => ({ ...prev, [item.id]: text }))}
+                        />
+                        <TouchableOpacity style={styles.deliverBtn} onPress={() => handleDeliver(item)}>
+                            <Ionicons name="checkmark-circle" size={20} color="white" style={{ marginRight: 6 }} />
+                            <Text style={styles.deliverBtnText}>Issue</Text>
+                        </TouchableOpacity>
                     </View>
                 )}
             </View>
+        );
+    };
 
-            {activeTab === 'pending' && (
-                <View style={styles.actionRow}>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Qty"
-                        keyboardType="numeric"
-                        value={inputs[item.id] || ''}
-                        onChangeText={(text) => setInputs(prev => ({ ...prev, [item.id]: text }))}
-                    />
-                    <TouchableOpacity style={styles.deliverBtn} onPress={() => handleDeliver(item)}>
-                        <Text style={styles.deliverBtnText}>Issue</Text>
-                    </TouchableOpacity>
+    const renderSectionHeader = ({ section: { title, data } }: { section: SectionData }) => {
+        const isCollapsed = collapsedSections[title];
+        const isExpanded = !isCollapsed;
+
+        // Check if this section has requests from the last 24 hours (consider as "new")
+        let isNew = false;
+        if (data[0]?.requestDate) {
+            const sectionDate = new Date(data[0].requestDate);
+            const now = new Date();
+
+            // Only mark as new if the date is valid and within last 24 hours
+            if (!isNaN(sectionDate.getTime())) {
+                const hoursDiff = (now.getTime() - sectionDate.getTime()) / (1000 * 60 * 60);
+                isNew = hoursDiff >= 0 && hoursDiff <= 24;
+
+                // Debug logging
+                console.log(`Section ${title}: Date=${sectionDate.toISOString()}, HoursDiff=${hoursDiff.toFixed(2)}, IsNew=${isNew}`);
+            }
+        }
+
+        const toggleSection = () => {
+            setCollapsedSections(prev => ({
+                ...prev,
+                [title]: !prev[title]
+            }));
+        };
+
+        return (
+            <TouchableOpacity
+                style={styles.sectionHeaderContainer}
+                onPress={toggleSection}
+                activeOpacity={0.7}
+            >
+                <View style={styles.sectionHeaderContent}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                        <Ionicons
+                            name={isExpanded ? "chevron-down" : "chevron-forward"}
+                            size={20}
+                            color="#6b7280"
+                            style={{ marginRight: 8 }}
+                        />
+                        <Text style={styles.sectionTitle}>{title}</Text>
+                        {isNew && (
+                            <View style={styles.newBadge}>
+                                <Text style={styles.newBadgeText}>NEW</Text>
+                            </View>
+                        )}
+                    </View>
+                    <View style={styles.itemCountBadge}>
+                        <Text style={styles.itemCountText}>{data.length} {data.length === 1 ? 'item' : 'items'}</Text>
+                    </View>
                 </View>
-            )}
-        </View>
-    );
-
-    const renderSectionHeader = ({ section: { title } }: { section: SectionData }) => (
-        <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{title}</Text>
-        </View>
-    );
+            </TouchableOpacity>
+        );
+    };
 
     return (
         <View style={styles.container}>
@@ -285,6 +406,9 @@ export default function ShopRequestDetails() {
                     <Ionicons name="arrow-back" size={24} color="#333" />
                 </TouchableOpacity>
                 <Text style={styles.title}>{shopName}</Text>
+                <TouchableOpacity onPress={fetchDetails} style={styles.backBtn}>
+                    <Ionicons name="refresh" size={24} color="#2196F3" />
+                </TouchableOpacity>
             </View>
 
             {/* TABS */}
@@ -323,29 +447,241 @@ export default function ShopRequestDetails() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f5f5f5' },
-    header: { flexDirection: 'row', alignItems: 'center', padding: 16, paddingTop: 50, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#eee' },
-    backBtn: { marginRight: 16 },
-    title: { fontSize: 20, fontWeight: 'bold' },
-    tabs: { flexDirection: 'row', backgroundColor: 'white', padding: 8 },
-    tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
-    activeTab: { borderBottomColor: '#2196F3' },
-    tabText: { fontSize: 16, color: '#666', fontWeight: '500' },
-    activeTabText: { color: '#2196F3', fontWeight: 'bold' },
-    list: { padding: 16, paddingBottom: 40 },
-    sectionHeader: { marginBottom: 10, marginTop: 10 },
-    sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#666', backgroundColor: '#e0e0e0', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 4, alignSelf: 'flex-start' },
-    card: { backgroundColor: 'white', borderRadius: 12, padding: 16, marginBottom: 12, elevation: 1 },
-    itemHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-    itemName: { fontSize: 18, fontWeight: '600', color: '#333' },
-    stockText: { fontSize: 14, color: 'green', fontWeight: 'bold' },
-    statRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16, backgroundColor: '#f9f9f9', padding: 10, borderRadius: 8 },
-    stat: { alignItems: 'center' },
-    statLabel: { fontSize: 12, color: '#888', marginBottom: 2 },
-    statValue: { fontSize: 16, fontWeight: '700', color: '#333' },
-    actionRow: { flexDirection: 'row', gap: 10 },
-    input: { flex: 1, borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 16, backgroundColor: '#fff' },
-    deliverBtn: { backgroundColor: '#2196F3', borderRadius: 8, paddingHorizontal: 20, justifyContent: 'center', alignItems: 'center' },
-    deliverBtnText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
-    emptyText: { textAlign: 'center', marginTop: 40, color: '#999', fontSize: 16 }
+    container: {
+        flex: 1,
+        backgroundColor: '#f8f9fa'
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 20,
+        paddingTop: 50,
+        backgroundColor: 'white',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 3
+    },
+    backBtn: {
+        marginRight: 16,
+        padding: 8,
+        borderRadius: 12,
+        backgroundColor: '#f8f9fa'
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: '800',
+        color: '#1a1a2e',
+        letterSpacing: -0.5,
+        flex: 1
+    },
+    tabs: {
+        flexDirection: 'row',
+        backgroundColor: 'white',
+        paddingHorizontal: 20,
+        paddingTop: 8,
+        paddingBottom: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+        elevation: 2
+    },
+    tab: {
+        flex: 1,
+        paddingVertical: 12,
+        alignItems: 'center',
+        borderBottomWidth: 3,
+        borderBottomColor: 'transparent',
+        marginBottom: 4
+    },
+    activeTab: {
+        borderBottomColor: '#2196F3'
+    },
+    tabText: {
+        fontSize: 16,
+        color: '#6b7280',
+        fontWeight: '600',
+        letterSpacing: 0.2
+    },
+    activeTabText: {
+        color: '#2196F3',
+        fontWeight: '800'
+    },
+    list: {
+        padding: 20,
+        paddingBottom: 40
+    },
+    sectionHeaderContainer: {
+        marginBottom: 12,
+        marginTop: 16,
+        backgroundColor: 'white',
+        borderRadius: 16,
+        paddingVertical: 14,
+        paddingHorizontal: 18,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 2,
+        borderWidth: 1,
+        borderColor: '#f0f0f0'
+    },
+    sectionHeaderContent: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+    },
+    sectionHeader: {
+        marginBottom: 12,
+        marginTop: 16
+    },
+    sectionTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#1a1a2e',
+        letterSpacing: -0.2
+    },
+    newBadge: {
+        backgroundColor: '#ef4444',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+        marginLeft: 10
+    },
+    newBadgeText: {
+        color: 'white',
+        fontSize: 11,
+        fontWeight: '800',
+        letterSpacing: 0.5
+    },
+    itemCountBadge: {
+        backgroundColor: '#f3f4f6',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 8
+    },
+    itemCountText: {
+        color: '#6b7280',
+        fontSize: 13,
+        fontWeight: '600'
+    },
+    card: {
+        backgroundColor: 'white',
+        borderRadius: 20,
+        padding: 20,
+        marginBottom: 14,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 4,
+        borderWidth: 1,
+        borderColor: '#f0f0f0',
+        overflow: 'hidden'
+    },
+    itemHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 16,
+        alignItems: 'flex-start'
+    },
+    itemName: {
+        fontSize: 19,
+        fontWeight: '700',
+        color: '#1a1a2e',
+        letterSpacing: -0.3,
+        flex: 1,
+        lineHeight: 24
+    },
+    stockText: {
+        fontSize: 13,
+        color: '#10b981',
+        fontWeight: '800',
+        backgroundColor: '#d1fae5',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 10,
+        overflow: 'hidden',
+        letterSpacing: 0.3
+    },
+    statRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 18,
+        backgroundColor: '#f8f9fa',
+        padding: 16,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: '#e5e7eb'
+    },
+    stat: {
+        alignItems: 'center',
+        flex: 1
+    },
+    statLabel: {
+        fontSize: 12,
+        color: '#6b7280',
+        marginBottom: 6,
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5
+    },
+    statValue: {
+        fontSize: 22,
+        fontWeight: '800',
+        color: '#1a1a2e',
+        letterSpacing: -0.5
+    },
+    actionRow: {
+        flexDirection: 'row',
+        gap: 12,
+        marginTop: 4
+    },
+    input: {
+        flex: 1,
+        borderWidth: 2,
+        borderColor: '#e5e7eb',
+        borderRadius: 14,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        fontSize: 17,
+        backgroundColor: '#fff',
+        fontWeight: '600',
+        color: '#1a1a2e',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+        elevation: 1
+    },
+    deliverBtn: {
+        backgroundColor: '#2196F3',
+        borderRadius: 14,
+        paddingHorizontal: 28,
+        paddingVertical: 14,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#2196F3',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
+        minWidth: 100
+    },
+    deliverBtnText: {
+        color: 'white',
+        fontWeight: '800',
+        fontSize: 16,
+        letterSpacing: 0.5
+    },
+    emptyText: {
+        textAlign: 'center',
+        marginTop: 60,
+        color: '#9ca3af',
+        fontSize: 16,
+        fontWeight: '600'
+    }
 });

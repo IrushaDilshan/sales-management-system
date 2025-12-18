@@ -1,208 +1,207 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../shared/supabaseClient';
 import { Link } from 'react-router-dom';
+import './Dashboard.css';
 
 const Dashboard = () => {
     const [stats, setStats] = useState({
-        shops: 0,
-        items: 0,
-        lowStock: 0,
-        pendingRequests: 0
+        totalUsers: 0,
+        totalShops: 0,
+        totalRoutes: 0,
+        totalItems: 0,
+        salesmen: 0,
+        reps: 0,
+        storekeepers: 0
     });
-    const [recentRequests, setRecentRequests] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchDashboardData();
+        fetchStats();
     }, []);
 
-    const fetchDashboardData = async () => {
+    const fetchStats = async () => {
         try {
             setLoading(true);
 
-            // Parallel data fetching
-            // 1. Shops count
-            // 2. Items count
-            // 3. Low stock count (stock table, qty < 10)
-            // 4. Pending requests count
-            // 5. Recent requests list
-
-            const [
-                { count: shopCount },
-                { count: itemCount },
-                { count: lowStockCount },
-                { count: pendingCount },
-                { data: requests }
-            ] = await Promise.all([
-                supabase.from('shops').select('*', { count: 'exact', head: true }),
-                supabase.from('items').select('*', { count: 'exact', head: true }),
-                supabase.from('stock').select('*', { count: 'exact', head: true }).lt('qty', 10),
-                supabase.from('requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-                supabase.from('requests')
-                    .select(`
-                        id, 
-                        date, 
-                        status,
-                        shop:shops(name),
-                        salesman:users!salesman_id(name)
-                    `)
-                    .order('date', { ascending: false })
-                    .limit(5)
+            // Fetch counts
+            const [usersRes, shopsRes, routesRes, itemsRes] = await Promise.all([
+                supabase.from('users').select('role', { count: 'exact' }),
+                supabase.from('shops').select('id', { count: 'exact' }),
+                supabase.from('routes').select('id', { count: 'exact' }),
+                supabase.from('items').select('id', { count: 'exact' })
             ]);
 
+            // Count users by role
+            const salesmen = usersRes.data?.filter(u => u.role === 'salesman').length || 0;
+            const reps = usersRes.data?.filter(u => u.role === 'rep').length || 0;
+            const storekeepers = usersRes.data?.filter(u => u.role === 'storekeeper').length || 0;
+
             setStats({
-                shops: shopCount || 0,
-                items: itemCount || 0,
-                lowStock: lowStockCount || 0,
-                pendingRequests: pendingCount || 0
+                totalUsers: usersRes.count || 0,
+                totalShops: shopsRes.count || 0,
+                totalRoutes: routesRes.count || 0,
+                totalItems: itemsRes.count || 0,
+                salesmen,
+                reps,
+                storekeepers
             });
-
-            setRecentRequests(requests || []);
-
-        } catch (err) {
-            console.error('Error fetching dashboard data:', err);
-            // Fallback for requests if table doesn't exist
-            if (err.message && err.message.includes('requests')) {
-                setRecentRequests([]);
-            }
+        } catch (error) {
+            console.error('Error fetching stats:', error);
         } finally {
             setLoading(false);
         }
     };
 
+    const StatCard = ({ icon, title, value, color, link, subtitle }) => (
+        <Link to={link} className="stat-card" style={{ borderTop: `4px solid ${color}` }}>
+            <div className="stat-icon" style={{ backgroundColor: `${color}15`, color }}>
+                {icon}
+            </div>
+            <div className="stat-content">
+                <div className="stat-value">{value}</div>
+                <div className="stat-title">{title}</div>
+                {subtitle && <div className="stat-subtitle">{subtitle}</div>}
+            </div>
+        </Link>
+    );
+
+    const QuickActionCard = ({ icon, title, description, link, color }) => (
+        <Link to={link} className="quick-action-card">
+            <div className="action-icon" style={{ backgroundColor: `${color}15`, color }}>
+                {icon}
+            </div>
+            <div className="action-content">
+                <h3>{title}</h3>
+                <p>{description}</p>
+            </div>
+            <div className="action-arrow" style={{ color }}>→</div>
+        </Link>
+    );
+
     return (
-        <div className="page-container">
-            <div className="page-header">
-                <h1 className="page-title">Dashboard</h1>
-                <p className="text-gray-500">Overview of your sales distribution system</p>
+        <div className="dashboard-container">
+            {/* Header */}
+            <div className="dashboard-header">
+                <div>
+                    <h1 className="dashboard-title">Manager Dashboard</h1>
+                    <p className="dashboard-subtitle">National LiveStock Development Board</p>
+                </div>
+                <div className="dashboard-date">
+                    {new Date().toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    })}
+                </div>
             </div>
 
             {loading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '3rem' }}>
+                <div className="dashboard-loading">
                     <div className="loading-spinner"></div>
+                    <p>Loading dashboard...</p>
                 </div>
             ) : (
                 <>
                     {/* Stats Grid */}
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-                        gap: '1.5rem',
-                        marginBottom: '2rem'
-                    }}>
-                        <StatCard
-                            title="Total Shops"
-                            value={stats.shops}
-                            icon="🏪"
-                            color="#4f46e5"
-                            link="/shops"
-                        />
-                        <StatCard
-                            title="Total Items"
-                            value={stats.items}
-                            icon="📦"
-                            color="#0ea5e9"
-                            link="/items"
-                        />
-                        <StatCard
-                            title="Low Stock Alerts"
-                            value={stats.lowStock}
-                            icon="⚠️"
-                            color="#ef4444"
-                            isAlert={stats.lowStock > 0}
-                            link="/stock"
-                        />
-                        <StatCard
-                            title="Pending Requests"
-                            value={stats.pendingRequests}
-                            icon="📝"
-                            color="#f59e0b"
-                            isAlert={stats.pendingRequests > 0}
-                        />
+                    <div className="stats-section">
+                        <h2 className="section-title">Overview</h2>
+                        <div className="stats-grid">
+                            <StatCard
+                                icon="👥"
+                                title="Total Users"
+                                value={stats.totalUsers}
+                                color="#2196F3"
+                                link="/users"
+                                subtitle="Manage team"
+                            />
+                            <StatCard
+                                icon="🏪"
+                                title="Shops"
+                                value={stats.totalShops}
+                                color="#4CAF50"
+                                link="/shops"
+                                subtitle="Active locations"
+                            />
+                            <StatCard
+                                icon="🗺️"
+                                title="Routes"
+                                value={stats.totalRoutes}
+                                color="#FF9800"
+                                link="/routes"
+                                subtitle="Delivery zones"
+                            />
+                            <StatCard
+                                icon="📦"
+                                title="Items"
+                                value={stats.totalItems}
+                                color="#9C27B0"
+                                link="/storekeeper/items"
+                                subtitle="Product catalog"
+                            />
+                        </div>
                     </div>
 
-                    {/* Recent Requests Section */}
-                    <div className="section-container" style={{
-                        backgroundColor: 'var(--card-bg)',
-                        padding: '1.5rem',
-                        borderRadius: '1rem',
-                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                    }}>
-                        <h2 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.25rem' }}>Recent Requests</h2>
-
-                        {recentRequests.length === 0 ? (
-                            <div className="empty-state" style={{ padding: '2rem 0' }}>
-                                <p>No recent requests found.</p>
+                    {/* Team Stats */}
+                    <div className="team-section">
+                        <h2 className="section-title">Team Members</h2>
+                        <div className="team-grid">
+                            <div className="team-card">
+                                <div className="team-icon">👨‍💼</div>
+                                <div className="team-number">{stats.salesmen}</div>
+                                <div className="team-label">Salesmen</div>
                             </div>
-                        ) : (
-                            <table className="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Shop</th>
-                                        <th>Salesman</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {recentRequests.map(req => (
-                                        <tr key={req.id}>
-                                            <td>{req.date ? new Date(req.date).toLocaleDateString() : 'N/A'}</td>
-                                            <td>{req.shop?.name || 'Unknown'}</td>
-                                            <td>{req.salesman?.name || 'Unknown'}</td>
-                                            <td>
-                                                <span className={`status-badge ${req.status === 'completed' ? 'status-active' :
-                                                        req.status === 'pending' ? 'status-inactive' : ''
-                                                    }`} style={{
-                                                        backgroundColor: req.status === 'pending' ? '#fef3c7' : undefined,
-                                                        color: req.status === 'pending' ? '#92400e' : undefined,
-                                                        textTransform: 'capitalize'
-                                                    }}>
-                                                    {req.status}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        )}
+                            <div className="team-card">
+                                <div className="team-icon">🚚</div>
+                                <div className="team-number">{stats.reps}</div>
+                                <div className="team-label">Representatives</div>
+                            </div>
+                            <div className="team-card">
+                                <div className="team-icon">📋</div>
+                                <div className="team-number">{stats.storekeepers}</div>
+                                <div className="team-label">Storekeepers</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div className="actions-section">
+                        <h2 className="section-title">Quick Actions</h2>
+                        <div className="actions-grid">
+                            <QuickActionCard
+                                icon="➕"
+                                title="Add New User"
+                                description="Create user accounts for team members"
+                                link="/users"
+                                color="#2196F3"
+                            />
+                            <QuickActionCard
+                                icon="🏪"
+                                title="Add New Shop"
+                                description="Register a new shop location"
+                                link="/shops"
+                                color="#4CAF50"
+                            />
+                            <QuickActionCard
+                                icon="🗺️"
+                                title="Create Route"
+                                description="Set up delivery routes and assignments"
+                                link="/routes"
+                                color="#FF9800"
+                            />
+                            <QuickActionCard
+                                icon="💰"
+                                title="View Daily Income"
+                                description="Check today's sales and revenue"
+                                link="/daily-income"
+                                color="#E91E63"
+                            />
+                        </div>
                     </div>
                 </>
             )}
         </div>
     );
 };
-
-const StatCard = ({ title, value, icon, color, isAlert, link }) => (
-    <div style={{
-        backgroundColor: 'var(--card-bg)',
-        padding: '1.5rem',
-        borderRadius: '1rem',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        borderLeft: `4px solid ${color}`,
-        transition: 'transform 0.2s',
-        cursor: link ? 'pointer' : 'default'
-    }}
-        onClick={() => link && (window.location.href = link)}
-        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-    >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
-            <span style={{ color: '#6b7280', fontSize: '0.875rem', fontWeight: 600 }}>{title}</span>
-            <span style={{ fontSize: '1.5rem' }}>{icon}</span>
-        </div>
-        <div style={{ fontSize: '2rem', fontWeight: 700, color: isAlert ? '#ef4444' : 'var(--text-primary)' }}>
-            {value}
-        </div>
-        {link && (
-            <div style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: color, fontWeight: 500 }}>
-                View Details &rarr;
-            </div>
-        )}
-    </div>
-);
 
 export default Dashboard;

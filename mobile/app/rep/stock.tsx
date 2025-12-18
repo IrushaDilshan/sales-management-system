@@ -22,7 +22,20 @@ export default function StockScreen() {
     const fetchStock = async () => {
         setLoading(true);
         try {
-            // Manual Join: Fetch Items + Fetch Stock
+            // Get current user from users table (not auth ID)
+            const { data: userData } = await supabase.auth.getUser();
+            const userEmail = userData?.user?.email;
+
+            // Get the user's ID from the users table
+            let currentUserId = null;
+            if (userEmail) {
+                const { data: userRecord } = await supabase
+                    .from('users')
+                    .select('id')
+                    .eq('email', userEmail)
+                    .single();
+                currentUserId = userRecord?.id;
+            }
 
             // 1. Fetch Item Definitions
             const { data: itemsData, error: itemsError } = await supabase
@@ -32,21 +45,36 @@ export default function StockScreen() {
 
             if (itemsError) throw itemsError;
 
-            // 2. Fetch Stock Levels
-            const { data: stockData, error: stockError } = await supabase
-                .from('stock')
-                .select('item_id, qty');
+            // 2. Fetch Rep's Stock from Transactions (issued by storekeeper)
+            const repStockMap = new Map();
 
-            if (stockError && stockError.code !== 'PGRST116') throw stockError;
+            // Only fetch if we have a valid user ID
+            if (currentUserId) {
+                const { data: repTransactions, error: stockError } = await supabase
+                    .from('stock_transactions')
+                    .select('item_id, qty, type')
+                    .eq('rep_id', currentUserId);
 
-            // 3. Merge
-            const stockMap = new Map();
-            stockData?.forEach((s: any) => stockMap.set(s.item_id, s.qty));
+                if (stockError && stockError.code !== 'PGRST116') throw stockError;
 
+                // 3. Calculate rep's stock per item
+                repTransactions?.forEach((trans: any) => {
+                    const currentStock = repStockMap.get(trans.item_id) || 0;
+                    if (trans.type === 'OUT') {
+                        // Stock issued to rep
+                        repStockMap.set(trans.item_id, currentStock + trans.qty);
+                    }
+                    // Future: handle RETURN if needed
+                });
+            } else {
+                console.warn('No user ID found, stock will show as 0');
+            }
+
+            // 4. Merge
             const merged: StockItem[] = (itemsData || []).map((item: any) => ({
                 id: item.id,
                 name: item.name,
-                qty: stockMap.get(item.id) || 0
+                qty: repStockMap.get(item.id) || 0
             }));
 
             setItems(merged);
@@ -77,7 +105,7 @@ export default function StockScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
                     <Ionicons name="arrow-back" size={24} color="#333" />
                 </TouchableOpacity>
-                <Text style={styles.title}>Company Stock</Text>
+                <Text style={styles.title}>My Assigned Stock</Text>
             </View>
 
             {loading ? (
