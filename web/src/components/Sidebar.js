@@ -58,6 +58,11 @@ const Sidebar = () => {
                     <span className="nav-icon">💰</span>
                     {!isCollapsed && <span className="nav-text">Daily Income</span>}
                 </Link>
+
+                <Link to="/settings" className={isActive('/settings')} title="Settings">
+                    <span className="nav-icon">⚙️</span>
+                    {!isCollapsed && <span className="nav-text">Settings</span>}
+                </Link>
             </nav>
 
             {/* Footer */}

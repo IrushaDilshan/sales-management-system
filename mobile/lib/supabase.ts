@@ -14,4 +14,33 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
         persistSession: true,
         detectSessionInUrl: false,
     },
+    global: {
+        headers: {
+            'X-Client-Info': 'supabase-js-react-native',
+        },
+        fetch: async (url, options = {}) => {
+            // Create AbortController for timeout (React Native compatible)
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    signal: controller.signal,
+                });
+                clearTimeout(timeoutId);
+                return response;
+            } catch (error: any) {
+                clearTimeout(timeoutId);
+                // Log network errors but don't crash
+                if (error.name === 'AbortError') {
+                    console.warn('Supabase request timeout');
+                } else {
+                    console.warn('Supabase fetch error:', error.message);
+                }
+                // Re-throw to let Supabase handle retries
+                throw error;
+            }
+        },
+    },
 })

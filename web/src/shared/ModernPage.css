@@ -142,7 +142,7 @@
     text-align: left;
     font-size: 0.95rem;
     font-weight: 700;
-    color: white;
+    color: black;
     text-transform: uppercase;
     letter-spacing: 1px;
     border: none;
@@ -316,4 +316,17 @@
     .data-table td {
         padding: 0.875rem 1rem;
     }
+}
+
+/* Utility Classes */
+.text-right {
+    text-align: right !important;
+}
+
+.text-center {
+    text-align: center !important;
+}
+
+.text-left {
+    text-align: left !important;
 }

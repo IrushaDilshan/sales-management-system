@@ -121,18 +121,24 @@ const Users = () => {
                     throw new Error('Password must be at least 6 characters');
                 }
 
-                // Step 1: Create auth user (for login)
+                // Step 1: Create auth user (for login) with email confirmation disabled
                 const { data: authData, error: authError } = await supabase.auth.signUp({
                     email: formData.email,
                     password: formData.password,
                     options: {
+                        emailRedirectTo: undefined,
                         data: {
-                            name: formData.name
+                            name: formData.name,
+                            email_confirmed: true
                         }
                     }
                 });
 
                 if (authError) throw authError;
+
+                if (!authData.user) {
+                    throw new Error('Failed to create user account');
+                }
 
                 // Step 2: Create database user record (for role/shop)
                 const { error: dbError } = await supabase
@@ -140,13 +146,12 @@ const Users = () => {
                     .insert([{
                         id: authData.user.id, // Use same ID as auth user
                         name: formData.name,
+                        email: formData.email,
                         role: formData.role,
                         shop_id: formData.shop_id || null
                     }]);
 
                 if (dbError) {
-                    // If database insert fails, we should delete the auth user
-                    // But this requires admin access, so just show error
                     console.error('Database insert failed:', dbError);
                     throw new Error('User created in auth but failed to save to database. Error: ' + dbError.message);
                 }
@@ -154,27 +159,46 @@ const Users = () => {
 
             fetchUsers();
             handleCloseModal();
-            alert(formData.id ? 'User updated successfully!' : 'User created successfully! They can now log in.');
+
+            if (formData.id) {
+                alert('User updated successfully!');
+            } else {
+                alert(`User created successfully!\n\nLogin Credentials:\nEmail: ${formData.email}\nPassword: ${formData.password}\n\nPlease save these credentials. The user can now log in.`);
+            }
         } catch (err) {
             console.error('Error:', err);
             setError(err.message);
         }
     };
 
-    const handleResetPassword = async (userId, newPassword) => {
+    const handleResetPassword = async (userId, userEmail) => {
+        const confirmReset = window.confirm(
+            `Send password reset email to:\n${userEmail}\n\n` +
+            `The user will receive an email with a link to reset their password.\n\n` +
+            `Click OK to send the email.`
+        );
+
+        if (!confirmReset) return;
+
         try {
-            // Use Supabase Admin API to update password
-            const { error } = await supabase.auth.admin.updateUserById(
-                userId,
-                { password: newPassword }
+            // Send password reset email (this works from client-side)
+            const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+                userEmail,
+                {
+                    redirectTo: `${window.location.origin}/login`
+                }
             );
 
-            if (error) throw error;
+            if (resetError) throw resetError;
 
-            alert('Password reset successfully!');
+            alert(
+                `Password reset email sent successfully!\n\n` +
+                `The user will receive an email at:\n${userEmail}\n\n` +
+                `They can click the link in the email to set a new password.`
+            );
         } catch (err) {
-            console.error('Error resetting password:', err);
-            alert('Failed to reset password: ' + err.message + '\n\nNote: This requires admin privileges. You may need to reset the password via Supabase Dashboard.');
+            console.error('Error sending password reset:', err);
+            alert('Failed to send password reset email: ' + err.message);
         }
     };
 
@@ -406,15 +430,15 @@ const Users = () => {
                                                     <span style={{ color: '#999', fontSize: '0.9rem' }}>••••••••</span>
                                                     <button
                                                         className="action-btn"
-                                                        style={{ fontSize: '0.85rem', padding: '4px 8px' }}
-                                                        onClick={() => {
-                                                            const newPassword = prompt('Enter new password (min 6 characters):');
-                                                            if (newPassword && newPassword.length >= 6) {
-                                                                handleResetPassword(user.id, newPassword);
-                                                            } else if (newPassword) {
-                                                                alert('Password must be at least 6 characters');
-                                                            }
+                                                        style={{
+                                                            fontSize: '0.85rem',
+                                                            padding: '4px 12px',
+                                                            background: '#f59e0b',
+                                                            color: 'white',
+                                                            borderRadius: '6px',
+                                                            fontWeight: '600'
                                                         }}
+                                                        onClick={() => handleResetPassword(user.id, user.email)}
                                                     >
                                                         Reset
                                                     </button>

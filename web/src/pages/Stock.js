@@ -152,7 +152,7 @@ const Stock = () => {
                                 <tr>
                                     <th>Item Name</th>
                                     <th>Current Stock (Qty)</th>
-                                    <th>Actions</th>
+                                    <th className="text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>

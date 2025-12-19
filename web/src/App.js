@@ -12,6 +12,7 @@ import DailyIncome from './pages/DailyIncome';
 import RoutesPage from './pages/Routes';
 import StoreKeeperDashboard from './pages/StoreKeeperDashboard';
 import Login from './pages/Login';
+import Settings from './pages/Settings';
 import './App.css';
 
 function App() {
@@ -71,6 +72,15 @@ function App() {
             </div>
           } />
 
+          <Route path="/settings" element={
+            <div className="app-layout">
+              <Sidebar />
+              <div className="main-content">
+                <Settings />
+              </div>
+            </div>
+          } />
+
           {/* Storekeeper Routes (With Storekeeper Sidebar) */}
           <Route path="/storekeeper/dashboard" element={<StoreKeeperDashboard />} />
 
@@ -97,6 +107,15 @@ function App() {
               <StoreKeeperSidebar />
               <div className="storekeeper-content">
                 <Storekeeper />
+              </div>
+            </div>
+          } />
+
+          <Route path="/storekeeper/settings" element={
+            <div className="storekeeper-layout">
+              <StoreKeeperSidebar />
+              <div className="storekeeper-content">
+                <Settings />
               </div>
             </div>
           } />

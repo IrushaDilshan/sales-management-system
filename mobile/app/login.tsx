@@ -30,20 +30,23 @@ export default function LoginScreen() {
 
         setLoading(true);
         try {
-            // DEMO MODE: For testing without real users
+            // DEMO MODE: For testing without real users or network
             // Remove this in production!
             if (email.endsWith('@test.com') && password === 'demo') {
-                console.log('DEMO MODE: Bypassing auth');
+                console.log('DEMO MODE: Bypassing ALL auth and network calls');
 
                 // Parse role from email: salesman@test.com → salesman
                 const role = email.split('@')[0];
 
-                Alert.alert('Demo Mode', `Logging in as ${role}`);
+                // Brief delay to simulate loading
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                console.log(`DEMO MODE: Routing to ${role} dashboard`);
 
                 switch (role.toLowerCase()) {
                     case 'salesman':
                     case 'shop_owner':
-                        router.replace('/(tabs)/salesman-dashboard' as any);
+                        router.replace('/dashboard' as any);
                         break;
                     case 'rep':
                         router.replace('/rep');
@@ -53,7 +56,7 @@ export default function LoginScreen() {
                         router.replace('/storekeeper');
                         break;
                     case 'admin':
-                        router.replace('/(tabs)');
+                        router.replace('/dashboard' as any);
                         break;
                     default:
                         Alert.alert('Demo Mode', `Unknown role: ${role}. Try: salesman@test.com, rep@test.com, or keeper@test.com`);
@@ -62,7 +65,9 @@ export default function LoginScreen() {
                 return;
             }
 
-            // REAL AUTH: Normal Supabase login
+            // REAL AUTH: Normal Supabase login (requires network)
+            console.log('Attempting real auth with Supabase...');
+
             const { data, error } = await supabase.auth.signInWithPassword({
                 email: email.trim(),
                 password: password
@@ -80,7 +85,7 @@ export default function LoginScreen() {
 
                 if (userError) {
                     console.error('Error fetching user data:', userError);
-                    Alert.alert('Error', 'Could not fetch user information');
+                    Alert.alert('Error', 'Could not fetch user information. Please try demo mode: salesman@test.com / demo');
                     return;
                 }
 
@@ -91,7 +96,7 @@ export default function LoginScreen() {
                     switch (userData.role.toLowerCase()) {
                         case 'salesman':
                         case 'shop_owner':
-                            router.replace('/(tabs)/salesman-dashboard' as any);
+                            router.replace('/dashboard' as any);
                             break;
                         case 'rep':
                         case 'representative':
@@ -101,7 +106,7 @@ export default function LoginScreen() {
                             router.replace('/storekeeper');
                             break;
                         case 'admin':
-                            router.replace('/(tabs)');
+                            router.replace('/dashboard' as any);
                             break;
                         default:
                             Alert.alert('Error', `Unknown role: ${userData.role}`);
@@ -112,10 +117,19 @@ export default function LoginScreen() {
             }
         } catch (error: any) {
             console.error('Login error:', error);
-            Alert.alert(
-                'Login Failed',
-                error.message || 'Invalid email or password.\n\nFor testing, use:\n• salesman@test.com / demo\n• rep@test.com / demo\n• keeper@test.com / demo'
-            );
+
+            // Better error messages for network issues
+            let errorMessage = 'Login failed. ';
+
+            if (error.message?.includes('Network request failed') || error.name === 'TypeError') {
+                errorMessage = '❌ Network Error\n\nCannot connect to server. Please check your internet connection.\n\n✅ Try Demo Mode:\n• Email: salesman@test.com\n• Password: demo';
+            } else if (error.message?.includes('Invalid login credentials')) {
+                errorMessage = '❌ Invalid Credentials\n\nEmail or password is incorrect.\n\n✅ Try Demo Mode:\n• Email: salesman@test.com\n• Password: demo';
+            } else {
+                errorMessage = error.message || '❌ Login Failed\n\nPlease try demo mode:\n• Email: salesman@test.com\n• Password: demo';
+            }
+
+            Alert.alert('Login Error', errorMessage);
         } finally {
             setLoading(false);
         }
@@ -197,7 +211,10 @@ export default function LoginScreen() {
                 {/* Footer */}
                 <View style={styles.footer}>
                     <Text style={styles.footerText}>
-                        Use your company credentials to log in
+                        🌐 No Internet? Use Demo Mode
+                    </Text>
+                    <Text style={[styles.footerText, { fontWeight: '700', color: '#2196F3', marginTop: 8 }]}>
+                        salesman@test.com / demo
                     </Text>
                 </View>
             </View>

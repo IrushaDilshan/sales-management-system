@@ -126,7 +126,7 @@ const Items = () => {
                             <thead>
                                 <tr>
                                     <th>Name</th>
-                                    <th>Actions</th>
+                                    <th className="text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>

@@ -53,6 +53,11 @@ const StoreKeeperSidebar = () => {
                     <span className="nav-icon">📋</span>
                     {!isCollapsed && <span className="nav-text">Inventory</span>}
                 </Link>
+
+                <Link to="/storekeeper/settings" className={isActive('/storekeeper/settings')} title="Settings">
+                    <span className="nav-icon">⚙️</span>
+                    {!isCollapsed && <span className="nav-text">Settings</span>}
+                </Link>
             </nav>
 
             {/* Footer */}
