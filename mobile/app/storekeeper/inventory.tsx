@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, 
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { Colors } from '../../constants/theme';
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import { IconSymbol } from '../../components/ui/icon-symbol';
 
 export default function InventoryScreen() {
     const router = useRouter();

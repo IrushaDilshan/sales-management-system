@@ -23,15 +23,28 @@ const Storekeeper = () => {
     });
     const [error, setError] = useState(null);
     const [successMsg, setSuccessMsg] = useState(null);
+    const [lastUpdated, setLastUpdated] = useState(null);
 
     // Initial Fetch
     useEffect(() => {
         fetchData();
     }, []);
 
-    const fetchData = async () => {
+    // Auto-refresh every 30 seconds (only when no modals are open)
+    useEffect(() => {
+        const interval = setInterval(() => {
+            // Don't refresh if a modal is open
+            if (!actionModal.open && !historyModal.open) {
+                fetchData(true); // true = silent refresh (no loading spinner)
+            }
+        }, 30000); // 30 seconds
+
+        return () => clearInterval(interval);
+    }, [actionModal.open, historyModal.open]);
+
+    const fetchData = async (silent = false) => {
         try {
-            setLoading(true);
+            if (!silent) setLoading(true);
             setError(null);
 
             // 1. Fetch Items
@@ -61,10 +74,11 @@ const Storekeeper = () => {
             const mergedStocks = (itemsData || []).map(item => {
                 const itemTrans = transactionsList.filter(t => t.item_id === item.id);
 
-                // Calculate stock: IN + RETURN - OUT
+                // Calculate stock: IN adds, OUT and RETURN subtract
+                // (RETURN removes damaged/expired items from inventory)
                 const currentQty = itemTrans.reduce((acc, t) => {
-                    if (t.type === 'IN' || t.type === 'RETURN') return acc + t.qty;
-                    if (t.type === 'OUT') return acc - t.qty;
+                    if (t.type === 'IN') return acc + t.qty;
+                    if (t.type === 'OUT' || t.type === 'RETURN') return acc - t.qty;
                     return acc;
                 }, 0);
 
@@ -77,12 +91,15 @@ const Storekeeper = () => {
 
             setStocks(mergedStocks);
             setTransactions(transactionsList);
+            setLastUpdated(new Date());
 
         } catch (err) {
             console.error('Error fetching data:', err);
-            setError(`Failed to load dashboard data: ${err.message || JSON.stringify(err)}`);
+            if (!silent) {
+                setError(`Failed to load dashboard data: ${err.message || JSON.stringify(err)}`);
+            }
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     };
 
@@ -182,9 +199,12 @@ const Storekeeper = () => {
 
             // Update Stock Cache Table
             let newQty = item.qty;
-            if (type === 'ADD' || type === 'RETURN') {
+            if (type === 'ADD') {
+                // Add stock increases inventory
                 newQty += qty;
-            } else if (type === 'ISSUE') {
+            } else if (type === 'ISSUE' || type === 'RETURN') {
+                // Issue and Return both decrease inventory
+                // (RETURN removes damaged/expired items)
                 newQty -= qty;
             }
 
@@ -221,13 +241,31 @@ const Storekeeper = () => {
     return (
         <div className="page-container">
             <div className="page-header">
-                <h1 className="page-title">Storekeeper Dashboard</h1>
-                <button
-                    className="btn-primary"
-                    onClick={() => window.location.href = '/items'}
-                >
-                    <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>+</span> New Item
-                </button>
+                <div>
+                    <h1 className="page-title">Storekeeper Dashboard</h1>
+                    {lastUpdated && (
+                        <p style={{ fontSize: '0.875rem', color: '#6B7280', marginTop: '0.25rem' }}>
+                            Last updated: {lastUpdated.toLocaleTimeString()}
+                        </p>
+                    )}
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <button
+                        className="btn-secondary"
+                        onClick={() => fetchData()}
+                        disabled={loading}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    >
+                        <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>↻</span>
+                        Refresh
+                    </button>
+                    <button
+                        className="btn-primary"
+                        onClick={() => window.location.href = '/items'}
+                    >
+                        <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>+</span> New Item
+                    </button>
+                </div>
             </div>
 
             {/* ERROR / SUCCESS MESSAGES */}
@@ -413,43 +451,143 @@ const Storekeeper = () => {
             {historyModal.open && (
                 <div className="modal-overlay">
                     <div className="modal-content wide-modal">
-                        <div className="modal-header">
-                            <h2>Stock History: {historyModal.item?.name}</h2>
+                        <div className="modal-header" style={{ borderBottom: '2px solid #F3F4F6', paddingBottom: '1rem' }}>
+                            <div>
+                                <h2 style={{ margin: 0 }}>Transaction History</h2>
+                                <p style={{ fontSize: '0.875rem', color: '#6B7280', marginTop: '0.25rem', marginBottom: 0 }}>
+                                    {historyModal.item?.name}
+                                </p>
+                            </div>
                             <button className="close-btn" onClick={handleCloseModal}>&times;</button>
                         </div>
-                        <div className="table-container">
-                            <table className="data-table small-table">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Type</th>
-                                        <th>Qty</th>
-                                        <th>Reference</th>
-                                        <th>Remarks</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {getItemHistory().length === 0 ? (
-                                        <tr><td colSpan="5" className="text-center">No transactions found</td></tr>
-                                    ) : (
-                                        getItemHistory().map(t => (
-                                            <tr key={t.id}>
-                                                <td>{new Date(t.created_at).toLocaleDateString()}</td>
-                                                <td>
-                                                    <span className={`badge ${t.type}`}>
-                                                        {t.type}
-                                                    </span>
-                                                </td>
-                                                <td>{t.qty}</td>
-                                                <td>{t.reference || '-'}</td>
-                                                <td>{t.remarks || '-'}</td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
+                        <div className="table-container" style={{ maxHeight: '500px', overflowY: 'auto' }}>
+                            {getItemHistory().length === 0 ? (
+                                <div style={{
+                                    textAlign: 'center',
+                                    padding: '3rem 1rem',
+                                    color: '#9CA3AF'
+                                }}>
+                                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📋</div>
+                                    <h3 style={{ color: '#6B7280', marginBottom: '0.5rem' }}>No Transactions Yet</h3>
+                                    <p style={{ fontSize: '0.875rem' }}>
+                                        Transaction history will appear here once you add, issue, or return stock
+                                    </p>
+                                </div>
+                            ) : (
+                                <table className="data-table small-table">
+                                    <thead>
+                                        <tr>
+                                            <th style={{ width: '140px' }}>Date & Time</th>
+                                            <th style={{ width: '140px' }}>Type</th>
+                                            <th style={{ width: '100px', textAlign: 'center' }}>Quantity</th>
+                                            <th>Reference</th>
+                                            <th>Remarks</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {getItemHistory().map(t => {
+                                            const date = new Date(t.created_at);
+                                            const dateStr = date.toLocaleDateString('en-US', {
+                                                month: 'short',
+                                                day: 'numeric',
+                                                year: 'numeric'
+                                            });
+                                            const timeStr = date.toLocaleTimeString('en-US', {
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            });
+
+                                            // Type-specific styling
+                                            let typeColor, typeIcon, typeLabel, qtySign, qtyColor;
+                                            if (t.type === 'IN') {
+                                                typeColor = '#4CAF50';
+                                                typeIcon = '➕';
+                                                typeLabel = 'Stock Added';
+                                                qtySign = '+';
+                                                qtyColor = '#4CAF50';
+                                            } else if (t.type === 'OUT') {
+                                                typeColor = '#2196F3';
+                                                typeIcon = '⬆️';
+                                                typeLabel = 'Stock Issued';
+                                                qtySign = '-';
+                                                qtyColor = '#2196F3';
+                                            } else {
+                                                typeColor = '#FF9800';
+                                                typeIcon = '⬇️';
+                                                typeLabel = 'Stock Returned';
+                                                qtySign = '-';
+                                                qtyColor = '#FF9800';
+                                            }
+
+                                            return (
+                                                <tr key={t.id}>
+                                                    <td>
+                                                        <div style={{ fontSize: '0.875rem' }}>
+                                                            <div style={{ fontWeight: '600', color: '#1A1A2E' }}>{dateStr}</div>
+                                                            <div style={{ fontSize: '0.75rem', color: '#9CA3AF', marginTop: '2px' }}>{timeStr}</div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div style={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '6px',
+                                                            padding: '6px 12px',
+                                                            borderRadius: '8px',
+                                                            backgroundColor: `${typeColor}15`,
+                                                            border: `1px solid ${typeColor}40`
+                                                        }}>
+                                                            <span style={{ fontSize: '1rem' }}>{typeIcon}</span>
+                                                            <span style={{
+                                                                fontSize: '0.75rem',
+                                                                fontWeight: '700',
+                                                                color: typeColor,
+                                                                textTransform: 'uppercase',
+                                                                letterSpacing: '0.5px'
+                                                            }}>
+                                                                {t.type}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td style={{ textAlign: 'center' }}>
+                                                        <span style={{
+                                                            display: 'inline-block',
+                                                            padding: '4px 10px',
+                                                            borderRadius: '6px',
+                                                            backgroundColor: '#F9FAFB',
+                                                            border: '1px solid #E5E7EB',
+                                                            fontSize: '0.875rem',
+                                                            fontWeight: '800',
+                                                            color: qtyColor
+                                                        }}>
+                                                            {qtySign}{t.qty}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{
+                                                        fontSize: '0.875rem',
+                                                        color: t.reference ? '#1A1A2E' : '#9CA3AF',
+                                                        fontWeight: t.reference ? '500' : '400'
+                                                    }}>
+                                                        {t.reference || '—'}
+                                                    </td>
+                                                    <td style={{
+                                                        fontSize: '0.875rem',
+                                                        color: t.remarks ? '#1A1A2E' : '#9CA3AF',
+                                                        maxWidth: '300px',
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis',
+                                                        whiteSpace: 'nowrap'
+                                                    }}>
+                                                        {t.remarks || '—'}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            )}
                         </div>
-                        <div className="modal-actions">
+                        <div className="modal-actions" style={{ borderTop: '2px solid #F3F4F6', paddingTop: '1rem' }}>
                             <button type="button" className="btn-secondary" onClick={handleCloseModal}>Close</button>
                         </div>
                     </div>

@@ -224,18 +224,152 @@ const Users = () => {
 
                 // Check for common errors
                 if (err.message.includes('foreign key') || err.code === '23503') {
-                    errorMessage += 'This user cannot be deleted because they have related data:\n' +
+                    // Offer force delete option
+                    const forceDelete = window.confirm(
+                        'This user cannot be deleted because they have related data:\n' +
                         '- Sales requests\n' +
                         '- Daily income records\n' +
                         '- Stock transactions\n' +
                         '- Assigned routes\n\n' +
-                        'Please delete or reassign their data first, or deactivate the user instead.';
+                        '⚠️ FORCE DELETE OPTION ⚠️\n\n' +
+                        'Click OK to PERMANENTLY delete this user and ALL their related data.\n' +
+                        'This action cannot be undone!\n\n' +
+                        'Click Cancel to keep the user and their data.'
+                    );
+
+                    if (forceDelete) {
+                        await handleForceDelete(id);
+                    }
                 } else {
                     errorMessage += 'Error: ' + (err.message || 'Unknown error');
+                    alert(errorMessage);
                 }
-
-                alert(errorMessage);
             }
+        }
+    };
+
+    const handleForceDelete = async (userId) => {
+        try {
+            console.log('=== Starting force delete for user:', userId, '===');
+
+            // Delete in order: children first, then parent
+
+            // 1. Delete requests (salesman_id)
+            console.log('1. Deleting requests...');
+            const { error: reqError } = await supabase
+                .from('requests')
+                .delete()
+                .eq('salesman_id', userId);
+            if (reqError) {
+                console.error('Error deleting requests:', reqError);
+                throw new Error(`Failed to delete requests: ${reqError.message}`);
+            }
+            console.log('✓ Requests deleted');
+
+            // 2. Skip daily income - it's linked to shops, not users
+            console.log('2. Skipping daily income (linked to shops, not users)...');
+
+            // 3. First, get routes owned by this user
+            console.log('3. Finding routes owned by user...');
+            const { data: userRoutes } = await supabase
+                .from('routes')
+                .select('id')
+                .eq('rep_id', userId);
+
+            if (userRoutes && userRoutes.length > 0) {
+                const routeIds = userRoutes.map(r => r.id);
+                console.log(`Found ${routeIds.length} routes to clean up`);
+
+                // 3a. Remove route references from shops
+                console.log('3a. Removing route references from shops...');
+                const { error: shopsUpdateError } = await supabase
+                    .from('shops')
+                    .update({ route_id: null })
+                    .in('route_id', routeIds);
+                if (shopsUpdateError) {
+                    console.error('Error updating shops:', shopsUpdateError);
+                }
+                console.log('✓ Shop route references removed');
+            }
+
+            // 4. Delete routes where user is the rep
+            console.log('4. Deleting routes...');
+            const { error: routesError } = await supabase
+                .from('routes')
+                .delete()
+                .eq('rep_id', userId);
+            if (routesError) {
+                console.error('Error deleting routes:', routesError);
+                throw new Error(`Failed to delete routes: ${routesError.message}`);
+            }
+            console.log('✓ Routes deleted');
+
+            // 5. Delete stock transactions (if table exists)
+            console.log('5. Deleting stock transactions...');
+
+            // Delete by user_id
+            const { error: stockError1 } = await supabase
+                .from('stock_transactions')
+                .delete()
+                .eq('user_id', userId);
+            if (stockError1 && !stockError1.message.includes('does not exist')) {
+                console.error('Error deleting stock transactions (user_id):', stockError1);
+            }
+
+            // Delete by rep_id
+            const { error: stockError2 } = await supabase
+                .from('stock_transactions')
+                .delete()
+                .eq('rep_id', userId);
+            if (stockError2 && !stockError2.message.includes('does not exist')) {
+                console.error('Error deleting stock transactions (rep_id):', stockError2);
+            }
+
+            console.log('✓ Stock transactions checked');
+
+            // 6. Delete route assignments (if table exists)
+            console.log('6. Deleting route assignments...');
+            const { error: routeAssignError } = await supabase
+                .from('route_assignments')
+                .delete()
+                .eq('user_id', userId);
+            if (routeAssignError && !routeAssignError.message.includes('does not exist')) {
+                console.error('Error deleting route assignments:', routeAssignError);
+                // Don't throw - this table might not exist
+            }
+            console.log('✓ Route assignments checked');
+
+            // 7. Delete the database user record
+            console.log('7. Deleting user from database...');
+            const { error: userError } = await supabase
+                .from('users')
+                .delete()
+                .eq('id', userId);
+
+            if (userError) {
+                console.error('Error deleting user:', userError);
+                throw new Error(`Failed to delete user: ${userError.message}`);
+            }
+            console.log('✓ User deleted from database');
+
+            // 8. Delete the auth user (so email can be reused)
+            console.log('8. Deleting auth user...');
+            const { error: authDeleteError } = await supabase.auth.admin.deleteUser(userId);
+            if (authDeleteError) {
+                console.warn('⚠ Warning: Could not delete auth user:', authDeleteError.message);
+                console.warn('This is normal if using client-side deletion. The auth account may still exist.');
+            } else {
+                console.log('✓ Auth user deleted');
+            }
+
+            console.log('=== Force delete completed successfully ===');
+            alert('✅ User and all related data deleted successfully!\n\nNote: If using client-side auth, the user may still be able to log in. Contact admin to fully remove auth account.');
+            fetchUsers();
+
+        } catch (error) {
+            console.error('=== Force delete failed ===');
+            console.error(error);
+            alert('❌ Force delete failed:\n\n' + (error.message || 'Unknown error') + '\n\nPlease check the console for details.\n\nSome data may have been partially deleted.');
         }
     };
 

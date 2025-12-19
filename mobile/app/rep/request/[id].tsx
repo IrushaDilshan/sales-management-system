@@ -51,9 +51,58 @@ export default function ShopRequestDetails() {
     const fetchDetails = async () => {
         setLoading(true);
         try {
-            // 1. Fetch Shop Name
-            const { data: shopData } = await supabase.from('shops').select('name').eq('id', shopId).single();
+            // Get current user first
+            const { data: userData } = await supabase.auth.getUser();
+            const userEmail = userData?.user?.email;
+
+            let currentUserId = null;
+            if (userEmail) {
+                const { data: userRecord } = await supabase
+                    .from('users')
+                    .select('id')
+                    .eq('email', userEmail)
+                    .single();
+                currentUserId = userRecord?.id;
+            }
+
+            if (!currentUserId) {
+                Alert.alert('Error', 'User not authenticated');
+                return;
+            }
+
+            // 1. Fetch Shop and verify it's assigned to this rep
+            const { data: shopData, error: shopError } = await supabase
+                .from('shops')
+                .select('id, name, rep_id, route_id')
+                .eq('id', shopId)
+                .single();
+
+            if (shopError) throw shopError;
+
             setShopName(shopData?.name || 'Unknown Shop');
+
+            // Security check: Verify this shop is assigned to the current rep
+            // Get rep's routes first
+            const { data: myRoutes } = await supabase
+                .from('routes')
+                .select('id')
+                .eq('rep_id', currentUserId);
+
+            const myRouteIds = myRoutes?.map(r => r.id) || [];
+
+            // Check if shop is assigned to this rep (directly or through route)
+            const isDirectlyAssigned = shopData?.rep_id === currentUserId;
+            const isAssignedThroughRoute = myRouteIds.includes(shopData?.route_id);
+
+            if (!isDirectlyAssigned && !isAssignedThroughRoute) {
+                Alert.alert(
+                    'Access Denied',
+                    'This shop is not assigned to you. You can only view requests for shops in your assigned routes.',
+                    [{ text: 'OK', onPress: () => router.back() }]
+                );
+                setSections([]);
+                return;
+            }
 
             // 2. Fetch Requests based on Active Tab
             let query = supabase
@@ -98,22 +147,7 @@ export default function ShopRequestDetails() {
 
             if (itemsError) throw itemsError;
 
-            // 4. Get current user (rep) ID from users table
-            const { data: userData } = await supabase.auth.getUser();
-            const userEmail = userData?.user?.email;
-
-            // Get the user's ID from the users table (not auth ID)
-            let currentUserId = null;
-            if (userEmail) {
-                const { data: userRecord } = await supabase
-                    .from('users')
-                    .select('id')
-                    .eq('email', userEmail)
-                    .single();
-                currentUserId = userRecord?.id;
-            }
-
-            // 5. Products & Rep Stock
+            // 4. Products & Rep Stock
             const itemIds = Array.from(new Set(requestItemsData.map((r: any) => r.item_id)));
             const { data: productsData } = await supabase.from('items').select('id, name').in('id', itemIds);
 

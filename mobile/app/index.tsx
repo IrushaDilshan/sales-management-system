@@ -16,8 +16,8 @@ export default function Index() {
             const { data: { session } } = await supabase.auth.getSession();
 
             if (session) {
-                // User is logged in, redirect to dashboard
-                router.replace('/dashboard');
+                // User is logged in, redirect to dashboard with tabs
+                router.replace('/(tabs)/home');
             } else {
                 // No session, redirect to login
                 router.replace('/login');

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 
 type ShopRequest = {
@@ -25,7 +25,7 @@ export default function ShopsListScreen() {
     const fetchShops = async () => {
         setLoading(true);
         try {
-            // Get current user
+            // Get current user ID
             const { data: userData } = await supabase.auth.getUser();
             const userEmail = userData?.user?.email;
 
@@ -33,15 +33,17 @@ export default function ShopsListScreen() {
             if (userEmail) {
                 const { data: userRecord } = await supabase
                     .from('users')
-                    .select('id')
+                    .select('id, name')
                     .eq('email', userEmail)
                     .single();
                 currentUserId = userRecord?.id;
             }
 
             if (!currentUserId) {
+                Alert.alert('Error', 'Could not identify current user');
                 setShops([]);
                 setFilteredShops([]);
+                setLoading(false);
                 return;
             }
 
@@ -71,25 +73,24 @@ export default function ShopsListScreen() {
                 shopsQuery = shopsQuery.eq('rep_id', currentUserId);
             }
 
-            const { data: myShops, error: shopsError } = await shopsQuery;
+            const { data: shopsData, error: shopsError } = await shopsQuery;
 
             if (shopsError) throw shopsError;
 
-            if (!myShops || myShops.length === 0) {
-                // No shops assigned to this rep
+            if (!shopsData || shopsData.length === 0) {
                 setShops([]);
                 setFilteredShops([]);
                 return;
             }
 
-            const myShopIds = myShops.map(s => s.id);
+            const shopIds = shopsData.map(s => s.id);
 
-            // 3. Fetch pending requests ONLY from the rep's assigned shops
+            // 2. Fetch pending requests for these shops
             const { data: requestsData, error: reqError } = await supabase
                 .from('requests')
-                .select('shop_id, date')
+                .select('id, shop_id, date')
                 .eq('status', 'pending')
-                .in('shop_id', myShopIds);
+                .in('shop_id', shopIds);
 
             if (reqError) throw reqError;
 
@@ -99,19 +100,17 @@ export default function ShopsListScreen() {
                 return;
             }
 
-            // 4. Aggregate
+            // 3. Aggregate
             const shopsMap = new Map();
-            myShops.forEach((s: any) => shopsMap.set(s.id, s.name));
+            shopsData?.forEach((s: any) => shopsMap.set(s.id, s.name));
 
-            const shopIdsWithRequests = Array.from(new Set(requestsData.map((r: any) => r.shop_id)));
-
-            const aggregated = shopIdsWithRequests.map(id => {
+            const aggregated = shopIds.map(id => {
                 const shopRequests = requestsData.filter((r: any) => r.shop_id === id);
                 return {
                     shopId: id,
                     shopName: shopsMap.get(id) || 'Unknown Shop',
                     requestCount: shopRequests.length,
-                    latestDate: shopRequests[0]?.date // Simplified
+                    latestDate: shopRequests[0]?.date
                 };
             });
 

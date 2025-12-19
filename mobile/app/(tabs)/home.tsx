@@ -1,9 +1,10 @@
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../lib/supabase';
-import { useEffect, useState } from 'react';
+import { supabase } from '../../lib/supabase';
+import { useEffect, useState, useCallback } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function SalesmanDashboard() {
     const router = useRouter();
@@ -17,8 +18,14 @@ export default function SalesmanDashboard() {
 
     useEffect(() => {
         fetchUserData();
-        fetchStats();
     }, []);
+
+    // Refresh stats when tab comes into focus
+    useFocusEffect(
+        useCallback(() => {
+            fetchStats();
+        }, [])
+    );
 
     const fetchUserData = async () => {
         try {
@@ -243,26 +250,6 @@ export default function SalesmanDashboard() {
                             </View>
                             <Text style={styles.actionTitle}>Order History</Text>
                             <Text style={styles.actionSubtitle}>View requests</Text>
-                        </LinearGradient>
-                    </TouchableOpacity>
-
-                    {/* Settings */}
-                    <TouchableOpacity
-                        style={styles.actionCard}
-                        onPress={() => router.push('/settings')}
-                        activeOpacity={0.8}
-                    >
-                        <LinearGradient
-                            colors={['#607D8B', '#546E7A']}
-                            style={styles.actionGradient}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                        >
-                            <View style={styles.actionIconWrapper}>
-                                <Ionicons name="settings" size={28} color="white" />
-                            </View>
-                            <Text style={styles.actionTitle}>Settings</Text>
-                            <Text style={styles.actionSubtitle}>Account & profile</Text>
                         </LinearGradient>
                     </TouchableOpacity>
                 </View>

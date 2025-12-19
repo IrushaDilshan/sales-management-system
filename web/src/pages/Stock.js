@@ -26,27 +26,19 @@ const Stock = () => {
 
             if (itemsError) throw itemsError;
 
-            // 2. Fetch All Stock Transactions
-            const { data: transData, error: transError } = await supabase
-                .from('stock_transactions')
+            // 2. Fetch Stock Levels from stock table (single source of truth)
+            const { data: stockData, error: stockError } = await supabase
+                .from('stock')
                 .select('*');
 
-            if (transError && transError.code !== 'PGRST116') {
-                console.error('Stock fetch error:', transError);
+            if (stockError && stockError.code !== 'PGRST116') {
+                console.error('Stock fetch error:', stockError);
             }
 
-            const transactionsList = transData || [];
-
-            // 3. Merge Data: Calculate stock from transactions
+            // 3. Merge Data
             const formattedData = (itemsData || []).map(item => {
-                const itemTrans = transactionsList.filter(t => t.item_id === item.id);
-
-                // Calculate stock: IN + RETURN - OUT
-                const currentQty = itemTrans.reduce((acc, t) => {
-                    if (t.type === 'IN' || t.type === 'RETURN') return acc + t.qty;
-                    if (t.type === 'OUT') return acc - t.qty;
-                    return acc;
-                }, 0);
+                const stockEntry = (stockData || []).find(s => s.item_id === item.id);
+                const currentQty = stockEntry ? stockEntry.qty : 0;
 
                 return {
                     ...item,

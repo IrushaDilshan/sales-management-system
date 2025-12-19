@@ -46,7 +46,7 @@ export default function LoginScreen() {
                 switch (role.toLowerCase()) {
                     case 'salesman':
                     case 'shop_owner':
-                        router.replace('/dashboard' as any);
+                        router.replace('/(tabs)/home' as any);
                         break;
                     case 'rep':
                         router.replace('/rep');
@@ -96,14 +96,14 @@ export default function LoginScreen() {
                     switch (userData.role.toLowerCase()) {
                         case 'salesman':
                         case 'shop_owner':
-                            router.replace('/dashboard' as any);
+                            router.replace('/(tabs)/home' as any);
                             break;
                         case 'rep':
                         case 'representative':
-                            router.replace('/rep');
+                            router.replace('/rep/(tabs)/home' as any);
                             break;
                         case 'storekeeper':
-                            router.replace('/storekeeper');
+                            router.replace('/storekeeper/(tabs)/home' as any);
                             break;
                         case 'admin':
                             router.replace('/dashboard' as any);
@@ -117,6 +117,13 @@ export default function LoginScreen() {
             }
         } catch (error: any) {
             console.error('Login error:', error);
+
+            // Silently ignore abort errors (user navigated away quickly)
+            if (error.name === 'AbortError' || error.message?.includes('Aborted') || error.message?.includes('AuthRetryableFetchError')) {
+                console.log('Login aborted or network issue - likely user navigated away');
+                setLoading(false);
+                return;
+            }
 
             // Better error messages for network issues
             let errorMessage = 'Login failed. ';

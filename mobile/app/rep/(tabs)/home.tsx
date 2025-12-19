@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -12,7 +12,7 @@ type PendingItem = {
     availableStock?: number;
 };
 
-export default function RepDashboard() {
+export default function RepHome() {
     const [pendingItems, setPendingItems] = useState<PendingItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -62,13 +62,60 @@ export default function RepDashboard() {
                 currentUserId = userRecord?.id;
             }
 
-            // Fetch pending requests
+            // 1. First, find all routes where this rep is assigned
+            console.log('🔍 Current User ID:', currentUserId);
+
+            const { data: myRoutes, error: routesError } = await supabase
+                .from('routes')
+                .select('id')
+                .eq('rep_id', currentUserId);
+
+            if (routesError && routesError.code !== 'PGRST116') throw routesError;
+
+            const myRouteIds = myRoutes?.map(r => r.id) || [];
+            console.log('🛣️ Routes assigned to this rep:', myRouteIds);
+
+            // 2. Find all shops assigned to this rep (either directly or through routes)
+            let shopsQuery = supabase
+                .from('shops')
+                .select('id, name, rep_id, route_id');
+
+            // Build the query to find shops where:
+            // - rep_id matches current user (direct assignment)
+            // - OR route_id is in the rep's assigned routes
+            if (myRouteIds.length > 0) {
+                // Rep has routes OR direct shop assignments
+                shopsQuery = shopsQuery.or(`rep_id.eq.${currentUserId},route_id.in.(${myRouteIds.join(',')})`);
+            } else {
+                // Rep only has direct shop assignments, no routes
+                shopsQuery = shopsQuery.eq('rep_id', currentUserId);
+            }
+
+            const { data: shopsData, error: shopsError } = await shopsQuery;
+
+            if (shopsError) throw shopsError;
+
+            console.log('🏪 Shops assigned to this rep:', shopsData);
+
+            if (!shopsData || shopsData.length === 0) {
+                console.log('⚠️ No shops found for this rep');
+                setPendingItems([]);
+                return;
+            }
+
+            const shopIds = shopsData.map(s => s.id);
+            console.log('📝 Shop IDs:', shopIds);
+
+            // 2. Fetch pending requests for these shops
             const { data: requestsData, error: reqError } = await supabase
                 .from('requests')
                 .select('id, status, shop_id')
-                .eq('status', 'pending');
+                .eq('status', 'pending')
+                .in('shop_id', shopIds);
 
             if (reqError) throw reqError;
+
+            console.log('📋 Pending requests for these shops:', requestsData);
 
             if (!requestsData || requestsData.length === 0) {
                 setPendingItems([]);
@@ -163,53 +210,38 @@ export default function RepDashboard() {
         const hasEnough = (item.availableStock || 0) >= item.totalPendingQty;
         const statusColor = hasEnough ? '#4CAF50' : '#FF9800';
         const statusIcon = hasEnough ? 'checkmark-circle' : 'alert-circle';
-        const statusText = hasEnough ? 'Stock Available' : 'Need More';
 
         return (
             <View style={styles.card}>
-                <View style={styles.cardContent}>
-                    {/* Item Name & Icon */}
-                    <View style={styles.itemHeader}>
-                        <View style={styles.itemIconWrapper}>
-                            <LinearGradient
-                                colors={['#2196F3', '#1976D2']}
-                                style={styles.itemIconGradient}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                            >
-                                <Ionicons name="cube" size={24} color="#FFF" />
-                            </LinearGradient>
-                        </View>
-                        <View style={styles.itemInfo}>
-                            <Text style={styles.itemName}>{item.itemName}</Text>
-                        </View>
+                {/* Left Icon */}
+                <View style={styles.itemIconWrapper}>
+                    <Ionicons name="cube" size={20} color="#2196F3" />
+                </View>
+
+                {/* Item Name */}
+                <View style={styles.itemNameContainer}>
+                    <Text style={styles.itemName} numberOfLines={1}>{item.itemName}</Text>
+                </View>
+
+                {/* Quantities */}
+                <View style={styles.quantitiesRow}>
+                    <View style={styles.compactBadge}>
+                        <Text style={styles.compactLabel}>Pending</Text>
+                        <Text style={[styles.compactValue, { color: '#DC2626' }]}>
+                            {item.totalPendingQty}
+                        </Text>
                     </View>
 
-                    {/* Quantities */}
-                    <View style={styles.quantityRow}>
-                        <View style={styles.quantityCard}>
-                            <Text style={styles.quantityLabel}>Pending</Text>
-                            <Text style={[styles.quantityValue, { color: '#DC2626' }]}>
-                                {item.totalPendingQty}
-                            </Text>
-                        </View>
-
-                        <View style={styles.quantityCard}>
-                            <Text style={styles.quantityLabel}>My Stock</Text>
-                            <Text style={[styles.quantityValue, { color: hasEnough ? '#4CAF50' : '#FF9800' }]}>
-                                {item.availableStock || 0}
-                            </Text>
-                        </View>
-                    </View>
-
-                    {/* Status Badge */}
-                    <View style={[styles.statusBadge, { backgroundColor: `${statusColor}15`, borderColor: `${statusColor}40` }]}>
-                        <Ionicons name={statusIcon} size={16} color={statusColor} />
-                        <Text style={[styles.statusText, { color: statusColor }]}>
-                            {statusText}
+                    <View style={styles.compactBadge}>
+                        <Text style={styles.compactLabel}>Stock</Text>
+                        <Text style={[styles.compactValue, { color: hasEnough ? '#4CAF50' : '#FF9800' }]}>
+                            {item.availableStock || 0}
                         </Text>
                     </View>
                 </View>
+
+                {/* Status Icon */}
+                <Ionicons name={statusIcon} size={24} color={statusColor} />
             </View>
         );
     };
@@ -228,60 +260,14 @@ export default function RepDashboard() {
                         <Text style={styles.headerSubtitle}>Welcome back</Text>
                         <Text style={styles.headerTitle}>{repName}</Text>
                     </View>
-                    <View style={styles.headerActions}>
-                        <TouchableOpacity
-                            onPress={onRefresh}
-                            style={styles.headerButton}
-                        >
-                            <Ionicons name="refresh" size={24} color="#FFF" />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            onPress={async () => {
-                                await supabase.auth.signOut();
-                                router.replace('/login' as any);
-                            }}
-                            style={styles.headerButton}
-                        >
-                            <Ionicons name="log-out-outline" size={24} color="#FFF" />
-                        </TouchableOpacity>
-                    </View>
+                    <TouchableOpacity
+                        onPress={onRefresh}
+                        style={styles.headerButton}
+                    >
+                        <Ionicons name="refresh" size={24} color="#FFF" />
+                    </TouchableOpacity>
                 </View>
             </LinearGradient>
-
-            {/* Navigation Cards */}
-            <View style={styles.navCardsContainer}>
-                <TouchableOpacity
-                    style={styles.navCard}
-                    onPress={() => router.push('/rep/shops')}
-                    activeOpacity={0.8}
-                >
-                    <LinearGradient
-                        colors={['#2196F3', '#1976D2']}
-                        style={styles.navCardGradient}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                    >
-                        <Ionicons name="storefront" size={32} color="#FFF" />
-                        <Text style={styles.navCardText}>Shop Requests</Text>
-                    </LinearGradient>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={styles.navCard}
-                    onPress={() => router.push('/rep/stock')}
-                    activeOpacity={0.8}
-                >
-                    <LinearGradient
-                        colors={['#FF9800', '#F57C00']}
-                        style={styles.navCardGradient}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                    >
-                        <Ionicons name="cube" size={32} color="#FFF" />
-                        <Text style={styles.navCardText}>My Stock</Text>
-                    </LinearGradient>
-                </TouchableOpacity>
-            </View>
 
             {/* Pending Items List */}
             <View style={styles.listContainer}>
@@ -352,10 +338,6 @@ const styles = StyleSheet.create({
         color: '#FFF',
         letterSpacing: -0.5
     },
-    headerActions: {
-        flexDirection: 'row',
-        gap: 12
-    },
     headerButton: {
         width: 44,
         height: 44,
@@ -364,37 +346,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center'
     },
-    navCardsContainer: {
-        flexDirection: 'row',
-        gap: 12,
-        paddingHorizontal: 20,
-        marginTop: -30,
-        marginBottom: 20
-    },
-    navCard: {
-        flex: 1,
-        borderRadius: 16,
-        overflow: 'hidden',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-        elevation: 6
-    },
-    navCardGradient: {
-        padding: 20,
-        alignItems: 'center',
-        gap: 8
-    },
-    navCardText: {
-        color: '#FFF',
-        fontSize: 14,
-        fontWeight: '700',
-        letterSpacing: 0.3
-    },
     listContainer: {
         flex: 1,
-        paddingHorizontal: 20
+        paddingHorizontal: 20,
+        paddingTop: 20
     },
     sectionTitle: {
         fontSize: 20,
@@ -411,92 +366,59 @@ const styles = StyleSheet.create({
     },
     list: {
         paddingBottom: 100,
-        gap: 12
+        gap: 8
     },
     card: {
-        backgroundColor: '#FFF',
-        borderRadius: 16,
-        overflow: 'hidden',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 3
-    },
-    cardContent: {
-        padding: 16
-    },
-    itemHeader: {
         flexDirection: 'row',
         alignItems: 'center',
+        backgroundColor: '#FFF',
+        borderRadius: 12,
+        padding: 14,
         gap: 12,
-        marginBottom: 16
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.06,
+        shadowRadius: 4,
+        elevation: 2
     },
     itemIconWrapper: {
-        borderRadius: 12,
-        overflow: 'hidden',
-        shadowColor: '#2196F3',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-        elevation: 3
-    },
-    itemIconGradient: {
-        width: 48,
-        height: 48,
+        width: 40,
+        height: 40,
+        borderRadius: 10,
+        backgroundColor: '#E3F2FD',
         justifyContent: 'center',
         alignItems: 'center'
     },
-    itemInfo: {
-        flex: 1
+    itemNameContainer: {
+        flex: 1,
+        minWidth: 0
     },
     itemName: {
-        fontSize: 18,
-        fontWeight: '700',
+        fontSize: 15,
+        fontWeight: '600',
         color: '#1A1A2E',
-        letterSpacing: -0.3
+        letterSpacing: -0.2
     },
-    quantityRow: {
+    quantitiesRow: {
         flexDirection: 'row',
-        gap: 12,
-        marginBottom: 12
+        gap: 8
     },
-    quantityCard: {
-        flex: 1,
-        backgroundColor: '#F9FAFB',
-        padding: 12,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
-        alignItems: 'center'
-    },
-    quantityLabel: {
-        fontSize: 11,
-        color: '#6B7280',
-        fontWeight: '700',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-        marginBottom: 4
-    },
-    quantityValue: {
-        fontSize: 24,
-        fontWeight: '800',
-        letterSpacing: -0.5
-    },
-    statusBadge: {
-        flexDirection: 'row',
+    compactBadge: {
         alignItems: 'center',
-        justifyContent: 'center',
-        gap: 6,
-        padding: 10,
-        borderRadius: 10,
-        borderWidth: 1
+        minWidth: 50
     },
-    statusText: {
-        fontSize: 12,
+    compactLabel: {
+        fontSize: 9,
+        color: '#9CA3AF',
         fontWeight: '700',
         textTransform: 'uppercase',
-        letterSpacing: 0.5
+        letterSpacing: 0.3,
+        marginBottom: 2
+    },
+    compactValue: {
+        fontSize: 16,
+        fontWeight: '800',
+        letterSpacing: -0.3
     },
     emptyState: {
         alignItems: 'center',
