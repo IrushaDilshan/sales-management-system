@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, RefreshControl } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, RefreshControl, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
@@ -63,8 +63,6 @@ export default function RepHome() {
             }
 
             // 1. First, find all routes where this rep is assigned
-            console.log('🔍 Current User ID:', currentUserId);
-
             const { data: myRoutes, error: routesError } = await supabase
                 .from('routes')
                 .select('id')
@@ -73,40 +71,29 @@ export default function RepHome() {
             if (routesError && routesError.code !== 'PGRST116') throw routesError;
 
             const myRouteIds = myRoutes?.map(r => r.id) || [];
-            console.log('🛣️ Routes assigned to this rep:', myRouteIds);
 
             // 2. Find all shops assigned to this rep (either directly or through routes)
             let shopsQuery = supabase
                 .from('shops')
                 .select('id, name, rep_id, route_id');
 
-            // Build the query to find shops where:
-            // - rep_id matches current user (direct assignment)
-            // - OR route_id is in the rep's assigned routes
             if (myRouteIds.length > 0) {
-                // Rep has routes OR direct shop assignments
                 shopsQuery = shopsQuery.or(`rep_id.eq.${currentUserId},route_id.in.(${myRouteIds.join(',')})`);
             } else {
-                // Rep only has direct shop assignments, no routes
                 shopsQuery = shopsQuery.eq('rep_id', currentUserId);
             }
 
             const { data: shopsData, error: shopsError } = await shopsQuery;
-
             if (shopsError) throw shopsError;
 
-            console.log('🏪 Shops assigned to this rep:', shopsData);
-
             if (!shopsData || shopsData.length === 0) {
-                console.log('⚠️ No shops found for this rep');
                 setPendingItems([]);
                 return;
             }
 
             const shopIds = shopsData.map(s => s.id);
-            console.log('📝 Shop IDs:', shopIds);
 
-            // 2. Fetch pending requests for these shops
+            // 3. Fetch pending requests for these shops
             const { data: requestsData, error: reqError } = await supabase
                 .from('requests')
                 .select('id, status, shop_id')
@@ -114,8 +101,6 @@ export default function RepHome() {
                 .in('shop_id', shopIds);
 
             if (reqError) throw reqError;
-
-            console.log('📋 Pending requests for these shops:', requestsData);
 
             if (!requestsData || requestsData.length === 0) {
                 setPendingItems([]);
@@ -206,95 +191,220 @@ export default function RepHome() {
         fetchPendingRequests();
     };
 
-    const renderItem = ({ item }: { item: PendingItem }) => {
+    // Calculate stats
+    const totalPendingQty = pendingItems.reduce((sum, item) => sum + item.totalPendingQty, 0);
+    const totalAvailableStock = pendingItems.reduce((sum, item) => sum + (item.availableStock || 0), 0);
+    const itemsInShortage = pendingItems.filter(item => (item.availableStock || 0) < item.totalPendingQty).length;
+    const fulfillmentRate = pendingItems.length > 0
+        ? Math.round(((pendingItems.length - itemsInShortage) / pendingItems.length) * 100)
+        : 100;
+
+    const renderItem = ({ item, index }: { item: PendingItem; index: number }) => {
         const hasEnough = (item.availableStock || 0) >= item.totalPendingQty;
-        const statusColor = hasEnough ? '#4CAF50' : '#FF9800';
-        const statusIcon = hasEnough ? 'checkmark-circle' : 'alert-circle';
+        const shortage = item.totalPendingQty - (item.availableStock || 0);
+        const canFulfill = hasEnough;
 
         return (
-            <View style={styles.card}>
-                {/* Left Icon */}
-                <View style={styles.itemIconWrapper}>
-                    <Ionicons name="cube" size={20} color="#2196F3" />
-                </View>
-
-                {/* Item Name */}
-                <View style={styles.itemNameContainer}>
-                    <Text style={styles.itemName} numberOfLines={1}>{item.itemName}</Text>
-                </View>
-
-                {/* Quantities */}
-                <View style={styles.quantitiesRow}>
-                    <View style={styles.compactBadge}>
-                        <Text style={styles.compactLabel}>Pending</Text>
-                        <Text style={[styles.compactValue, { color: '#DC2626' }]}>
-                            {item.totalPendingQty}
-                        </Text>
+            <TouchableOpacity
+                style={[styles.compactCard, {
+                    borderLeftWidth: 5,
+                    borderLeftColor: canFulfill ? '#10B981' : '#EF4444'
+                }]}
+                activeOpacity={0.7}
+            >
+                {/* Left: Item Info */}
+                <View style={styles.itemSection}>
+                    <View style={[styles.itemIcon, {
+                        backgroundColor: canFulfill ? '#ECFDF5' : '#FEF2F2'
+                    }]}>
+                        <Ionicons
+                            name="cube"
+                            size={20}
+                            color={canFulfill ? '#10B981' : '#EF4444'}
+                        />
                     </View>
+                    <View style={styles.itemDetails}>
+                        <Text style={styles.compactItemName} numberOfLines={1}>
+                            {item.itemName}
+                        </Text>
+                        {!canFulfill && (
+                            <View style={styles.compactShortageTag}>
+                                <Ionicons name="alert-circle" size={10} color="#DC2626" />
+                                <Text style={styles.compactShortageText}>
+                                    Short {shortage}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+                </View>
 
-                    <View style={styles.compactBadge}>
-                        <Text style={styles.compactLabel}>Stock</Text>
-                        <Text style={[styles.compactValue, { color: hasEnough ? '#4CAF50' : '#FF9800' }]}>
+                {/* Center: Quick Stats */}
+                <View style={styles.quickStats}>
+                    <View style={styles.quickStatCol}>
+                        <Text style={styles.quickStatNum}>{item.totalPendingQty}</Text>
+                        <Text style={styles.quickStatText}>Need</Text>
+                    </View>
+                    <View style={styles.quickStatDivider} />
+                    <View style={styles.quickStatCol}>
+                        <Text style={[styles.quickStatNum, {
+                            color: canFulfill ? '#10B981' : '#F59E0B'
+                        }]}>
                             {item.availableStock || 0}
                         </Text>
+                        <Text style={styles.quickStatText}>Have</Text>
                     </View>
                 </View>
 
-                {/* Status Icon */}
-                <Ionicons name={statusIcon} size={24} color={statusColor} />
-            </View>
+                {/* Right: Status Badge */}
+                <View style={styles.statusSection}>
+                    {canFulfill ? (
+                        <View style={styles.readyBadgeLarge}>
+                            <Ionicons name="checkmark-circle" size={18} color="#059669" />
+                            <Text style={styles.readyBadgeText}>READY</Text>
+                        </View>
+                    ) : (
+                        <View style={styles.urgentBadgeLarge}>
+                            <Ionicons name="alert" size={18} color="#DC2626" />
+                            <Text style={styles.urgentBadgeText}>LOW</Text>
+                        </View>
+                    )}
+                </View>
+            </TouchableOpacity>
         );
     };
 
     return (
         <View style={styles.container}>
-            {/* Gradient Header */}
+            {/* Hero Header with Gradient */}
             <LinearGradient
-                colors={['#2196F3', '#1976D2', '#1565C0']}
-                style={styles.header}
+                colors={['#667EEA', '#764BA2', '#F093FB']}
+                style={styles.heroHeader}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
             >
-                <View style={styles.headerContent}>
-                    <View>
-                        <Text style={styles.headerSubtitle}>Welcome back</Text>
-                        <Text style={styles.headerTitle}>{repName}</Text>
+                {/* Header Content */}
+                <View style={styles.headerTop}>
+                    <View style={styles.greetingContainer}>
+                        <Text style={styles.greetingText}>Good {getGreeting()}</Text>
+                        <Text style={styles.repNameLarge}>{repName}</Text>
                     </View>
                     <TouchableOpacity
                         onPress={onRefresh}
-                        style={styles.headerButton}
+                        style={styles.refreshButton}
+                        activeOpacity={0.7}
                     >
-                        <Ionicons name="refresh" size={24} color="#FFF" />
+                        <Ionicons name="refresh" size={22} color="#FFF" />
                     </TouchableOpacity>
+                </View>
+
+                {/* Quick Stats Cards */}
+                <View style={styles.quickStatsContainer}>
+                    <View style={styles.quickStatCard}>
+                        <View style={styles.quickStatIconWrapper}>
+                            <LinearGradient
+                                colors={['#667EEA', '#764BA2']}
+                                style={styles.quickStatIconGradient}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <Ionicons name="list" size={20} color="#FFF" />
+                            </LinearGradient>
+                        </View>
+                        <View style={styles.quickStatInfo}>
+                            <Text style={styles.quickStatValue}>{pendingItems.length}</Text>
+                            <Text style={styles.quickStatLabel}>Items</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.quickStatCard}>
+                        <View style={styles.quickStatIconWrapper}>
+                            <LinearGradient
+                                colors={['#F093FB', '#F5576C']}
+                                style={styles.quickStatIconGradient}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <Ionicons name="cube" size={20} color="#FFF" />
+                            </LinearGradient>
+                        </View>
+                        <View style={styles.quickStatInfo}>
+                            <Text style={styles.quickStatValue}>{totalPendingQty}</Text>
+                            <Text style={styles.quickStatLabel}>Pending</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.quickStatCard}>
+                        <View style={styles.quickStatIconWrapper}>
+                            <LinearGradient
+                                colors={['#4FACFE', '#00F2FE']}
+                                style={styles.quickStatIconGradient}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <Ionicons name="checkmark-done" size={20} color="#FFF" />
+                            </LinearGradient>
+                        </View>
+                        <View style={styles.quickStatInfo}>
+                            <Text style={styles.quickStatValue}>{fulfillmentRate}%</Text>
+                            <Text style={styles.quickStatLabel}>Ready</Text>
+                        </View>
+                    </View>
                 </View>
             </LinearGradient>
 
-            {/* Pending Items List */}
-            <View style={styles.listContainer}>
-                <Text style={styles.sectionTitle}>Pending Items Summary</Text>
+            {/* Content Section */}
+            <View style={styles.contentSection}>
+                <View style={styles.sectionHeader}>
+                    <View>
+                        <Text style={styles.sectionTitle}>Pending Requests</Text>
+                        <Text style={styles.sectionSubtitle}>
+                            {itemsInShortage > 0
+                                ? `${itemsInShortage} item${itemsInShortage > 1 ? 's' : ''} need attention`
+                                : 'All items ready to fulfill'}
+                        </Text>
+                    </View>
+                    {itemsInShortage > 0 && (
+                        <View style={styles.alertBadge}>
+                            <Ionicons name="alert-circle" size={16} color="#DC2626" />
+                        </View>
+                    )}
+                </View>
 
                 {loading && !refreshing ? (
-                    <View style={styles.centered}>
-                        <ActivityIndicator size="large" color="#2196F3" />
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color="#667EEA" />
+                        <Text style={styles.loadingText}>Loading requests...</Text>
                     </View>
                 ) : (
                     <FlatList
                         data={pendingItems}
                         keyExtractor={item => item.itemId.toString()}
                         renderItem={renderItem}
-                        contentContainerStyle={styles.list}
+                        contentContainerStyle={styles.listContent}
+                        showsVerticalScrollIndicator={false}
                         refreshControl={
                             <RefreshControl
                                 refreshing={refreshing}
                                 onRefresh={onRefresh}
-                                tintColor="#2196F3"
+                                tintColor="#667EEA"
+                                colors={['#667EEA', '#764BA2']}
                             />
                         }
                         ListEmptyComponent={
                             <View style={styles.emptyState}>
-                                <Ionicons name="checkmark-done-circle" size={80} color="#E5E7EB" />
+                                <LinearGradient
+                                    colors={['#667EEA20', '#764BA220']}
+                                    style={styles.emptyIconCircle}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                >
+                                    <Ionicons name="checkmark-done-circle" size={64} color="#667EEA" />
+                                </LinearGradient>
                                 <Text style={styles.emptyTitle}>All Clear!</Text>
-                                <Text style={styles.emptyText}>No pending items at the moment</Text>
+                                <Text style={styles.emptyText}>
+                                    No pending requests at the moment.{'\n'}
+                                    Great job staying on top of things!
+                                </Text>
                             </View>
                         }
                     />
@@ -304,138 +414,303 @@ export default function RepHome() {
     );
 }
 
+// Helper function
+function getGreeting() {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Morning';
+    if (hour < 18) return 'Afternoon';
+    return 'Evening';
+}
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F5F7FA'
+        backgroundColor: '#F8FAFC'
     },
-    header: {
+    heroHeader: {
         paddingTop: 50,
-        paddingBottom: 24,
+        paddingBottom: 32,
         paddingHorizontal: 20,
-        shadowColor: '#2196F3',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 8
+        borderBottomLeftRadius: 32,
+        borderBottomRightRadius: 32,
+        shadowColor: '#667EEA',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 16,
+        elevation: 12
     },
-    headerContent: {
+    headerTop: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center'
+        alignItems: 'flex-start',
+        marginBottom: 24
     },
-    headerSubtitle: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.85)',
-        marginBottom: 4,
+    greetingContainer: {
+        flex: 1
+    },
+    greetingText: {
+        fontSize: 15,
+        color: 'rgba(255, 255, 255, 0.9)',
         fontWeight: '600',
-        letterSpacing: 1,
-        textTransform: 'uppercase'
+        marginBottom: 4,
+        letterSpacing: 0.5
     },
-    headerTitle: {
-        fontSize: 28,
-        fontWeight: '800',
+    repNameLarge: {
+        fontSize: 32,
+        fontWeight: '900',
         color: '#FFF',
-        letterSpacing: -0.5
+        letterSpacing: -1
     },
-    headerButton: {
+    refreshButton: {
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.3)'
+    },
+    quickStatsContainer: {
+        flexDirection: 'row',
+        gap: 12
+    },
+    quickStatCard: {
+        flex: 1,
+        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+        borderRadius: 16,
+        padding: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.3)'
+    },
+    quickStatIconWrapper: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+        elevation: 3
+    },
+    quickStatIconGradient: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center'
     },
-    listContainer: {
+    quickStatInfo: {
+        flex: 1
+    },
+    quickStatValue: {
+        fontSize: 22,
+        fontWeight: '900',
+        color: '#FFF',
+        letterSpacing: -0.5,
+        marginBottom: 2
+    },
+    quickStatLabel: {
+        fontSize: 11,
+        color: 'rgba(255, 255, 255, 0.85)',
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5
+    },
+    contentSection: {
         flex: 1,
-        paddingHorizontal: 20,
-        paddingTop: 20
+        paddingTop: 24,
+        paddingHorizontal: 20
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 16
     },
     sectionTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: '#1A1A2E',
-        marginBottom: 16,
-        letterSpacing: -0.3
+        fontSize: 24,
+        fontWeight: '800',
+        color: '#1E293B',
+        letterSpacing: -0.5,
+        marginBottom: 4
     },
-    centered: {
-        flex: 1,
+    sectionSubtitle: {
+        fontSize: 14,
+        color: '#64748B',
+        fontWeight: '500'
+    },
+    alertBadge: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#FEE2E2',
         justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 60
+        alignItems: 'center'
     },
-    list: {
+    listContent: {
         paddingBottom: 100,
-        gap: 8
+        gap: 10
     },
-    card: {
+    compactCard: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#FFF',
-        borderRadius: 12,
+        borderRadius: 16,
         padding: 14,
         gap: 12,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.06,
-        shadowRadius: 4,
-        elevation: 2
+        shadowRadius: 8,
+        elevation: 2,
+        borderWidth: 1,
+        borderColor: '#F1F5F9'
     },
-    itemIconWrapper: {
+    itemSection: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        minWidth: 0
+    },
+    itemIcon: {
         width: 40,
         height: 40,
         borderRadius: 10,
-        backgroundColor: '#E3F2FD',
         justifyContent: 'center',
         alignItems: 'center'
     },
-    itemNameContainer: {
+    itemDetails: {
         flex: 1,
         minWidth: 0
     },
-    itemName: {
+    compactItemName: {
         fontSize: 15,
-        fontWeight: '600',
-        color: '#1A1A2E',
-        letterSpacing: -0.2
+        fontWeight: '700',
+        color: '#1E293B',
+        letterSpacing: -0.2,
+        marginBottom: 2
     },
-    quantitiesRow: {
+    compactShortageTag: {
         flexDirection: 'row',
-        gap: 8
-    },
-    compactBadge: {
         alignItems: 'center',
-        minWidth: 50
+        gap: 3,
+        backgroundColor: '#FEE2E2',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        alignSelf: 'flex-start'
     },
-    compactLabel: {
+    compactShortageText: {
         fontSize: 9,
-        color: '#9CA3AF',
+        fontWeight: '800',
+        color: '#DC2626',
+        textTransform: 'uppercase',
+        letterSpacing: 0.3
+    },
+    quickStats: {
+        flexDirection: 'row',
+        gap: 8,
+        paddingHorizontal: 8
+    },
+    quickStatCol: {
+        alignItems: 'center'
+    },
+    quickStatNum: {
+        fontSize: 18,
+        fontWeight: '900',
+        color: '#1E293B',
+        letterSpacing: -0.5
+    },
+    quickStatText: {
+        fontSize: 9,
+        color: '#64748B',
         fontWeight: '700',
         textTransform: 'uppercase',
         letterSpacing: 0.3,
-        marginBottom: 2
+        marginTop: 2
     },
-    compactValue: {
-        fontSize: 16,
-        fontWeight: '800',
-        letterSpacing: -0.3
+    quickStatDivider: {
+        width: 1,
+        height: '100%',
+        backgroundColor: '#E2E8F0'
+    },
+    statusSection: {
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    readyBadgeLarge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: '#ECFDF5',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#A7F3D0'
+    },
+    readyBadgeText: {
+        fontSize: 11,
+        fontWeight: '900',
+        color: '#059669',
+        letterSpacing: 0.5
+    },
+    urgentBadgeLarge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: '#FEF2F2',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#FECACA'
+    },
+    urgentBadgeText: {
+        fontSize: 11,
+        fontWeight: '900',
+        color: '#DC2626',
+        letterSpacing: 0.5
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingTop: 80
+    },
+    loadingText: {
+        marginTop: 16,
+        fontSize: 15,
+        color: '#64748B',
+        fontWeight: '600'
     },
     emptyState: {
         alignItems: 'center',
-        paddingVertical: 60,
-        paddingHorizontal: 40
+        paddingVertical: 80,
+        paddingHorizontal: 32
+    },
+    emptyIconCircle: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 24
     },
     emptyTitle: {
-        fontSize: 24,
-        fontWeight: '700',
-        color: '#1A1A2E',
-        marginTop: 16,
-        marginBottom: 8
+        fontSize: 28,
+        fontWeight: '800',
+        color: '#1E293B',
+        marginBottom: 12,
+        letterSpacing: -0.5
     },
     emptyText: {
-        fontSize: 14,
-        color: '#9CA3AF',
+        fontSize: 15,
+        color: '#64748B',
         textAlign: 'center',
-        lineHeight: 20
+        lineHeight: 22,
+        fontWeight: '500'
     }
 });

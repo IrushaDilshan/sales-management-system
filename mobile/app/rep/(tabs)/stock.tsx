@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, Alert, RefreshControl } from 'react-native';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator, Alert, RefreshControl, TouchableOpacity } from 'react-native';
 import { supabase } from '../../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -70,12 +70,14 @@ export default function StockScreen() {
                 console.warn('No user ID found, stock will show as 0');
             }
 
-            // 4. Merge
-            const merged: StockItem[] = (itemsData || []).map((item: any) => ({
-                id: item.id,
-                name: item.name,
-                qty: repStockMap.get(item.id) || 0
-            }));
+            // 4. Merge - only show items with stock
+            const merged: StockItem[] = (itemsData || [])
+                .map((item: any) => ({
+                    id: item.id,
+                    name: item.name,
+                    qty: repStockMap.get(item.id) || 0
+                }))
+                .filter(item => item.qty > 0); // Only show items with stock
 
             setItems(merged);
 
@@ -93,106 +95,184 @@ export default function StockScreen() {
     };
 
     const renderItem = ({ item }: { item: StockItem }) => {
-        const hasStock = item.qty > 0;
-        const statusColor = hasStock ? '#4CAF50' : '#EF4444';
-        const statusIcon = hasStock ? 'checkmark-circle' : 'alert-circle';
+        const stockLevel = item.qty >= 50 ? 'high' : item.qty >= 20 ? 'medium' : 'low';
+        const stockColor = stockLevel === 'high' ? '#10B981' : stockLevel === 'medium' ? '#F59E0B' : '#EF4444';
+        const bgColor = stockLevel === 'high' ? '#ECFDF5' : stockLevel === 'medium' ? '#FFFBEB' : '#FEF2F2';
 
         return (
-            <View style={styles.card}>
-                {/* Left Icon */}
-                <View style={[styles.iconWrapper, {
-                    backgroundColor: hasStock ? '#E8F5E9' : '#FFEBEE'
-                }]}>
-                    <Ionicons name="cube" size={20} color={statusColor} />
-                </View>
-
-                {/* Item Name */}
-                <View style={styles.itemNameContainer}>
-                    <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+            <View style={[styles.stockCard, { borderLeftWidth: 5, borderLeftColor: stockColor }]}>
+                {/* Icon & Name */}
+                <View style={styles.itemSection}>
+                    <View style={[styles.itemIcon, { backgroundColor: bgColor }]}>
+                        <Ionicons name="cube" size={20} color={stockColor} />
+                    </View>
+                    <View style={styles.itemDetails}>
+                        <Text style={styles.itemName} numberOfLines={1}>
+                            {item.name}
+                        </Text>
+                        <Text style={[styles.stockLevel, { color: stockColor }]}>
+                            {stockLevel.toUpperCase()} STOCK
+                        </Text>
+                    </View>
                 </View>
 
                 {/* Quantity */}
-                <View style={styles.compactBadge}>
-                    <Text style={styles.compactLabel}>Qty</Text>
-                    <Text style={[styles.compactValue, { color: statusColor }]}>
+                <View style={styles.quantitySection}>
+                    <Text style={[styles.quantityNum, { color: stockColor }]}>
                         {item.qty}
                     </Text>
+                    <Text style={styles.quantityLabel}>Units</Text>
                 </View>
 
-                {/* Status Icon */}
-                <Ionicons name={statusIcon} size={24} color={statusColor} />
+                {/* Status Indicator */}
+                <View style={[styles.statusIndicator, { backgroundColor: stockColor }]} />
             </View>
         );
     };
 
     // Calculate stats
     const totalItems = items.length;
-    const inStockItems = items.filter(i => i.qty > 0).length;
-    const outOfStockItems = items.filter(i => i.qty === 0).length;
     const totalQuantity = items.reduce((sum, item) => sum + item.qty, 0);
+    const highStock = items.filter(i => i.qty >= 50).length;
+    const lowStock = items.filter(i => i.qty < 20).length;
 
     return (
         <View style={styles.container}>
-            {/* Gradient Header */}
+            {/* Hero Header */}
             <LinearGradient
-                colors={['#2196F3', '#1976D2', '#1565C0']}
-                style={styles.header}
+                colors={['#667EEA', '#764BA2', '#F093FB']}
+                style={styles.heroHeader}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
             >
                 <View style={styles.headerContent}>
-                    <Ionicons name="cube" size={32} color="#FFF" />
-                    <Text style={styles.headerTitle}>My Assigned Stock</Text>
+                    <View>
+                        <Text style={styles.headerSubtitle}>My Inventory</Text>
+                        <Text style={styles.headerTitle}>Stock</Text>
+                    </View>
+                    <TouchableOpacity
+                        onPress={onRefresh}
+                        style={styles.refreshButton}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="refresh" size={22} color="#FFF" />
+                    </TouchableOpacity>
+                </View>
+
+                {/* Quick Stats */}
+                <View style={styles.quickStatsRow}>
+                    <View style={styles.quickStatCard}>
+                        <View style={styles.quickStatIconWrapper}>
+                            <LinearGradient
+                                colors={['#6366F1', '#8B5CF6']}
+                                style={styles.quickStatIconGradient}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <Ionicons name="list" size={18} color="#FFF" />
+                            </LinearGradient>
+                        </View>
+                        <View style={styles.quickStatInfo}>
+                            <Text style={styles.quickStatValue}>{totalItems}</Text>
+                            <Text style={styles.quickStatLabel}>Items</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.quickStatCard}>
+                        <View style={styles.quickStatIconWrapper}>
+                            <LinearGradient
+                                colors={['#10B981', '#059669']}
+                                style={styles.quickStatIconGradient}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <Ionicons name="cube" size={18} color="#FFF" />
+                            </LinearGradient>
+                        </View>
+                        <View style={styles.quickStatInfo}>
+                            <Text style={styles.quickStatValue}>{totalQuantity}</Text>
+                            <Text style={styles.quickStatLabel}>Total</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.quickStatCard}>
+                        <View style={styles.quickStatIconWrapper}>
+                            <LinearGradient
+                                colors={lowStock > 0 ? ['#EF4444', '#DC2626'] : ['#10B981', '#059669']}
+                                style={styles.quickStatIconGradient}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <Ionicons
+                                    name={lowStock > 0 ? 'alert' : 'checkmark-done'}
+                                    size={18}
+                                    color="#FFF"
+                                />
+                            </LinearGradient>
+                        </View>
+                        <View style={styles.quickStatInfo}>
+                            <Text style={styles.quickStatValue}>
+                                {lowStock > 0 ? lowStock : highStock}
+                            </Text>
+                            <Text style={styles.quickStatLabel}>
+                                {lowStock > 0 ? 'Low' : 'High'}
+                            </Text>
+                        </View>
+                    </View>
                 </View>
             </LinearGradient>
 
-            {/* Stats Cards */}
-            <View style={styles.statsContainer}>
-                <View style={styles.statCard}>
-                    <Text style={styles.statLabel}>Total Items</Text>
-                    <Text style={[styles.statValue, { color: '#2196F3' }]}>{totalItems}</Text>
+            {/* Content */}
+            <View style={styles.contentSection}>
+                <View style={styles.sectionHeader}>
+                    <View>
+                        <Text style={styles.sectionTitle}>Inventory Items</Text>
+                        <Text style={styles.sectionSubtitle}>
+                            {lowStock > 0
+                                ? `${lowStock} item${lowStock > 1 ? 's' : ''} running low`
+                                : 'All items well stocked'}
+                        </Text>
+                    </View>
+                    {lowStock > 0 && (
+                        <View style={styles.alertBadge}>
+                            <Ionicons name="alert-circle" size={16} color="#DC2626" />
+                        </View>
+                    )}
                 </View>
-                <View style={styles.statCard}>
-                    <Text style={styles.statLabel}>In Stock</Text>
-                    <Text style={[styles.statValue, { color: '#4CAF50' }]}>{inStockItems}</Text>
-                </View>
-                <View style={styles.statCard}>
-                    <Text style={styles.statLabel}>Out of Stock</Text>
-                    <Text style={[styles.statValue, { color: '#EF4444' }]}>{outOfStockItems}</Text>
-                </View>
-                <View style={styles.statCard}>
-                    <Text style={styles.statLabel}>Total Qty</Text>
-                    <Text style={[styles.statValue, { color: '#FF9800' }]}>{totalQuantity}</Text>
-                </View>
-            </View>
-
-            {/* Items List */}
-            <View style={styles.listContainer}>
-                <Text style={styles.sectionTitle}>Inventory Details</Text>
 
                 {loading && !refreshing ? (
-                    <View style={styles.centered}>
-                        <ActivityIndicator size="large" color="#2196F3" />
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color="#667EEA" />
+                        <Text style={styles.loadingText}>Loading stock...</Text>
                     </View>
                 ) : (
                     <FlatList
                         data={items}
                         keyExtractor={item => item.id.toString()}
                         renderItem={renderItem}
-                        contentContainerStyle={styles.list}
+                        contentContainerStyle={styles.listContent}
+                        showsVerticalScrollIndicator={false}
                         refreshControl={
                             <RefreshControl
                                 refreshing={refreshing}
                                 onRefresh={onRefresh}
-                                tintColor="#2196F3"
+                                tintColor="#667EEA"
+                                colors={['#667EEA', '#764BA2']}
                             />
                         }
                         ListEmptyComponent={
                             <View style={styles.emptyState}>
-                                <Ionicons name="cube-outline" size={80} color="#E5E7EB" />
-                                <Text style={styles.emptyTitle}>No Stock Assigned</Text>
+                                <LinearGradient
+                                    colors={['#667EEA20', '#764BA220']}
+                                    style={styles.emptyIconCircle}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                >
+                                    <Ionicons name="cube-outline" size={64} color="#667EEA" />
+                                </LinearGradient>
+                                <Text style={styles.emptyTitle}>No Stock Yet</Text>
                                 <Text style={styles.emptyText}>
-                                    Contact storekeeper to get stock assigned to you
+                                    Contact the storekeeper to get stock assigned to you
                                 </Text>
                             </View>
                         }
@@ -206,145 +286,234 @@ export default function StockScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F5F7FA'
+        backgroundColor: '#F8FAFC'
     },
-    header: {
+    heroHeader: {
         paddingTop: 50,
-        paddingBottom: 24,
+        paddingBottom: 32,
         paddingHorizontal: 20,
-        shadowColor: '#2196F3',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 8
+        borderBottomLeftRadius: 32,
+        borderBottomRightRadius: 32,
+        shadowColor: '#667EEA',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 16,
+        elevation: 12
     },
     headerContent: {
         flexDirection: 'row',
-        alignItems: 'center',
-        gap: 16
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 24
+    },
+    headerSubtitle: {
+        fontSize: 15,
+        color: 'rgba(255, 255, 255, 0.9)',
+        fontWeight: '600',
+        marginBottom: 4,
+        letterSpacing: 0.5
     },
     headerTitle: {
-        fontSize: 28,
-        fontWeight: '800',
+        fontSize: 32,
+        fontWeight: '900',
         color: '#FFF',
-        letterSpacing: -0.5
+        letterSpacing: -1
     },
-    statsContainer: {
-        flexDirection: 'row',
-        paddingHorizontal: 20,
-        marginTop: -30,
-        marginBottom: 20,
-        gap: 10
-    },
-    statCard: {
-        flex: 1,
-        backgroundColor: '#FFF',
-        padding: 12,
-        borderRadius: 12,
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 3
-    },
-    statLabel: {
-        fontSize: 10,
-        color: '#6B7280',
-        fontWeight: '700',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-        marginBottom: 4
-    },
-    statValue: {
-        fontSize: 20,
-        fontWeight: '800',
-        letterSpacing: -0.5
-    },
-    listContainer: {
-        flex: 1,
-        paddingHorizontal: 20
-    },
-    sectionTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: '#1A1A2E',
-        marginBottom: 16,
-        letterSpacing: -0.3
-    },
-    centered: {
-        flex: 1,
+    refreshButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(255, 255, 255, 0.25)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginTop: 60
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.3)'
     },
-    list: {
+    quickStatsRow: {
+        flexDirection: 'row',
+        gap: 12
+    },
+    quickStatCard: {
+        flex: 1,
+        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+        borderRadius: 16,
+        padding: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.3)'
+    },
+    quickStatIconWrapper: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+        elevation: 3
+    },
+    quickStatIconGradient: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    quickStatInfo: {
+        flex: 1
+    },
+    quickStatValue: {
+        fontSize: 22,
+        fontWeight: '900',
+        color: '#FFF',
+        letterSpacing: -0.5,
+        marginBottom: 2
+    },
+    quickStatLabel: {
+        fontSize: 11,
+        color: 'rgba(255, 255, 255, 0.85)',
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5
+    },
+    contentSection: {
+        flex: 1,
+        paddingTop: 24,
+        paddingHorizontal: 20
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 16
+    },
+    sectionTitle: {
+        fontSize: 24,
+        fontWeight: '800',
+        color: '#1E293B',
+        letterSpacing: -0.5,
+        marginBottom: 4
+    },
+    sectionSubtitle: {
+        fontSize: 14,
+        color: '#64748B',
+        fontWeight: '500'
+    },
+    alertBadge: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#FEE2E2',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    listContent: {
         paddingBottom: 100,
-        gap: 8
+        gap: 10
     },
-    card: {
+    stockCard: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#FFF',
-        borderRadius: 12,
+        borderRadius: 16,
         padding: 14,
         gap: 12,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.06,
-        shadowRadius: 4,
-        elevation: 2
+        shadowRadius: 8,
+        elevation: 2,
+        borderWidth: 1,
+        borderColor: '#F1F5F9'
     },
-    iconWrapper: {
+    itemSection: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        minWidth: 0
+    },
+    itemIcon: {
         width: 40,
         height: 40,
         borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center'
     },
-    itemNameContainer: {
+    itemDetails: {
         flex: 1,
         minWidth: 0
     },
     itemName: {
         fontSize: 15,
-        fontWeight: '600',
-        color: '#1A1A2E',
-        letterSpacing: -0.2
+        fontWeight: '700',
+        color: '#1E293B',
+        letterSpacing: -0.2,
+        marginBottom: 3
     },
-    compactBadge: {
-        alignItems: 'center',
-        minWidth: 50
-    },
-    compactLabel: {
+    stockLevel: {
         fontSize: 9,
-        color: '#9CA3AF',
+        fontWeight: '800',
+        letterSpacing: 0.5
+    },
+    quantitySection: {
+        alignItems: 'center',
+        paddingHorizontal: 8
+    },
+    quantityNum: {
+        fontSize: 20,
+        fontWeight: '900',
+        letterSpacing: -0.5
+    },
+    quantityLabel: {
+        fontSize: 9,
+        color: '#64748B',
         fontWeight: '700',
         textTransform: 'uppercase',
         letterSpacing: 0.3,
-        marginBottom: 2
+        marginTop: 2
     },
-    compactValue: {
-        fontSize: 16,
-        fontWeight: '800',
-        letterSpacing: -0.3
+    statusIndicator: {
+        width: 8,
+        height: 36,
+        borderRadius: 4
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingTop: 80
+    },
+    loadingText: {
+        marginTop: 16,
+        fontSize: 15,
+        color: '#64748B',
+        fontWeight: '600'
     },
     emptyState: {
         alignItems: 'center',
-        paddingVertical: 60,
-        paddingHorizontal: 40
+        paddingVertical: 80,
+        paddingHorizontal: 32
+    },
+    emptyIconCircle: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 24
     },
     emptyTitle: {
-        fontSize: 24,
-        fontWeight: '700',
-        color: '#1A1A2E',
-        marginTop: 16,
-        marginBottom: 8
+        fontSize: 28,
+        fontWeight: '800',
+        color: '#1E293B',
+        marginBottom: 12,
+        letterSpacing: -0.5
     },
     emptyText: {
-        fontSize: 14,
-        color: '#9CA3AF',
+        fontSize: 15,
+        color: '#64748B',
         textAlign: 'center',
-        lineHeight: 20
+        lineHeight: 22,
+        fontWeight: '500'
     }
 });

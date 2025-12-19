@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, TextInput, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 type ShopRequest = {
     shopId: number;
@@ -15,6 +16,7 @@ export default function ShopsListScreen() {
     const [shops, setShops] = useState<ShopRequest[]>([]);
     const [filteredShops, setFilteredShops] = useState<ShopRequest[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [search, setSearch] = useState('');
     const router = useRouter();
 
@@ -62,14 +64,9 @@ export default function ShopsListScreen() {
                 .from('shops')
                 .select('id, name');
 
-            // Build the query to find shops where:
-            // - rep_id matches current user (direct assignment)
-            // - OR route_id is in the rep's assigned routes
             if (myRouteIds.length > 0) {
-                // Rep has routes OR direct shop assignments
                 shopsQuery = shopsQuery.or(`rep_id.eq.${currentUserId},route_id.in.(${myRouteIds.join(',')})`);
             } else {
-                // Rep only has direct shop assignments, no routes
                 shopsQuery = shopsQuery.eq('rep_id', currentUserId);
             }
 
@@ -85,7 +82,7 @@ export default function ShopsListScreen() {
 
             const shopIds = shopsData.map(s => s.id);
 
-            // 2. Fetch pending requests for these shops
+            // 3. Fetch pending requests for these shops
             const { data: requestsData, error: reqError } = await supabase
                 .from('requests')
                 .select('id, shop_id, date')
@@ -100,11 +97,13 @@ export default function ShopsListScreen() {
                 return;
             }
 
-            // 3. Aggregate
+            // 4. Aggregate
             const shopsMap = new Map();
             shopsData?.forEach((s: any) => shopsMap.set(s.id, s.name));
 
-            const aggregated = shopIds.map(id => {
+            const shopIdsWithRequests = Array.from(new Set(requestsData.map((r: any) => r.shop_id)));
+
+            const aggregated = shopIdsWithRequests.map(id => {
                 const shopRequests = requestsData.filter((r: any) => r.shop_id === id);
                 return {
                     shopId: id,
@@ -121,7 +120,13 @@ export default function ShopsListScreen() {
             Alert.alert('Error', err.message);
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
+    };
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        fetchShops();
     };
 
     const handleSearch = (text: string) => {
@@ -135,71 +140,175 @@ export default function ShopsListScreen() {
 
     const renderItem = ({ item }: { item: ShopRequest }) => (
         <TouchableOpacity
-            style={styles.card}
+            style={styles.shopCard}
             onPress={() => router.push(`/rep/request/${item.shopId}`)}
+            activeOpacity={0.7}
         >
-            <View style={styles.cardHeader}>
-                <View style={{
-                    backgroundColor: '#fff3e0',
-                    padding: 12,
-                    borderRadius: 14,
-                    marginRight: 14
-                }}>
-                    <Ionicons name="storefront" size={28} color="#FF9800" />
-                </View>
-                <View style={{ flex: 1 }}>
-                    <Text style={styles.shopName}>{item.shopName}</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-                        <View style={{
-                            backgroundColor: '#dbeafe',
-                            paddingHorizontal: 10,
-                            paddingVertical: 4,
-                            borderRadius: 8
-                        }}>
-                            <Text style={{
-                                color: '#2196F3',
-                                fontSize: 13,
-                                fontWeight: '700',
-                                letterSpacing: 0.2
-                            }}>
-                                {item.requestCount} {item.requestCount === 1 ? 'Request' : 'Requests'}
-                            </Text>
-                        </View>
-                    </View>
+            {/* Shop Icon */}
+            <View style={styles.shopIconWrapper}>
+                <LinearGradient
+                    colors={['#F59E0B', '#F97316']}
+                    style={styles.shopIconGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                >
+                    <Ionicons name="storefront" size={24} color="#FFF" />
+                </LinearGradient>
+            </View>
+
+            {/* Shop Details */}
+            <View style={styles.shopDetails}>
+                <Text style={styles.shopName} numberOfLines={1}>{item.shopName}</Text>
+                <View style={styles.requestBadge}>
+                    <Ionicons name="receipt-outline" size={12} color="#6366F1" />
+                    <Text style={styles.requestText}>
+                        {item.requestCount} {item.requestCount === 1 ? 'Request' : 'Requests'}
+                    </Text>
                 </View>
             </View>
-            <Ionicons name="chevron-forward" size={24} color="#d1d5db" />
+
+            {/* Arrow */}
+            <Ionicons name="chevron-forward" size={24} color="#CBD5E1" />
         </TouchableOpacity>
     );
 
+    // Calculate stats
+    const totalShops = filteredShops.length;
+    const totalRequests = filteredShops.reduce((sum, shop) => sum + shop.requestCount, 0);
+    const avgRequests = totalShops > 0 ? Math.round(totalRequests / totalShops) : 0;
+
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={24} color="#333" />
-                </TouchableOpacity>
-                <Text style={styles.title}>Shop Requests</Text>
-            </View>
+            {/* Hero Header */}
+            <LinearGradient
+                colors={['#667EEA', '#764BA2', '#F093FB']}
+                style={styles.heroHeader}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+            >
+                <View style={styles.headerContent}>
+                    <View>
+                        <Text style={styles.headerSubtitle}>My Assigned</Text>
+                        <Text style={styles.headerTitle}>Shops</Text>
+                    </View>
+                    <TouchableOpacity
+                        onPress={onRefresh}
+                        style={styles.refreshButton}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="refresh" size={22} color="#FFF" />
+                    </TouchableOpacity>
+                </View>
 
+                {/* Quick Stats */}
+                <View style={styles.quickStatsRow}>
+                    <View style={styles.quickStatCard}>
+                        <View style={styles.quickStatIconWrapper}>
+                            <LinearGradient
+                                colors={['#F59E0B', '#F97316']}
+                                style={styles.quickStatIconGradient}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <Ionicons name="storefront" size={18} color="#FFF" />
+                            </LinearGradient>
+                        </View>
+                        <View style={styles.quickStatInfo}>
+                            <Text style={styles.quickStatValue}>{totalShops}</Text>
+                            <Text style={styles.quickStatLabel}>Shops</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.quickStatCard}>
+                        <View style={styles.quickStatIconWrapper}>
+                            <LinearGradient
+                                colors={['#6366F1', '#8B5CF6']}
+                                style={styles.quickStatIconGradient}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <Ionicons name="receipt" size={18} color="#FFF" />
+                            </LinearGradient>
+                        </View>
+                        <View style={styles.quickStatInfo}>
+                            <Text style={styles.quickStatValue}>{totalRequests}</Text>
+                            <Text style={styles.quickStatLabel}>Requests</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.quickStatCard}>
+                        <View style={styles.quickStatIconWrapper}>
+                            <LinearGradient
+                                colors={['#10B981', '#059669']}
+                                style={styles.quickStatIconGradient}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <Ionicons name="stats-chart" size={18} color="#FFF" />
+                            </LinearGradient>
+                        </View>
+                        <View style={styles.quickStatInfo}>
+                            <Text style={styles.quickStatValue}>{avgRequests}</Text>
+                            <Text style={styles.quickStatLabel}>Avg</Text>
+                        </View>
+                    </View>
+                </View>
+            </LinearGradient>
+
+            {/* Search Bar */}
             <View style={styles.searchContainer}>
-                <Ionicons name="search" size={20} color="#666" style={{ marginRight: 8 }} />
+                <Ionicons name="search" size={20} color="#64748B" />
                 <TextInput
                     style={styles.searchInput}
-                    placeholder="Search Shop..."
+                    placeholder="Search shops..."
+                    placeholderTextColor="#94A3B8"
                     value={search}
                     onChangeText={handleSearch}
                 />
+                {search.length > 0 && (
+                    <TouchableOpacity onPress={() => handleSearch('')}>
+                        <Ionicons name="close-circle" size={20} color="#94A3B8" />
+                    </TouchableOpacity>
+                )}
             </View>
 
-            {loading ? (
-                <ActivityIndicator size="large" color="#0000ff" style={{ marginTop: 20 }} />
+            {/* Shops List */}
+            {loading && !refreshing ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#667EEA" />
+                    <Text style={styles.loadingText}>Loading shops...</Text>
+                </View>
             ) : (
                 <FlatList
                     data={filteredShops}
                     keyExtractor={item => item.shopId.toString()}
                     renderItem={renderItem}
-                    contentContainerStyle={styles.list}
-                    ListEmptyComponent={<Text style={styles.emptyText}>No shops with pending requests.</Text>}
+                    contentContainerStyle={styles.listContent}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            tintColor="#667EEA"
+                            colors={['#667EEA', '#764BA2']}
+                        />
+                    }
+                    ListEmptyComponent={
+                        <View style={styles.emptyState}>
+                            <LinearGradient
+                                colors={['#667EEA20', '#764BA220']}
+                                style={styles.emptyIconCircle}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <Ionicons name="storefront-outline" size={64} color="#667EEA" />
+                            </LinearGradient>
+                            <Text style={styles.emptyTitle}>No Shops Found</Text>
+                            <Text style={styles.emptyText}>
+                                {search ? 'Try a different search term' : 'No shops with pending requests'}
+                            </Text>
+                        </View>
+                    }
                 />
             )}
         </View>
@@ -209,99 +318,218 @@ export default function ShopsListScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8f9fa'
+        backgroundColor: '#F8FAFC'
     },
-    header: {
+    heroHeader: {
+        paddingTop: 50,
+        paddingBottom: 32,
+        paddingHorizontal: 20,
+        borderBottomLeftRadius: 32,
+        borderBottomRightRadius: 32,
+        shadowColor: '#667EEA',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 16,
+        elevation: 12
+    },
+    headerContent: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 24
+    },
+    headerSubtitle: {
+        fontSize: 15,
+        color: 'rgba(255, 255, 255, 0.9)',
+        fontWeight: '600',
+        marginBottom: 4,
+        letterSpacing: 0.5
+    },
+    headerTitle: {
+        fontSize: 32,
+        fontWeight: '900',
+        color: '#FFF',
+        letterSpacing: -1
+    },
+    refreshButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.3)'
+    },
+    quickStatsRow: {
+        flexDirection: 'row',
+        gap: 12
+    },
+    quickStatCard: {
+        flex: 1,
+        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+        borderRadius: 16,
+        padding: 14,
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 24,
-        marginTop: 50,
-        paddingHorizontal: 20
+        gap: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.3)'
     },
-    backBtn: {
-        marginRight: 16,
-        padding: 8,
-        borderRadius: 12,
-        backgroundColor: 'white',
+    quickStatIconWrapper: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        elevation: 2
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+        elevation: 3
     },
-    title: {
-        fontSize: 32,
-        fontWeight: '800',
-        color: '#1a1a2e',
-        letterSpacing: -0.5
+    quickStatIconGradient: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    quickStatInfo: {
+        flex: 1
+    },
+    quickStatValue: {
+        fontSize: 22,
+        fontWeight: '900',
+        color: '#FFF',
+        letterSpacing: -0.5,
+        marginBottom: 2
+    },
+    quickStatLabel: {
+        fontSize: 11,
+        color: 'rgba(255, 255, 255, 0.85)',
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5
     },
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'white',
+        backgroundColor: '#FFF',
+        marginHorizontal: 20,
+        marginTop: 20,
+        marginBottom: 16,
         paddingHorizontal: 16,
         paddingVertical: 14,
         borderRadius: 16,
-        marginBottom: 20,
-        marginHorizontal: 20,
+        gap: 12,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        elevation: 3,
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 2,
         borderWidth: 1,
-        borderColor: '#f0f0f0'
+        borderColor: '#F1F5F9'
     },
     searchInput: {
         flex: 1,
         fontSize: 16,
-        marginLeft: 12,
-        color: '#1a1a2e',
+        color: '#1E293B',
         fontWeight: '500'
     },
-    list: {
-        paddingBottom: 30,
-        paddingHorizontal: 20
+    listContent: {
+        paddingHorizontal: 20,
+        paddingBottom: 100,
+        gap: 10
     },
-    card: {
+    shopCard: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: 'white',
-        padding: 18,
-        borderRadius: 20,
-        marginBottom: 12,
+        backgroundColor: '#FFF',
+        borderRadius: 16,
+        padding: 16,
+        gap: 14,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        elevation: 3,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 2,
         borderWidth: 1,
-        borderColor: '#f0f0f0'
+        borderColor: '#F1F5F9'
     },
-    cardHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1
+    shopIconWrapper: {
+        shadowColor: '#F59E0B',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 3
+    },
+    shopIconGradient: {
+        width: 52,
+        height: 52,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    shopDetails: {
+        flex: 1,
+        minWidth: 0
     },
     shopName: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '700',
-        color: '#1a1a2e',
+        color: '#1E293B',
         letterSpacing: -0.3,
-        marginBottom: 4
+        marginBottom: 6
     },
-    subtitle: {
-        color: '#6b7280',
-        marginTop: 4,
-        fontSize: 14,
-        fontWeight: '500'
+    requestBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: '#EEF2FF',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+        alignSelf: 'flex-start'
+    },
+    requestText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#6366F1',
+        letterSpacing: 0.2
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingTop: 80
+    },
+    loadingText: {
+        marginTop: 16,
+        fontSize: 15,
+        color: '#64748B',
+        fontWeight: '600'
+    },
+    emptyState: {
+        alignItems: 'center',
+        paddingVertical: 80,
+        paddingHorizontal: 32
+    },
+    emptyIconCircle: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 24
+    },
+    emptyTitle: {
+        fontSize: 28,
+        fontWeight: '800',
+        color: '#1E293B',
+        marginBottom: 12,
+        letterSpacing: -0.5
     },
     emptyText: {
+        fontSize: 15,
+        color: '#64748B',
         textAlign: 'center',
-        marginTop: 60,
-        color: '#9ca3af',
-        fontSize: 16,
+        lineHeight: 22,
         fontWeight: '500'
     }
 });
