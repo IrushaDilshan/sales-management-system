@@ -53,56 +53,50 @@ export default function RequestHistoryScreen() {
                 .eq('salesman_id', userId)
                 .order('created_at', { ascending: false });
 
-            console.log('Fetched requests:', requestsData);
-            console.log('Fetch error:', error);
+            console.log('Fetched requests count:', requestsData?.length);
 
             if (error) {
                 console.error('Error fetching requests:', error);
-                console.error('Error details:', JSON.stringify(error));
                 setRequests([]);
             } else {
                 // Handle case when no requests found
                 if (!requestsData || requestsData.length === 0) {
-                    console.log('No requests found for this user');
                     setRequests([]);
                 } else {
-                    // Fetch shop names for each request
-                    const requestsWithShops = await Promise.all(
-                        requestsData.map(async (req) => {
-                            let shopName = 'Unknown Shop';
-                            if (req.shop_id) {
-                                try {
-                                    const { data: shop, error: shopError } = await supabase
-                                        .from('shops')
-                                        .select('name')
-                                        .eq('id', req.shop_id)
-                                        .single();
+                    // Optimize: Batch fetch shop names
+                    const shopIds = [...new Set(requestsData.map(r => r.shop_id).filter(Boolean))];
+                    const shopsMap: Record<string, string> = {};
 
-                                    if (shopError) {
-                                        console.log(`Shop fetch error for request ${req.id}:`, shopError);
-                                    } else if (shop && shop.name) {
-                                        shopName = shop.name;
-                                    }
-                                } catch (shopErr) {
-                                    console.log(`Exception fetching shop for request ${req.id}:`, shopErr);
-                                }
+                    if (shopIds.length > 0) {
+                        try {
+                            const { data: shops, error: shopsError } = await supabase
+                                .from('shops')
+                                .select('id, name')
+                                .in('id', shopIds);
+
+                            if (shopsError) {
+                                console.error('Error fetching shops batch:', shopsError);
+                            } else if (shops) {
+                                shops.forEach(shop => {
+                                    shopsMap[shop.id] = shop.name;
+                                });
                             }
+                        } catch (err) {
+                            console.error('Exception fetching shops batch:', err);
+                        }
+                    }
 
-                            return {
-                                ...req,
-                                shopName
-                            };
-                        })
-                    );
+                    // Map shops to requests
+                    const requestsWithShops = requestsData.map(req => ({
+                        ...req,
+                        shopName: shopsMap[req.shop_id] || 'Unknown Shop'
+                    }));
 
-                    console.log('Requests with shops:', requestsWithShops);
                     setRequests(requestsWithShops);
                 }
             }
         } catch (error: any) {
             console.error('Exception in fetchRequestHistory:', error);
-            console.error('Error message:', error?.message);
-            console.error('Error name:', error?.name);
             setRequests([]);
         } finally {
             setLoading(false);
@@ -129,25 +123,37 @@ export default function RequestHistoryScreen() {
             if (itemsError) {
                 console.error('Error fetching request items:', itemsError);
                 setSelectedRequest({ ...request, items: [] });
-                setLoadingDetails(false);
                 return;
             }
 
-            // Fetch item details for each request item
-            const itemsWithDetails = await Promise.all(
-                (requestItems || []).map(async (reqItem) => {
-                    const { data: item, error: itemError } = await supabase
-                        .from('items')
-                        .select('name')
-                        .eq('id', reqItem.item_id)
-                        .single();
+            // Optimize: Batch fetch items
+            const itemIds = [...new Set((requestItems || []).map(i => i.item_id).filter(Boolean))];
+            const itemsMap: Record<string, string> = {};
 
-                    return {
-                        ...reqItem,
-                        itemName: item?.name || 'Unknown Item'
-                    };
-                })
-            );
+            if (itemIds.length > 0) {
+                try {
+                    const { data: items, error: itemsFetchError } = await supabase
+                        .from('items')
+                        .select('id, name')
+                        .in('id', itemIds);
+
+                    if (itemsFetchError) {
+                        console.error('Error fetching items batch:', itemsFetchError);
+                    } else if (items) {
+                        items.forEach(item => {
+                            itemsMap[item.id] = item.name;
+                        });
+                    }
+                } catch (err) {
+                    console.error('Exception fetching items batch:', err);
+                }
+            }
+
+            // Map items to request items
+            const itemsWithDetails = (requestItems || []).map(reqItem => ({
+                ...reqItem,
+                itemName: itemsMap[reqItem.item_id] || 'Unknown Item'
+            }));
 
             setSelectedRequest({
                 ...request,
