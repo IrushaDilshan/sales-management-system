@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, SectionList, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, SectionList, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, AppState } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
@@ -71,6 +71,17 @@ export default function ShopRequestDetails() {
         } else {
             setLoading(false);
         }
+
+        // Auto-refresh when app comes to foreground
+        const subscription = AppState.addEventListener('change', (nextAppState) => {
+            if (nextAppState === 'active' && shopId) {
+                fetchDetails();
+            }
+        });
+
+        return () => {
+            subscription?.remove();
+        };
     }, [shopId]);
 
     const fetchDetails = async () => {
@@ -163,13 +174,18 @@ export default function ShopRequestDetails() {
 
             // Only fetch rep stock if we have a valid user ID
             if (currentUserId) {
-                // Instead of warehouse stock, get rep's assigned stock from stock_transactions
-                // Rep stock = SUM(OUT transactions for this rep) - (stock already delivered in requests)
+                // Calculate start of today (00:00:00) - Daily Stock Reset
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const todayISO = today.toISOString();
+
+                // Only get TODAY's stock transactions (auto-resets at midnight)
                 const { data: repTransactions } = await supabase
                     .from('stock_transactions')
-                    .select('item_id, qty, type')
+                    .select('item_id, qty, type, created_at')
                     .eq('rep_id', currentUserId)
-                    .in('item_id', itemIds);
+                    .in('item_id', itemIds)
+                    .gte('created_at', todayISO); // Filter: created_at >= today 00:00
 
                 // Calculate rep's available stock per item
                 repTransactions?.forEach((trans: any) => {
@@ -529,9 +545,6 @@ export default function ShopRequestDetails() {
                         <Text style={styles.shopLabel}>Shop</Text>
                         <Text style={styles.title} numberOfLines={1}>{shopName}</Text>
                     </View>
-                    <TouchableOpacity onPress={fetchDetails} style={styles.refreshBtn}>
-                        <Ionicons name="refresh" size={24} color="#FFF" />
-                    </TouchableOpacity>
                 </View>
             </LinearGradient>
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, TextInput, RefreshControl } from 'react-native';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, TextInput, RefreshControl, AppState } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +22,17 @@ export default function ShopsListScreen() {
 
     useEffect(() => {
         fetchShops();
+
+        // Auto-refresh when app comes to foreground
+        const subscription = AppState.addEventListener('change', (nextAppState) => {
+            if (nextAppState === 'active') {
+                fetchShops();
+            }
+        });
+
+        return () => {
+            subscription?.remove();
+        };
     }, []);
 
     const fetchShops = async () => {
@@ -191,13 +202,6 @@ export default function ShopsListScreen() {
                         <Text style={styles.headerSubtitle}>My Assigned</Text>
                         <Text style={styles.headerTitle}>Shops</Text>
                     </View>
-                    <TouchableOpacity
-                        onPress={onRefresh}
-                        style={styles.refreshButton}
-                        activeOpacity={0.7}
-                    >
-                        <Ionicons name="refresh" size={22} color="#FFF" />
-                    </TouchableOpacity>
                 </View>
 
                 {/* Quick Stats */}

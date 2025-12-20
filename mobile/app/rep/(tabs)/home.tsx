@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, RefreshControl } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, RefreshControl, AppState } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +22,17 @@ export default function RepHome() {
     useEffect(() => {
         fetchPendingRequests();
         fetchUserInfo();
+
+        // Auto-refresh when app comes to foreground
+        const subscription = AppState.addEventListener('change', (nextAppState) => {
+            if (nextAppState === 'active') {
+                fetchPendingRequests();
+            }
+        });
+
+        return () => {
+            subscription?.remove();
+        };
     }, []);
 
     const fetchUserInfo = async () => {
@@ -120,11 +131,18 @@ export default function RepHome() {
 
             if (productsError) throw productsError;
 
+            // Calculate start of today (00:00:00) - Daily Stock Reset
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayISO = today.toISOString();
+
+            // Only get TODAY's stock transactions (auto-resets at midnight)
             const { data: repTransactions, error: stockError } = await supabase
                 .from('stock_transactions')
-                .select('item_id, qty, type')
+                .select('item_id, qty, type, created_at')
                 .eq('rep_id', currentUserId)
-                .in('item_id', itemIds);
+                .in('item_id', itemIds)
+                .gte('created_at', todayISO); // Filter: created_at >= today 00:00
 
             if (stockError && stockError.code !== 'PGRST116') throw stockError;
 
@@ -136,6 +154,7 @@ export default function RepHome() {
             repTransactions?.forEach(trans => {
                 const currentStock = repStockMap.get(trans.item_id) || 0;
                 if (trans.type === 'OUT') {
+                    // Stock assigned by storekeeper TODAY
                     repStockMap.set(trans.item_id, currentStock + trans.qty);
                 }
             });
@@ -269,13 +288,6 @@ export default function RepHome() {
                         <Text style={styles.greetingText}>Good {getGreeting()} 👋</Text>
                         <Text style={styles.userName}>{repName}</Text>
                     </View>
-                    <TouchableOpacity
-                        onPress={onRefresh}
-                        style={styles.refreshBtn}
-                        activeOpacity={0.8}
-                    >
-                        <Ionicons name="reload" size={20} color="#FFF" />
-                    </TouchableOpacity>
                 </View>
 
                 {/* Stats Cards */}

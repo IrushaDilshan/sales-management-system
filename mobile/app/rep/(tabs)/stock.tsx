@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, Alert, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator, Alert, RefreshControl, TouchableOpacity, AppState } from 'react-native';
 import { supabase } from '../../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,6 +17,17 @@ export default function StockScreen() {
 
     useEffect(() => {
         fetchStock();
+
+        // Auto-refresh when app comes to foreground
+        const subscription = AppState.addEventListener('change', (nextAppState) => {
+            if (nextAppState === 'active') {
+                fetchStock();
+            }
+        });
+
+        return () => {
+            subscription?.remove();
+        };
     }, []);
 
     const fetchStock = async () => {
@@ -50,21 +61,27 @@ export default function StockScreen() {
 
             // Only fetch if we have a valid user ID
             if (currentUserId) {
+                // Calculate start of today (00:00:00) - Daily Stock Reset
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const todayISO = today.toISOString();
+
+                // Only get TODAY's stock transactions (auto-resets at midnight)
                 const { data: repTransactions, error: stockError } = await supabase
                     .from('stock_transactions')
-                    .select('item_id, qty, type')
-                    .eq('rep_id', currentUserId);
+                    .select('item_id, qty, type, created_at')
+                    .eq('rep_id', currentUserId)
+                    .gte('created_at', todayISO); // Filter: created_at >= today 00:00
 
                 if (stockError && stockError.code !== 'PGRST116') throw stockError;
 
-                // 3. Calculate rep's stock per item
+                // 3. Calculate rep's stock per item (only TODAY's transactions)
                 repTransactions?.forEach((trans: any) => {
                     const currentStock = repStockMap.get(trans.item_id) || 0;
                     if (trans.type === 'OUT') {
-                        // Stock issued to rep
+                        // Stock issued to rep TODAY
                         repStockMap.set(trans.item_id, currentStock + trans.qty);
                     }
-                    // Future: handle RETURN if needed
                 });
             } else {
                 console.warn('No user ID found, stock will show as 0');
@@ -150,13 +167,6 @@ export default function StockScreen() {
                         <Text style={styles.headerSubtitle}>My Inventory</Text>
                         <Text style={styles.headerTitle}>Stock</Text>
                     </View>
-                    <TouchableOpacity
-                        onPress={onRefresh}
-                        style={styles.refreshButton}
-                        activeOpacity={0.7}
-                    >
-                        <Ionicons name="refresh" size={22} color="#FFF" />
-                    </TouchableOpacity>
                 </View>
 
                 {/* Quick Stats */}
