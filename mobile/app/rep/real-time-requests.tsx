@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, SectionList, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,15 +13,73 @@ type RealTimeRequest = {
     itemCount: number;
 };
 
+type GroupedSection = {
+    title: string;
+    data: RealTimeRequest[];
+};
+
+// Helper function to group requests by date
+const groupByDate = (requests: RealTimeRequest[]): GroupedSection[] => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const groups = new Map<string, RealTimeRequest[]>();
+
+    requests.forEach(request => {
+        const requestDate = new Date(request.date);
+        const requestDay = new Date(requestDate.getFullYear(), requestDate.getMonth(), requestDate.getDate());
+
+        const diffTime = today.getTime() - requestDay.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+        let dateLabel: string;
+        if (diffDays === 0) {
+            dateLabel = 'Today';
+        } else if (diffDays === 1) {
+            dateLabel = 'Yesterday';
+        } else if (diffDays < 7) {
+            dateLabel = `${diffDays} days ago`;
+        } else {
+            dateLabel = requestDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        if (!groups.has(dateLabel)) {
+            groups.set(dateLabel, []);
+        }
+        groups.get(dateLabel)!.push(request);
+    });
+
+    // Convert to sections array
+    return Array.from(groups.entries()).map(([title, data]) => ({
+        title,
+        data
+    }));
+};
+
 export default function RealTimeRequests() {
     const router = useRouter();
-    const [realTimeRequests, setRealTimeRequests] = useState<RealTimeRequest[]>([]);
+    const [realTimeRequests, setRealTimeRequests] = useState<GroupedSection[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         fetchRealTimeRequests();
     }, []);
+
+    const toggleSection = (sectionTitle: string) => {
+        setExpandedSections(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(sectionTitle)) {
+                newSet.delete(sectionTitle);
+            } else {
+                newSet.add(sectionTitle);
+            }
+            return newSet;
+        });
+    };
 
     const fetchRealTimeRequests = async () => {
         setLoading(true);
@@ -124,7 +182,9 @@ export default function RealTimeRequests() {
                 itemCount: itemCountMap.get(req.id) || 0
             }));
 
-            setRealTimeRequests(realTimeReqs);
+            // Group by date
+            const grouped = groupByDate(realTimeReqs);
+            setRealTimeRequests(grouped);
 
         } catch (err: any) {
             if (
@@ -247,7 +307,7 @@ export default function RealTimeRequests() {
                 <View style={styles.counterCard}>
                     <View style={styles.liveDot} />
                     <Text style={styles.counterText}>
-                        {realTimeRequests.length} Active Request{realTimeRequests.length !== 1 ? 's' : ''}
+                        {realTimeRequests.reduce((sum, section) => sum + section.data.length, 0)} Active Request{realTimeRequests.reduce((sum, section) => sum + section.data.length, 0) !== 1 ? 's' : ''}
                     </Text>
                 </View>
             </LinearGradient>
@@ -267,12 +327,47 @@ export default function RealTimeRequests() {
                         <Text style={styles.loadingText}>Loading requests...</Text>
                     </View>
                 ) : (
-                    <FlatList
-                        data={realTimeRequests}
-                        keyExtractor={item => item.id.toString()}
+                    <SectionList
+                        sections={realTimeRequests.map(section => ({
+                            ...section,
+                            data: expandedSections.has(section.title) ? section.data : []
+                        }))}
+                        keyExtractor={(item) => item.id.toString()}
                         renderItem={renderRequest}
+                        renderSectionHeader={({ section }) => {
+                            const isExpanded = expandedSections.has(section.title);
+                            const originalSection = realTimeRequests.find(s => s.title === section.title);
+                            const itemCount = originalSection?.data.length || 0;
+
+                            return (
+                                <TouchableOpacity
+                                    style={styles.sectionHeader}
+                                    onPress={() => toggleSection(section.title)}
+                                    activeOpacity={0.7}
+                                >
+                                    <LinearGradient
+                                        colors={['#7C3AED', '#EC4899']}
+                                        style={styles.sectionHeaderGradient}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                    >
+                                        <Ionicons name="calendar" size={16} color="#FFF" />
+                                        <Text style={styles.sectionHeaderText}>{section.title}</Text>
+                                        <View style={styles.sectionBadge}>
+                                            <Text style={styles.sectionBadgeText}>{itemCount}</Text>
+                                        </View>
+                                        <Ionicons
+                                            name={isExpanded ? "chevron-up" : "chevron-down"}
+                                            size={20}
+                                            color="#FFF"
+                                        />
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                            );
+                        }}
                         contentContainerStyle={styles.listContainer}
                         showsVerticalScrollIndicator={false}
+                        stickySectionHeadersEnabled={true}
                         refreshControl={
                             <RefreshControl
                                 refreshing={refreshing}
@@ -540,5 +635,39 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         lineHeight: 22,
         fontWeight: '500'
+    },
+    // Section Header Styles
+    sectionHeader: {
+        paddingHorizontal: 20,
+        paddingTop: 16,
+        paddingBottom: 8
+    },
+    sectionHeaderGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        gap: 8
+    },
+    sectionHeaderText: {
+        flex: 1,
+        fontSize: 15,
+        fontWeight: '800',
+        color: '#FFFFFF',
+        letterSpacing: 0.3
+    },
+    sectionBadge: {
+        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.4)'
+    },
+    sectionBadgeText: {
+        fontSize: 12,
+        fontWeight: '900',
+        color: '#FFFFFF'
     }
 });
