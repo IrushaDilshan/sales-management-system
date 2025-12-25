@@ -93,7 +93,7 @@ export default function ShopsListScreen() {
 
             const shopIds = shopsData.map(s => s.id);
 
-            // 3. Fetch pending requests for these shops
+            // 3. Fetch ALL pending requests for these shops
             const { data: requestsData, error: reqError } = await supabase
                 .from('requests')
                 .select('id, shop_id, date')

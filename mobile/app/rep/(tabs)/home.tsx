@@ -72,6 +72,15 @@ export default function RepHome() {
                 currentUserId = userRecord?.id;
             }
 
+            // Validate user is identified
+            if (!currentUserId) {
+                console.log('Could not identify current user');
+                setPendingItems([]);
+                setLoading(false);
+                setRefreshing(false);
+                return;
+            }
+
             const { data: myRoutes, error: routesError } = await supabase
                 .from('routes')
                 .select('id')
@@ -99,22 +108,41 @@ export default function RepHome() {
                 return;
             }
 
-            const shopIds = shopsData.map(s => s.id);
+            const shopIds = shopsData.map(s => s.id).filter(id => id != null);
+
+            // If no valid shop IDs, return empty
+            if (shopIds.length === 0) {
+                setPendingItems([]);
+                return;
+            }
 
             const { data: requestsData, error: reqError } = await supabase
                 .from('requests')
-                .select('id, status, shop_id')
+                .select('id, status, shop_id, date')
                 .eq('status', 'pending')
                 .in('shop_id', shopIds);
 
             if (reqError) throw reqError;
 
-            if (!requestsData || requestsData.length === 0) {
+            // Filter for yesterday's requests in JavaScript
+            const requestToday = new Date();
+            requestToday.setHours(0, 0, 0, 0);
+
+            const requestYesterday = new Date(requestToday);
+            requestYesterday.setDate(requestYesterday.getDate() - 1);
+
+            // Filter requests to only yesterday's (between yesterday 00:00 and today 00:00)
+            const yesterdaysRequests = requestsData?.filter(req => {
+                const reqDate = new Date(req.date);
+                return reqDate >= requestYesterday && reqDate < requestToday;
+            }) || [];
+
+            if (!yesterdaysRequests || yesterdaysRequests.length === 0) {
                 setPendingItems([]);
                 return;
             }
 
-            const requestIds = requestsData.map(r => r.id);
+            const requestIds = yesterdaysRequests.map(r => r.id);
             const { data: itemsData, error: itemsError } = await supabase
                 .from('request_items')
                 .select('id, request_id, qty, delivered_qty, item_id')
@@ -187,10 +215,15 @@ export default function RepHome() {
             setPendingItems(Array.from(itemsAggregationMap.values()));
 
         } catch (err: any) {
-            // Suppress harmless errors
-            if (err.name === 'AbortError' || err.message?.includes('aborted')) {
-                console.log('Request aborted (navigated away)');
-                return;
+            // Suppress harmless errors (AbortError happens when navigating away)
+            if (
+                err.name === 'AbortError' ||
+                err.message?.includes('aborted') ||
+                err.message?.includes('Aborted') ||
+                err.code === 20 || // DOMException ABORT_ERR
+                err instanceof DOMException && err.name === 'AbortError'
+            ) {
+                return; // Silently ignore
             }
 
             if (err.message?.includes('Network request failed')) {
@@ -320,6 +353,32 @@ export default function RepHome() {
                             )}
                         </View>
                     </View>
+
+                    {/* Real-Time Navigate Button */}
+                    <TouchableOpacity
+                        style={styles.realTimeToggleButton}
+                        onPress={() => router.push('/rep/real-time-requests' as any)}
+                        activeOpacity={0.8}
+                    >
+                        <LinearGradient
+                            colors={['#7C3AED', '#EC4899']}
+                            style={styles.realTimeToggleGradient}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <Ionicons
+                                name="eye"
+                                size={18}
+                                color="#FFFFFF"
+                            />
+                            <Text style={[
+                                styles.realTimeToggleText,
+                                styles.realTimeToggleTextActive
+                            ]}>
+                                View Real-Time
+                            </Text>
+                        </LinearGradient>
+                    </TouchableOpacity>
                 </View>
 
                 {loading && !refreshing ? (
@@ -773,5 +832,152 @@ const styles = StyleSheet.create({
         lineHeight: 24,
         fontWeight: '500',
         letterSpacing: 0.2
+    },
+    // Real-Time Toggle Button Styles
+    realTimeToggleButton: {
+        borderRadius: 12,
+        overflow: 'hidden',
+        shadowColor: '#7C3AED',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        elevation: 2,
+        alignSelf: 'flex-start'
+    },
+    realTimeToggleGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        gap: 8
+    },
+    realTimeToggleText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#7C3AED',
+        letterSpacing: 0.3
+    },
+    realTimeToggleTextActive: {
+        color: '#FFFFFF'
+    },
+    // Real-Time Requests Styles
+    realTimeSection: {
+        marginTop: 24,
+        paddingBottom: 32
+    },
+    liveDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#10B981',
+        marginRight: 6
+    },
+    liveText: {
+        fontSize: 12,
+        color: '#10B981',
+        fontWeight: '700',
+        letterSpacing: 0.3
+    },
+    loadingSmallText: {
+        fontSize: 13,
+        color: '#94A3B8',
+        marginTop: 8,
+        fontWeight: '600'
+    },
+    realTimeList: {
+        gap: 10
+    },
+    realTimeCard: {
+        borderRadius: 14,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 6,
+        elevation: 2
+    },
+    realTimeCardGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 14,
+        gap: 12,
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
+        borderRadius: 14
+    },
+    realTimeIconWrapper: {
+        shadowColor: '#7C3AED',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+        elevation: 3
+    },
+    realTimeIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    realTimeDetails: {
+        flex: 1,
+        gap: 6
+    },
+    realTimeShopName: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#1E293B',
+        letterSpacing: -0.3
+    },
+    realTimeMeta: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8
+    },
+    realTimeTime: {
+        fontSize: 12,
+        color: '#64748B',
+        fontWeight: '600'
+    },
+    realTimeItemBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: '#F3E8FF',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 8
+    },
+    realTimeItemCount: {
+        fontSize: 11,
+        color: '#7C3AED',
+        fontWeight: '700'
+    },
+    realTimeRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8
+    },
+    newBadge: {
+        backgroundColor: '#10B981',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8
+    },
+    newBadgeText: {
+        fontSize: 10,
+        fontWeight: '900',
+        color: '#FFFFFF',
+        letterSpacing: 0.5
+    },
+    realTimeEmpty: {
+        alignItems: 'center',
+        paddingVertical: 32,
+        gap: 12
+    },
+    realTimeEmptyText: {
+        fontSize: 14,
+        color: '#94A3B8',
+        fontWeight: '600'
     }
 });

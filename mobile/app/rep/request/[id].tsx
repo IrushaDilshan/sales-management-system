@@ -105,9 +105,18 @@ export default function ShopRequestDetails() {
                 .from('shops')
                 .select('id, name, rep_id, route_id')
                 .eq('id', shopId)
-                .single();
+                .maybeSingle();
 
-            if (shopError) throw shopError;
+            if (shopError) {
+                console.error('Shop fetch error:', shopError);
+                throw shopError;
+            }
+
+            if (!shopData) {
+                Alert.alert('Error', 'Shop not found');
+                router.back();
+                return;
+            }
 
             setShopName(shopData?.name || 'Unknown Shop');
 
