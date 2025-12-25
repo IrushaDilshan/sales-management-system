@@ -487,48 +487,61 @@ export default function ShopRequestDetails() {
         };
 
         return (
-            <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={toggleSection}
-                style={styles.sectionHeaderContainer}
-            >
-                <View style={styles.dateGroup}>
-                    <View style={[styles.iconBox, !isCollapsed && styles.iconBoxActive]}>
-                        <Ionicons
-                            name={isCollapsed ? "chevron-forward" : "chevron-down"}
-                            size={16}
-                            color={isCollapsed ? "#6B7280" : "#6366F1"}
-                        />
-                    </View>
-                    <View style={styles.dateContent}>
-                        {relativeLabel && (
-                            <Text style={styles.relativeDateText}>{relativeLabel}</Text>
-                        )}
-                        <Text style={[styles.mainDateText, !relativeLabel && styles.mainDateOnly]}>
-                            {displayDate}
-                        </Text>
-                    </View>
-                </View>
-
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    {isNew && (
-                        <View style={styles.newBadge}>
-                            <Text style={styles.newBadgeText}>NEW</Text>
+            <View style={styles.sectionHeaderWrapper}>
+                <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={toggleSection}
+                    style={styles.sectionHeaderContainer}
+                >
+                    <LinearGradient
+                        colors={!isCollapsed ? ['#7C3AED08', '#EC489908'] : ['#F9FAFB', '#F3F4F6']}
+                        style={styles.sectionGradient}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                    >
+                        <View style={styles.dateGroup}>
+                            <View style={[styles.iconBox, !isCollapsed && styles.iconBoxActive]}>
+                                <Ionicons
+                                    name={isCollapsed ? "chevron-forward" : "chevron-down"}
+                                    size={16}
+                                    color={isCollapsed ? "#6B7280" : "#7C3AED"}
+                                />
+                            </View>
+                            <View style={styles.dateContent}>
+                                {relativeLabel && (
+                                    <View style={styles.relativeLabelContainer}>
+                                        <View style={styles.relativeDot} />
+                                        <Text style={styles.relativeDateText}>{relativeLabel}</Text>
+                                    </View>
+                                )}
+                                <Text style={[styles.mainDateText, !relativeLabel && styles.mainDateOnly]}>
+                                    {displayDate}
+                                </Text>
+                            </View>
                         </View>
-                    )}
-                    <View style={styles.countBadge}>
-                        <Text style={styles.countText}>{data.length}</Text>
-                    </View>
-                </View>
-            </TouchableOpacity>
+
+                        <View style={styles.badgesRow}>
+                            {isNew && (
+                                <View style={styles.newBadge}>
+                                    <Ionicons name="sparkles" size={10} color="#FFF" style={{ marginRight: 3 }} />
+                                    <Text style={styles.newBadgeText}>NEW</Text>
+                                </View>
+                            )}
+                            <View style={styles.countBadge}>
+                                <Text style={styles.countText}>{data.length}</Text>
+                            </View>
+                        </View>
+                    </LinearGradient>
+                </TouchableOpacity>
+            </View>
         );
     };
 
     return (
         <View style={styles.container}>
-            {/* Modern Gradient Header */}
+            {/* Premium Gradient Header */}
             <LinearGradient
-                colors={['#6366F1', '#8B5CF6', '#D946EF']}
+                colors={['#7C3AED', '#A78BFA', '#EC4899', '#F472B6']}
                 style={styles.header}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -539,25 +552,27 @@ export default function ShopRequestDetails() {
 
                 <View style={styles.headerContent}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                        <Ionicons name="arrow-back" size={24} color="#FFF" />
+                        <Ionicons name="arrow-back" size={22} color="#FFF" />
                     </TouchableOpacity>
                     <View style={styles.titleContainer}>
-                        <Text style={styles.shopLabel}>Shop</Text>
+                        <Text style={styles.shopLabel}>SHOP</Text>
                         <Text style={styles.title} numberOfLines={1}>{shopName}</Text>
                     </View>
+                    <View style={styles.backBtn} />
                 </View>
             </LinearGradient>
 
-            {/* Premium Segmented Control with Icons */}
+            {/* Premium Segmented Control */}
             <View style={styles.segmentedControl}>
                 <TouchableOpacity
                     style={[styles.segmentBtn, activeTab === 'request' && styles.segmentBtnActive]}
                     onPress={() => setActiveTab('request')}
+                    activeOpacity={0.8}
                 >
                     <Ionicons
-                        name="list-outline"
-                        size={18}
-                        color={activeTab === 'request' ? '#6366F1' : '#6B7280'}
+                        name="list"
+                        size={16}
+                        color={activeTab === 'request' ? '#7C3AED' : '#6B7280'}
                         style={{ marginRight: 6 }}
                     />
                     <Text style={[styles.segmentText, activeTab === 'request' && styles.segmentTextActive]}>Request</Text>
@@ -565,11 +580,12 @@ export default function ShopRequestDetails() {
                 <TouchableOpacity
                     style={[styles.segmentBtn, activeTab === 'history' && styles.segmentBtnActive]}
                     onPress={() => setActiveTab('history')}
+                    activeOpacity={0.8}
                 >
                     <Ionicons
-                        name="checkmark-done-outline"
-                        size={18}
-                        color={activeTab === 'history' ? '#6366F1' : '#6B7280'}
+                        name="checkmark-done"
+                        size={16}
+                        color={activeTab === 'history' ? '#7C3AED' : '#6B7280'}
                         style={{ marginRight: 6 }}
                     />
                     <Text style={[styles.segmentText, activeTab === 'history' && styles.segmentTextActive]}>History</Text>
@@ -577,7 +593,17 @@ export default function ShopRequestDetails() {
             </View>
 
             {loading ? (
-                <ActivityIndicator size="large" color="#6366F1" style={{ marginTop: 40 }} />
+                <View style={styles.loadingContainer}>
+                    <LinearGradient
+                        colors={['#7C3AED20', '#EC489920']}
+                        style={styles.loadingCircle}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                    >
+                        <ActivityIndicator size="large" color="#7C3AED" />
+                    </LinearGradient>
+                    <Text style={styles.loadingText}>Loading requests...</Text>
+                </View>
             ) : (
                 <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
                     <SectionList
@@ -602,14 +628,14 @@ const styles = StyleSheet.create({
     },
     header: {
         paddingTop: 50,
-        paddingBottom: 24,
+        paddingBottom: 20,
         paddingHorizontal: 20,
         overflow: 'hidden',
-        shadowColor: '#6366F1',
+        shadowColor: '#7C3AED',
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.3,
-        shadowRadius: 12,
-        elevation: 10
+        shadowRadius: 16,
+        elevation: 12
     },
     decorativeCircle1: {
         position: 'absolute',
@@ -640,26 +666,26 @@ const styles = StyleSheet.create({
         alignItems: 'center'
     },
     shopLabel: {
-        fontSize: 11,
+        fontSize: 10,
         color: 'rgba(255, 255, 255, 0.85)',
-        fontWeight: '600',
-        letterSpacing: 1,
+        fontWeight: '700',
+        letterSpacing: 1.2,
         textTransform: 'uppercase',
         marginBottom: 2
     },
     title: {
-        fontSize: 20,
-        fontWeight: '800',
-        color: '#FFF',
+        fontSize: 22,
+        fontWeight: '900',
+        color: '#FFFFFF',
         letterSpacing: -0.5,
         textShadowColor: 'rgba(0, 0, 0, 0.1)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 2
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4
     },
     backBtn: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
         alignItems: 'center',
         justifyContent: 'center',
@@ -679,82 +705,79 @@ const styles = StyleSheet.create({
     segmentedControl: {
         flexDirection: 'row',
         backgroundColor: '#F3F4F6',
-        marginHorizontal: 16,
-        borderRadius: 16,
-        padding: 6,
-        marginBottom: 12,
+        marginHorizontal: 20,
+        borderRadius: 14,
+        padding: 4,
+        marginBottom: 16,
+        marginTop: 12,
         borderWidth: 1,
         borderColor: '#E5E7EB'
     },
     segmentBtn: {
         flex: 1,
-        paddingVertical: 12,
-        borderRadius: 12,
+        paddingVertical: 10,
+        borderRadius: 10,
         alignItems: 'center',
         flexDirection: 'row',
         justifyContent: 'center'
     },
     segmentBtnActive: {
         backgroundColor: '#FFFFFF',
-        shadowColor: '#6366F1',
+        shadowColor: '#7C3AED',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.15,
-        shadowRadius: 8,
+        shadowRadius: 6,
         elevation: 3
     },
     segmentText: {
-        fontSize: 15,
+        fontSize: 14,
         fontWeight: '600',
         color: '#6B7280'
     },
     segmentTextActive: {
-        color: '#6366F1',
+        color: '#7C3AED',
         fontWeight: '800'
     },
 
     list: {
-        padding: 20,
+        padding: 16,
         paddingBottom: 50
     },
 
-    // Modern Item Row
+    // Compact Modern Item Row
     itemRow: {
         backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 12,
+        borderRadius: 14,
+        padding: 12,
+        marginBottom: 8,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        // Premium Shadow
         shadowColor: "#000",
-        shadowOffset: {
-            width: 0,
-            height: 4,
-        },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 3,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+        elevation: 2,
         borderWidth: 1,
         borderColor: 'rgba(0,0,0,0.02)'
     },
     itemMain: {
         flex: 1,
-        marginRight: 16,
+        marginRight: 12,
         justifyContent: 'center'
     },
     itemName: {
-        fontSize: 17,
+        fontSize: 15,
         fontWeight: '700',
         color: '#1F2937',
-        marginBottom: 8,
-        letterSpacing: -0.3
+        marginBottom: 6,
+        letterSpacing: -0.2
     },
     metaRow: {
         flexDirection: 'row',
         alignItems: 'center',
         flexWrap: 'wrap',
-        gap: 12
+        gap: 8
     },
     badgeContainer: {
         flexDirection: 'row',
@@ -767,11 +790,12 @@ const styles = StyleSheet.create({
         borderColor: '#F3F4F6'
     },
     badgeLabel: {
-        fontSize: 11,
+        fontSize: 10,
         color: '#6B7280',
         fontWeight: '600',
         marginRight: 4,
-        textTransform: 'uppercase'
+        textTransform: 'uppercase',
+        letterSpacing: 0.3
     },
     badgeValue: {
         fontSize: 13,
@@ -782,106 +806,153 @@ const styles = StyleSheet.create({
         display: 'none' // Remove divider for cleaner look
     },
 
-    // Action Area behind Input
+    // Compact Action Area
     actionContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        gap: 6
     },
     compactInput: {
-        width: 60,
-        height: 44,
+        width: 56,
+        height: 40,
         backgroundColor: '#F9FAFB',
-        borderRadius: 12,
+        borderRadius: 10,
         borderWidth: 1,
         borderColor: '#E5E7EB',
         textAlign: 'center',
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '700',
-        color: '#111827',
+        color: '#111827'
     },
     iconButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 12,
-        backgroundColor: '#6366F1',
+        width: 40,
+        height: 40,
+        borderRadius: 10,
+        backgroundColor: '#7C3AED',
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#6366F1',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4
+        shadowColor: '#7C3AED',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.25,
+        shadowRadius: 6,
+        elevation: 3
     },
 
-    // Modern Section Headers
+    // Premium Section Headers
+    sectionHeaderWrapper: {
+        marginBottom: 12,
+        marginTop: 20
+    },
     sectionHeaderContainer: {
-        marginBottom: 16,
-        marginTop: 24,
+        borderRadius: 14,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2
+    },
+    sectionGradient: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 8
+        paddingHorizontal: 14,
+        paddingVertical: 14,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.04)'
     },
     dateGroup: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12
+        gap: 12,
+        flex: 1
     },
     iconBox: {
-        width: 28,
-        height: 28,
-        borderRadius: 8,
+        width: 32,
+        height: 32,
+        borderRadius: 10,
         backgroundColor: '#F3F4F6',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1
     },
     iconBoxActive: {
-        backgroundColor: '#EEF2FF'
+        backgroundColor: '#EDE9FE',
+        shadowColor: '#7C3AED',
+        shadowOpacity: 0.15
     },
     dateContent: {
-        justifyContent: 'center'
+        justifyContent: 'center',
+        flex: 1
+    },
+    relativeLabelContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 3
+    },
+    relativeDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: '#7C3AED'
     },
     relativeDateText: {
         fontSize: 11,
-        fontWeight: '700',
-        color: '#6366F1',
+        fontWeight: '800',
+        color: '#7C3AED',
         textTransform: 'uppercase',
-        letterSpacing: 0.5,
-        marginBottom: 2
+        letterSpacing: 0.8
     },
     mainDateText: {
         fontSize: 15,
         fontWeight: '700',
-        color: '#1F2937'
+        color: '#1F2937',
+        letterSpacing: -0.2
     },
     mainDateOnly: {
         fontSize: 15,
         color: '#4B5563'
     },
+    badgesRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8
+    },
     newBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
         backgroundColor: '#EF4444',
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 8,
+        shadowColor: '#EF4444',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 2
     },
     newBadgeText: {
-        color: 'white',
+        color: '#FFF',
         fontSize: 10,
-        fontWeight: '800',
-        letterSpacing: 0.5
+        fontWeight: '900',
+        letterSpacing: 0.8
     },
     countBadge: {
         backgroundColor: '#E5E7EB',
-        borderRadius: 12,
+        borderRadius: 10,
         paddingHorizontal: 10,
-        paddingVertical: 4,
-        minWidth: 28,
+        paddingVertical: 5,
+        minWidth: 32,
         alignItems: 'center'
     },
     countText: {
-        fontSize: 12,
-        fontWeight: '700',
+        fontSize: 13,
+        fontWeight: '800',
         color: '#4B5563'
     },
     itemCountBadge: {
@@ -894,7 +965,27 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginTop: 80,
         color: '#9CA3AF',
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '500'
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingTop: 80,
+        gap: 24
+    },
+    loadingCircle: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    loadingText: {
+        fontSize: 16,
+        color: '#64748B',
+        fontWeight: '600',
+        letterSpacing: 0.2
     }
 });

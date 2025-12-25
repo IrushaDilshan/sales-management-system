@@ -171,7 +171,7 @@ export default function ShopsListScreen() {
             <View style={styles.shopDetails}>
                 <Text style={styles.shopName} numberOfLines={1}>{item.shopName}</Text>
                 <View style={styles.requestBadge}>
-                    <Ionicons name="receipt-outline" size={12} color="#6366F1" />
+                    <Ionicons name="receipt" size={12} color="#7C3AED" />
                     <Text style={styles.requestText}>
                         {item.requestCount} {item.requestCount === 1 ? 'Request' : 'Requests'}
                     </Text>
@@ -190,71 +190,29 @@ export default function ShopsListScreen() {
 
     return (
         <View style={styles.container}>
-            {/* Hero Header */}
+            {/* Premium Hero Header */}
             <LinearGradient
-                colors={['#667EEA', '#764BA2', '#F093FB']}
+                colors={['#7C3AED', '#A78BFA', '#EC4899', '#F472B6']}
                 style={styles.heroHeader}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
             >
+                {/* Decorative circles */}
+                <View style={styles.decorativeCircle1} />
+                <View style={styles.decorativeCircle2} />
+
                 <View style={styles.headerContent}>
-                    <View>
-                        <Text style={styles.headerSubtitle}>My Assigned</Text>
+                    <View style={styles.titleSection}>
+                        <View style={styles.subtitleRow}>
+                            <Ionicons name="storefront" size={16} color="rgba(255, 255, 255, 0.9)" />
+                            <Text style={styles.headerSubtitle}>My Assigned</Text>
+                        </View>
                         <Text style={styles.headerTitle}>Shops</Text>
-                    </View>
-                </View>
-
-                {/* Quick Stats */}
-                <View style={styles.quickStatsRow}>
-                    <View style={styles.quickStatCard}>
-                        <View style={styles.quickStatIconWrapper}>
-                            <LinearGradient
-                                colors={['#F59E0B', '#F97316']}
-                                style={styles.quickStatIconGradient}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                            >
-                                <Ionicons name="storefront" size={18} color="#FFF" />
-                            </LinearGradient>
-                        </View>
-                        <View style={styles.quickStatInfo}>
-                            <Text style={styles.quickStatValue}>{totalShops}</Text>
-                            <Text style={styles.quickStatLabel}>Shops</Text>
-                        </View>
-                    </View>
-
-                    <View style={styles.quickStatCard}>
-                        <View style={styles.quickStatIconWrapper}>
-                            <LinearGradient
-                                colors={['#6366F1', '#8B5CF6']}
-                                style={styles.quickStatIconGradient}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                            >
-                                <Ionicons name="receipt" size={18} color="#FFF" />
-                            </LinearGradient>
-                        </View>
-                        <View style={styles.quickStatInfo}>
-                            <Text style={styles.quickStatValue}>{totalRequests}</Text>
-                            <Text style={styles.quickStatLabel}>Requests</Text>
-                        </View>
-                    </View>
-
-                    <View style={styles.quickStatCard}>
-                        <View style={styles.quickStatIconWrapper}>
-                            <LinearGradient
-                                colors={['#10B981', '#059669']}
-                                style={styles.quickStatIconGradient}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                            >
-                                <Ionicons name="stats-chart" size={18} color="#FFF" />
-                            </LinearGradient>
-                        </View>
-                        <View style={styles.quickStatInfo}>
-                            <Text style={styles.quickStatValue}>{avgRequests}</Text>
-                            <Text style={styles.quickStatLabel}>Avg</Text>
-                        </View>
+                        {filteredShops.length > 0 && (
+                            <Text style={styles.itemCount}>
+                                {filteredShops.length} {filteredShops.length === 1 ? 'Shop' : 'Shops'} • {totalRequests} Requests
+                            </Text>
+                        )}
                     </View>
                 </View>
             </LinearGradient>
@@ -279,7 +237,14 @@ export default function ShopsListScreen() {
             {/* Shops List */}
             {loading && !refreshing ? (
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#667EEA" />
+                    <LinearGradient
+                        colors={['#7C3AED20', '#EC489920']}
+                        style={styles.loadingCircle}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                    >
+                        <ActivityIndicator size="large" color="#7C3AED" />
+                    </LinearGradient>
                     <Text style={styles.loadingText}>Loading shops...</Text>
                 </View>
             ) : (
@@ -293,19 +258,19 @@ export default function ShopsListScreen() {
                         <RefreshControl
                             refreshing={refreshing}
                             onRefresh={onRefresh}
-                            tintColor="#667EEA"
-                            colors={['#667EEA', '#764BA2']}
+                            tintColor="#7C3AED"
+                            colors={['#7C3AED', '#EC4899']}
                         />
                     }
                     ListEmptyComponent={
                         <View style={styles.emptyState}>
                             <LinearGradient
-                                colors={['#667EEA20', '#764BA220']}
+                                colors={['#7C3AED15', '#EC489915']}
                                 style={styles.emptyIconCircle}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 1 }}
                             >
-                                <Ionicons name="storefront-outline" size={64} color="#667EEA" />
+                                <Ionicons name="storefront-outline" size={72} color="#7C3AED" />
                             </LinearGradient>
                             <Text style={styles.emptyTitle}>No Shops Found</Text>
                             <Text style={styles.emptyText}>
@@ -325,35 +290,70 @@ const styles = StyleSheet.create({
         backgroundColor: '#F8FAFC'
     },
     heroHeader: {
-        paddingTop: 50,
-        paddingBottom: 32,
-        paddingHorizontal: 20,
-        borderBottomLeftRadius: 32,
-        borderBottomRightRadius: 32,
-        shadowColor: '#667EEA',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 16,
-        elevation: 12
+        paddingTop: 60,
+        paddingBottom: 40,
+        paddingHorizontal: 24,
+        borderBottomLeftRadius: 36,
+        borderBottomRightRadius: 36,
+        shadowColor: '#7C3AED',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.4,
+        shadowRadius: 24,
+        elevation: 16,
+        overflow: 'hidden'
+    },
+    decorativeCircle1: {
+        position: 'absolute',
+        width: 200,
+        height: 200,
+        borderRadius: 100,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        top: -50,
+        right: -50
+    },
+    decorativeCircle2: {
+        position: 'absolute',
+        width: 150,
+        height: 150,
+        borderRadius: 75,
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        bottom: -30,
+        left: -40
     },
     headerContent: {
+        zIndex: 1
+    },
+    titleSection: {
+        gap: 6
+    },
+    subtitleRow: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 24
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 4
     },
     headerSubtitle: {
-        fontSize: 15,
-        color: 'rgba(255, 255, 255, 0.9)',
+        fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.95)',
         fontWeight: '600',
-        marginBottom: 4,
-        letterSpacing: 0.5
+        letterSpacing: 1,
+        textTransform: 'uppercase'
     },
     headerTitle: {
-        fontSize: 32,
+        fontSize: 40,
         fontWeight: '900',
-        color: '#FFF',
-        letterSpacing: -1
+        color: '#FFFFFF',
+        letterSpacing: -1.5,
+        textShadowColor: 'rgba(0, 0, 0, 0.1)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 8
+    },
+    itemCount: {
+        fontSize: 13,
+        color: 'rgba(255, 255, 255, 0.85)',
+        fontWeight: '600',
+        marginTop: 4,
+        letterSpacing: 0.3
     },
     refreshButton: {
         width: 44,
@@ -417,14 +417,14 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFF',
         marginHorizontal: 20,
         marginTop: 20,
-        marginBottom: 16,
+        marginBottom: 12,
         paddingHorizontal: 16,
-        paddingVertical: 14,
-        borderRadius: 16,
+        paddingVertical: 12,
+        borderRadius: 14,
         gap: 12,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
+        shadowOpacity: 0.05,
         shadowRadius: 8,
         elevation: 2,
         borderWidth: 1,
@@ -439,18 +439,18 @@ const styles = StyleSheet.create({
     listContent: {
         paddingHorizontal: 20,
         paddingBottom: 100,
-        gap: 10
+        gap: 8
     },
     shopCard: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#FFF',
-        borderRadius: 16,
-        padding: 16,
-        gap: 14,
+        borderRadius: 14,
+        padding: 14,
+        gap: 12,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.06,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
         shadowRadius: 8,
         elevation: 2,
         borderWidth: 1,
@@ -464,9 +464,9 @@ const styles = StyleSheet.create({
         elevation: 3
     },
     shopIconGradient: {
-        width: 52,
-        height: 52,
-        borderRadius: 16,
+        width: 48,
+        height: 48,
+        borderRadius: 14,
         justifyContent: 'center',
         alignItems: 'center'
     },
@@ -475,10 +475,10 @@ const styles = StyleSheet.create({
         minWidth: 0
     },
     shopName: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '700',
         color: '#1E293B',
-        letterSpacing: -0.3,
+        letterSpacing: -0.2,
         marginBottom: 6
     },
     requestBadge: {
@@ -494,20 +494,28 @@ const styles = StyleSheet.create({
     requestText: {
         fontSize: 12,
         fontWeight: '700',
-        color: '#6366F1',
+        color: '#7C3AED',
         letterSpacing: 0.2
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingTop: 80
+        paddingTop: 100,
+        gap: 24
+    },
+    loadingCircle: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        justifyContent: 'center',
+        alignItems: 'center'
     },
     loadingText: {
-        marginTop: 16,
-        fontSize: 15,
+        fontSize: 16,
         color: '#64748B',
-        fontWeight: '600'
+        fontWeight: '600',
+        letterSpacing: 0.2
     },
     emptyState: {
         alignItems: 'center',
@@ -515,12 +523,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 32
     },
     emptyIconCircle: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
+        width: 140,
+        height: 140,
+        borderRadius: 70,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 24
+        marginBottom: 28
     },
     emptyTitle: {
         fontSize: 28,

@@ -272,9 +272,9 @@ export default function RepHome() {
 
     return (
         <View style={styles.container}>
-            {/* Enhanced Header with Gradient */}
+            {/* Premium Hero Header */}
             <LinearGradient
-                colors={['#6366F1', '#8B5CF6', '#D946EF']}
+                colors={['#7C3AED', '#A78BFA', '#EC4899', '#F472B6']}
                 style={styles.header}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -285,43 +285,16 @@ export default function RepHome() {
 
                 <View style={styles.headerContent}>
                     <View style={styles.greetingSection}>
-                        <Text style={styles.greetingText}>Good {getGreeting()} 👋</Text>
+                        <View style={styles.subtitleRow}>
+                            <Ionicons name="home" size={16} color="rgba(255, 255, 255, 0.9)" />
+                            <Text style={styles.greetingText}>Good {getGreeting()}</Text>
+                        </View>
                         <Text style={styles.userName}>{repName}</Text>
-                    </View>
-                </View>
-
-                {/* Stats Cards */}
-                <View style={styles.statsCardsContainer}>
-                    <View style={styles.statCardSmall}>
-                        <View style={styles.statCardIconTop}>
-                            <Ionicons name="list" size={16} color="#8B5CF6" />
-                        </View>
-                        <Text style={styles.statCardValueNew}>{pendingItems.length}</Text>
-                        <Text style={styles.statCardLabelNew}>ITEMS</Text>
-                    </View>
-
-                    <View style={styles.statCardSmall}>
-                        <View style={styles.statCardIconTop}>
-                            <Ionicons name="cube" size={16} color="#D946EF" />
-                        </View>
-                        <Text style={styles.statCardValueNew}>{totalPendingQty}</Text>
-                        <Text style={styles.statCardLabelNew}>PENDING</Text>
-                    </View>
-
-                    <View style={styles.statCardSmall}>
-                        <View style={[styles.statCardIconTop, {
-                            backgroundColor: itemsInShortage > 0 ? '#FEE2E2' : '#D1FAE5'
-                        }]}>
-                            <Ionicons
-                                name={itemsInShortage > 0 ? "alert-circle" : "checkmark-done"}
-                                size={16}
-                                color={itemsInShortage > 0 ? "#EF4444" : "#10B981"}
-                            />
-                        </View>
-                        <Text style={[styles.statCardValueNew, {
-                            color: itemsInShortage > 0 ? '#EF4444' : '#10B981'
-                        }]}>{itemsInShortage}</Text>
-                        <Text style={styles.statCardLabelNew}>ALERTS</Text>
+                        {pendingItems.length > 0 && (
+                            <Text style={styles.itemCount}>
+                                {pendingItems.length} {pendingItems.length === 1 ? 'Item' : 'Items'} • {totalPendingQty} Pending
+                            </Text>
+                        )}
                     </View>
                 </View>
             </LinearGradient>
@@ -329,23 +302,36 @@ export default function RepHome() {
             {/* Main Content */}
             <View style={styles.mainContent}>
                 <View style={styles.contentHeader}>
-                    <View>
-                        <Text style={styles.contentTitle}>Request Items</Text>
-                        <Text style={styles.contentSubtitle}>
-                            {pendingItems.length} item{pendingItems.length !== 1 ? 's' : ''} requiring attention
-                        </Text>
-                    </View>
-                    {itemsInShortage > 0 && (
-                        <View style={styles.urgentBadge}>
-                            <Ionicons name="warning" size={14} color="#DC2626" />
-                            <Text style={styles.urgentText}>{itemsInShortage}</Text>
+                    <View style={styles.sectionTitleContainer}>
+                        <Text style={styles.contentTitle}>Pending Requests</Text>
+                        <View style={styles.statusRow}>
+                            {itemsInShortage > 0 ? (
+                                <>
+                                    <View style={styles.warningDot} />
+                                    <Text style={styles.warningText}>
+                                        {itemsInShortage} item{itemsInShortage > 1 ? 's' : ''} in shortage
+                                    </Text>
+                                </>
+                            ) : (
+                                <>
+                                    <View style={styles.successDot} />
+                                    <Text style={styles.successText}>All items have stock</Text>
+                                </>
+                            )}
                         </View>
-                    )}
+                    </View>
                 </View>
 
                 {loading && !refreshing ? (
                     <View style={styles.loadingState}>
-                        <ActivityIndicator size="large" color="#6366F1" />
+                        <LinearGradient
+                            colors={['#7C3AED20', '#EC489920']}
+                            style={styles.loadingCircle}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <ActivityIndicator size="large" color="#7C3AED" />
+                        </LinearGradient>
                         <Text style={styles.loadingText}>Loading your requests...</Text>
                     </View>
                 ) : (
@@ -359,17 +345,19 @@ export default function RepHome() {
                             <RefreshControl
                                 refreshing={refreshing}
                                 onRefresh={onRefresh}
-                                tintColor="#6366F1"
-                                colors={['#6366F1', '#8B5CF6']}
+                                tintColor="#7C3AED"
+                                colors={['#7C3AED', '#EC4899']}
                             />
                         }
                         ListEmptyComponent={
                             <View style={styles.emptyContainer}>
                                 <LinearGradient
-                                    colors={['#6366F120', '#8B5CF620']}
+                                    colors={['#7C3AED15', '#EC489915']}
                                     style={styles.emptyCircle}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
                                 >
-                                    <Ionicons name="checkmark-done-circle-outline" size={72} color="#6366F1" />
+                                    <Ionicons name="checkmark-done-circle-outline" size={72} color="#7C3AED" />
                                 </LinearGradient>
                                 <Text style={styles.emptyTitle}>All Caught Up!</Text>
                                 <Text style={styles.emptyMessage}>
@@ -399,16 +387,16 @@ const styles = StyleSheet.create({
     },
     header: {
         paddingTop: 60,
-        paddingBottom: 28,
+        paddingBottom: 40,
         paddingHorizontal: 24,
-        borderBottomLeftRadius: 40,
-        borderBottomRightRadius: 40,
+        borderBottomLeftRadius: 36,
+        borderBottomRightRadius: 36,
         overflow: 'hidden',
-        shadowColor: '#6366F1',
+        shadowColor: '#7C3AED',
         shadowOffset: { width: 0, height: 12 },
         shadowOpacity: 0.4,
-        shadowRadius: 20,
-        elevation: 15
+        shadowRadius: 24,
+        elevation: 16
     },
     decorativeCircle1: {
         position: 'absolute',
@@ -416,7 +404,7 @@ const styles = StyleSheet.create({
         height: 200,
         borderRadius: 100,
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        top: -80,
+        top: -50,
         right: -50
     },
     decorativeCircle2: {
@@ -425,34 +413,47 @@ const styles = StyleSheet.create({
         height: 150,
         borderRadius: 75,
         backgroundColor: 'rgba(255, 255, 255, 0.08)',
-        bottom: -40,
-        left: -30
+        bottom: -30,
+        left: -40
     },
     headerContent: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        marginBottom: 28,
         zIndex: 1
     },
     greetingSection: {
-        flex: 1
+        flex: 1,
+        gap: 6
+    },
+    subtitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 4
     },
     greetingText: {
-        fontSize: 16,
+        fontSize: 14,
         color: 'rgba(255, 255, 255, 0.95)',
         fontWeight: '600',
-        marginBottom: 6,
-        letterSpacing: 0.3
+        letterSpacing: 1,
+        textTransform: 'uppercase'
     },
     userName: {
-        fontSize: 36,
+        fontSize: 40,
         fontWeight: '900',
-        color: '#FFF',
+        color: '#FFFFFF',
         letterSpacing: -1.5,
         textShadowColor: 'rgba(0, 0, 0, 0.1)',
         textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 4
+        textShadowRadius: 8
+    },
+    itemCount: {
+        fontSize: 13,
+        color: 'rgba(255, 255, 255, 0.85)',
+        fontWeight: '600',
+        marginTop: 4,
+        letterSpacing: 0.3
     },
     refreshBtn: {
         width: 48,
@@ -556,57 +557,61 @@ const styles = StyleSheet.create({
         paddingTop: 28
     },
     contentHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
         paddingHorizontal: 24,
         marginBottom: 20
     },
+    sectionTitleContainer: {
+        gap: 8
+    },
     contentTitle: {
-        fontSize: 28,
+        fontSize: 26,
         fontWeight: '800',
         color: '#0F172A',
-        letterSpacing: -0.8,
-        marginBottom: 4
+        letterSpacing: -0.8
     },
-    contentSubtitle: {
-        fontSize: 14,
-        color: '#64748B',
-        fontWeight: '500',
-        letterSpacing: 0.1
-    },
-    urgentBadge: {
+    statusRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
-        backgroundColor: '#FEE2E2',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#FECACA'
+        gap: 8
     },
-    urgentText: {
+    warningDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#F59E0B'
+    },
+    warningText: {
         fontSize: 14,
-        fontWeight: '800',
-        color: '#DC2626'
+        color: '#D97706',
+        fontWeight: '600'
+    },
+    successDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#10B981'
+    },
+    successText: {
+        fontSize: 14,
+        color: '#059669',
+        fontWeight: '600'
     },
     listContainer: {
         paddingHorizontal: 24,
         paddingBottom: 120,
-        gap: 14
+        gap: 8
     },
     modernCard: {
-        borderRadius: 20,
+        borderRadius: 14,
         overflow: 'hidden',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.08,
-        shadowRadius: 10,
-        elevation: 3
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 2
     },
     cardGradient: {
-        padding: 14,
+        padding: 12,
         gap: 8,
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.8)'
@@ -614,7 +619,7 @@ const styles = StyleSheet.create({
     simpleCardLayout: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12
+        gap: 10
     },
     itemNameSection: {
         flex: 1,
@@ -623,16 +628,16 @@ const styles = StyleSheet.create({
     },
     pendingBadge: {
         backgroundColor: 'rgba(255, 255, 255, 0.7)',
-        paddingHorizontal: 14,
-        paddingVertical: 8,
-        borderRadius: 12,
-        minWidth: 50,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 10,
+        minWidth: 46,
         alignItems: 'center',
         borderWidth: 1,
         borderColor: 'rgba(0, 0, 0, 0.05)'
     },
     pendingQty: {
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: '900',
         color: '#0F172A',
         letterSpacing: -0.5
@@ -688,17 +693,17 @@ const styles = StyleSheet.create({
         opacity: 0.4
     },
     modernIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
+        width: 38,
+        height: 38,
+        borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center'
     },
     modernItemName: {
         fontSize: 15,
-        fontWeight: '800',
+        fontWeight: '700',
         color: '#0F172A',
-        letterSpacing: -0.3
+        letterSpacing: -0.2
     },
     stockIndicator: {
         flexDirection: 'row',
@@ -724,18 +729,27 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingTop: 100
+        paddingTop: 100,
+        gap: 24
+    },
+    loadingCircle: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        justifyContent: 'center',
+        alignItems: 'center'
     },
     loadingText: {
-        marginTop: 20,
         fontSize: 16,
         color: '#64748B',
-        fontWeight: '600'
+        fontWeight: '600',
+        letterSpacing: 0.2
     },
     emptyContainer: {
         alignItems: 'center',
         paddingVertical: 100,
-        paddingHorizontal: 40
+        paddingHorizontal: 40,
+        gap: 20
     },
     emptyCircle: {
         width: 140,

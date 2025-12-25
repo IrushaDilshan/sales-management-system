@@ -3,6 +3,7 @@ import { View, Text, FlatList, StyleSheet, ActivityIndicator, Alert, RefreshCont
 import { supabase } from '../../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 
 type StockItem = {
     id: number;
@@ -11,6 +12,7 @@ type StockItem = {
 };
 
 export default function StockScreen() {
+    const router = useRouter();
     const [items, setItems] = useState<StockItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -111,39 +113,75 @@ export default function StockScreen() {
         fetchStock();
     };
 
-    const renderItem = ({ item }: { item: StockItem }) => {
+    const renderItem = ({ item, index }: { item: StockItem; index: number }) => {
         const stockLevel = item.qty >= 50 ? 'high' : item.qty >= 20 ? 'medium' : 'low';
-        const stockColor = stockLevel === 'high' ? '#10B981' : stockLevel === 'medium' ? '#F59E0B' : '#EF4444';
-        const bgColor = stockLevel === 'high' ? '#ECFDF5' : stockLevel === 'medium' ? '#FFFBEB' : '#FEF2F2';
+
+        // Premium gradient colors based on stock level
+        const gradientColors =
+            stockLevel === 'high'
+                ? ['#10B981', '#059669', '#047857'] as const
+                : stockLevel === 'medium'
+                    ? ['#F59E0B', '#D97706', '#B45309'] as const
+                    : ['#EF4444', '#DC2626', '#B91C1C'] as const;
 
         return (
-            <View style={[styles.stockCard, { borderLeftWidth: 5, borderLeftColor: stockColor }]}>
-                {/* Icon & Name */}
-                <View style={styles.itemSection}>
-                    <View style={[styles.itemIcon, { backgroundColor: bgColor }]}>
-                        <Ionicons name="cube" size={20} color={stockColor} />
-                    </View>
-                    <View style={styles.itemDetails}>
-                        <Text style={styles.itemName} numberOfLines={1}>
-                            {item.name}
-                        </Text>
-                        <Text style={[styles.stockLevel, { color: stockColor }]}>
-                            {stockLevel.toUpperCase()} STOCK
-                        </Text>
-                    </View>
-                </View>
+            <TouchableOpacity
+                activeOpacity={0.95}
+                style={[styles.stockCard, { opacity: loading ? 0.5 : 1 }]}
+            >
+                <LinearGradient
+                    colors={[`${gradientColors[0]}08`, `${gradientColors[1]}0A`, `${gradientColors[2]}12`]}
+                    style={styles.cardGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                >
+                    {/* Accent Border */}
+                    <View style={[styles.accentBorder, { backgroundColor: gradientColors[0] }]} />
 
-                {/* Quantity */}
-                <View style={styles.quantitySection}>
-                    <Text style={[styles.quantityNum, { color: stockColor }]}>
-                        {item.qty}
-                    </Text>
-                    <Text style={styles.quantityLabel}>Units</Text>
-                </View>
+                    {/* Content */}
+                    <View style={styles.cardContent}>
+                        {/* Left: Icon & Info */}
+                        <View style={styles.itemSection}>
+                            <LinearGradient
+                                colors={gradientColors}
+                                style={styles.itemIcon}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <Ionicons name="cube" size={20} color="#FFFFFF" />
+                            </LinearGradient>
 
-                {/* Status Indicator */}
-                <View style={[styles.statusIndicator, { backgroundColor: stockColor }]} />
-            </View>
+                            <View style={styles.itemDetails}>
+                                <Text style={styles.itemName} numberOfLines={1}>
+                                    {item.name}
+                                </Text>
+                                <View style={styles.stockLevelContainer}>
+                                    <View style={[styles.stockDot, { backgroundColor: gradientColors[0] }]} />
+                                    <Text style={[styles.stockLevel, { color: gradientColors[1] }]}>
+                                        {stockLevel.toUpperCase()} STOCK
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+
+                        {/* Right: Quantity Badge */}
+                        <View style={styles.quantityBadge}>
+                            <LinearGradient
+                                colors={gradientColors}
+                                style={styles.quantityGradient}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <Text style={styles.quantityNum}>{item.qty}</Text>
+                                <Text style={styles.quantityLabel}>units</Text>
+                            </LinearGradient>
+                        </View>
+                    </View>
+
+                    {/* Shimmer Effect Overlay */}
+                    <View style={styles.shimmerOverlay} />
+                </LinearGradient>
+            </TouchableOpacity>
         );
     };
 
@@ -155,105 +193,80 @@ export default function StockScreen() {
 
     return (
         <View style={styles.container}>
-            {/* Hero Header */}
+            {/* Premium Hero Header */}
             <LinearGradient
-                colors={['#667EEA', '#764BA2', '#F093FB']}
+                colors={['#7C3AED', '#A78BFA', '#EC4899', '#F472B6']}
                 style={styles.heroHeader}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
             >
+                {/* Decorative Circles */}
+                <View style={styles.decorativeCircle1} />
+                <View style={styles.decorativeCircle2} />
+
                 <View style={styles.headerContent}>
-                    <View>
-                        <Text style={styles.headerSubtitle}>My Inventory</Text>
+                    <View style={styles.titleSection}>
+                        <View style={styles.subtitleRow}>
+                            <Ionicons name="cube" size={16} color="rgba(255, 255, 255, 0.9)" />
+                            <Text style={styles.headerSubtitle}>My Inventory</Text>
+                        </View>
                         <Text style={styles.headerTitle}>Stock</Text>
-                    </View>
-                </View>
-
-                {/* Quick Stats */}
-                <View style={styles.quickStatsRow}>
-                    <View style={styles.quickStatCard}>
-                        <View style={styles.quickStatIconWrapper}>
-                            <LinearGradient
-                                colors={['#6366F1', '#8B5CF6']}
-                                style={styles.quickStatIconGradient}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                            >
-                                <Ionicons name="list" size={18} color="#FFF" />
-                            </LinearGradient>
-                        </View>
-                        <View style={styles.quickStatInfo}>
-                            <Text style={styles.quickStatValue}>{totalItems}</Text>
-                            <Text style={styles.quickStatLabel}>Items</Text>
-                        </View>
-                    </View>
-
-                    <View style={styles.quickStatCard}>
-                        <View style={styles.quickStatIconWrapper}>
-                            <LinearGradient
-                                colors={['#10B981', '#059669']}
-                                style={styles.quickStatIconGradient}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                            >
-                                <Ionicons name="cube" size={18} color="#FFF" />
-                            </LinearGradient>
-                        </View>
-                        <View style={styles.quickStatInfo}>
-                            <Text style={styles.quickStatValue}>{totalQuantity}</Text>
-                            <Text style={styles.quickStatLabel}>Total</Text>
-                        </View>
-                    </View>
-
-                    <View style={styles.quickStatCard}>
-                        <View style={styles.quickStatIconWrapper}>
-                            <LinearGradient
-                                colors={lowStock > 0 ? ['#EF4444', '#DC2626'] : ['#10B981', '#059669']}
-                                style={styles.quickStatIconGradient}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                            >
-                                <Ionicons
-                                    name={lowStock > 0 ? 'alert' : 'checkmark-done'}
-                                    size={18}
-                                    color="#FFF"
-                                />
-                            </LinearGradient>
-                        </View>
-                        <View style={styles.quickStatInfo}>
-                            <Text style={styles.quickStatValue}>
-                                {lowStock > 0 ? lowStock : highStock}
+                        {totalItems > 0 && (
+                            <Text style={styles.itemCount}>
+                                {totalItems} {totalItems === 1 ? 'Item' : 'Items'} • {totalQuantity} Total Units
                             </Text>
-                            <Text style={styles.quickStatLabel}>
-                                {lowStock > 0 ? 'Low' : 'High'}
-                            </Text>
-                        </View>
+                        )}
                     </View>
+
+                    <TouchableOpacity
+                        style={styles.historyButton}
+                        onPress={() => router.push('/rep/inventory-history')}
+                        activeOpacity={0.8}
+                    >
+                        <View style={styles.historyButtonInner}>
+                            <Ionicons name="time-outline" size={18} color="#FFF" />
+                            <Text style={styles.historyButtonText}>History</Text>
+                        </View>
+                    </TouchableOpacity>
                 </View>
             </LinearGradient>
 
-            {/* Content */}
+            {/* Content Section */}
             <View style={styles.contentSection}>
+                {/* Section Header */}
                 <View style={styles.sectionHeader}>
-                    <View>
-                        <Text style={styles.sectionTitle}>Inventory Items</Text>
-                        <Text style={styles.sectionSubtitle}>
-                            {lowStock > 0
-                                ? `${lowStock} item${lowStock > 1 ? 's' : ''} running low`
-                                : 'All items well stocked'}
-                        </Text>
-                    </View>
-                    {lowStock > 0 && (
-                        <View style={styles.alertBadge}>
-                            <Ionicons name="alert-circle" size={16} color="#DC2626" />
+                    <View style={styles.sectionTitleContainer}>
+                        <Text style={styles.sectionTitle}>Your Inventory</Text>
+                        <View style={styles.statusRow}>
+                            {lowStock > 0 ? (
+                                <>
+                                    <View style={styles.warningDot} />
+                                    <Text style={styles.warningText}>
+                                        {lowStock} item{lowStock > 1 ? 's' : ''} running low
+                                    </Text>
+                                </>
+                            ) : (
+                                <>
+                                    <View style={styles.successDot} />
+                                    <Text style={styles.successText}>All items well stocked</Text>
+                                </>
+                            )}
                         </View>
-                    )}
+                    </View>
                 </View>
 
+                {/* List */}
                 {loading && !refreshing ? (
                     <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color="#667EEA" />
-                        <Text style={styles.loadingText}>Loading stock...</Text>
+                        <LinearGradient
+                            colors={['#7C3AED20', '#EC489920']}
+                            style={styles.loadingCircle}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <ActivityIndicator size="large" color="#7C3AED" />
+                        </LinearGradient>
+                        <Text style={styles.loadingText}>Loading your stock...</Text>
                     </View>
                 ) : (
                     <FlatList
@@ -266,24 +279,35 @@ export default function StockScreen() {
                             <RefreshControl
                                 refreshing={refreshing}
                                 onRefresh={onRefresh}
-                                tintColor="#667EEA"
-                                colors={['#667EEA', '#764BA2']}
+                                tintColor="#7C3AED"
+                                colors={['#7C3AED', '#EC4899']}
                             />
                         }
                         ListEmptyComponent={
                             <View style={styles.emptyState}>
                                 <LinearGradient
-                                    colors={['#667EEA20', '#764BA220']}
+                                    colors={['#7C3AED15', '#EC489915']}
                                     style={styles.emptyIconCircle}
                                     start={{ x: 0, y: 0 }}
                                     end={{ x: 1, y: 1 }}
                                 >
-                                    <Ionicons name="cube-outline" size={64} color="#667EEA" />
+                                    <Ionicons name="cube-outline" size={72} color="#7C3AED" />
                                 </LinearGradient>
-                                <Text style={styles.emptyTitle}>No Stock Yet</Text>
+                                <Text style={styles.emptyTitle}>No Stock Available</Text>
                                 <Text style={styles.emptyText}>
-                                    Contact the storekeeper to get stock assigned to you
+                                    Your inventory is currently empty. Contact the storekeeper to get stock assigned to you.
                                 </Text>
+                                <TouchableOpacity style={styles.emptyButton} activeOpacity={0.8}>
+                                    <LinearGradient
+                                        colors={['#7C3AED', '#EC4899']}
+                                        style={styles.emptyButtonGradient}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 0 }}
+                                    >
+                                        <Ionicons name="chatbubble-outline" size={18} color="#FFF" />
+                                        <Text style={styles.emptyButtonText}>Contact Storekeeper</Text>
+                                    </LinearGradient>
+                                </TouchableOpacity>
                             </View>
                         }
                     />
@@ -299,141 +323,183 @@ const styles = StyleSheet.create({
         backgroundColor: '#F8FAFC'
     },
     heroHeader: {
-        paddingTop: 50,
-        paddingBottom: 32,
-        paddingHorizontal: 20,
-        borderBottomLeftRadius: 32,
-        borderBottomRightRadius: 32,
-        shadowColor: '#667EEA',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 16,
-        elevation: 12
+        paddingTop: 60,
+        paddingBottom: 40,
+        paddingHorizontal: 24,
+        borderBottomLeftRadius: 36,
+        borderBottomRightRadius: 36,
+        shadowColor: '#7C3AED',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.4,
+        shadowRadius: 24,
+        elevation: 16,
+        overflow: 'hidden'
+    },
+    decorativeCircle1: {
+        position: 'absolute',
+        width: 200,
+        height: 200,
+        borderRadius: 100,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        top: -50,
+        right: -50
+    },
+    decorativeCircle2: {
+        position: 'absolute',
+        width: 150,
+        height: 150,
+        borderRadius: 75,
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        bottom: -30,
+        left: -40
     },
     headerContent: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        marginBottom: 24
+        gap: 16,
+        zIndex: 1
+    },
+    titleSection: {
+        flex: 1,
+        gap: 6
+    },
+    subtitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 4
     },
     headerSubtitle: {
-        fontSize: 15,
-        color: 'rgba(255, 255, 255, 0.9)',
+        fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.95)',
         fontWeight: '600',
-        marginBottom: 4,
-        letterSpacing: 0.5
+        letterSpacing: 1,
+        textTransform: 'uppercase'
     },
     headerTitle: {
-        fontSize: 32,
+        fontSize: 40,
         fontWeight: '900',
-        color: '#FFF',
-        letterSpacing: -1
+        color: '#FFFFFF',
+        letterSpacing: -1.5,
+        textShadowColor: 'rgba(0, 0, 0, 0.1)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 8
     },
-    refreshButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: 'rgba(255, 255, 255, 0.25)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.3)'
-    },
-    quickStatsRow: {
-        flexDirection: 'row',
-        gap: 12
-    },
-    quickStatCard: {
-        flex: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.25)',
-        borderRadius: 16,
-        padding: 14,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.3)'
-    },
-    quickStatIconWrapper: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 4,
-        elevation: 3
-    },
-    quickStatIconGradient: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    quickStatInfo: {
-        flex: 1
-    },
-    quickStatValue: {
-        fontSize: 22,
-        fontWeight: '900',
-        color: '#FFF',
-        letterSpacing: -0.5,
-        marginBottom: 2
-    },
-    quickStatLabel: {
-        fontSize: 11,
+    itemCount: {
+        fontSize: 13,
         color: 'rgba(255, 255, 255, 0.85)',
-        fontWeight: '700',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5
+        fontWeight: '600',
+        marginTop: 4,
+        letterSpacing: 0.3
+    },
+    historyButton: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4
+    },
+    historyButtonInner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 24,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255, 255, 255, 0.4)'
+    },
+    historyButtonText: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: '#FFFFFF',
+        letterSpacing: 0.3
     },
     contentSection: {
         flex: 1,
-        paddingTop: 24,
+        paddingTop: 28,
         paddingHorizontal: 20
     },
     sectionHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 16
+        marginBottom: 20
+    },
+    sectionTitleContainer: {
+        gap: 8
     },
     sectionTitle: {
-        fontSize: 24,
+        fontSize: 26,
         fontWeight: '800',
-        color: '#1E293B',
-        letterSpacing: -0.5,
-        marginBottom: 4
+        color: '#0F172A',
+        letterSpacing: -0.8
     },
-    sectionSubtitle: {
-        fontSize: 14,
-        color: '#64748B',
-        fontWeight: '500'
-    },
-    alertBadge: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: '#FEE2E2',
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    listContent: {
-        paddingBottom: 100,
-        gap: 10
-    },
-    stockCard: {
+    statusRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FFF',
-        borderRadius: 16,
-        padding: 14,
-        gap: 12,
+        gap: 8
+    },
+    warningDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#F59E0B'
+    },
+    warningText: {
+        fontSize: 14,
+        color: '#D97706',
+        fontWeight: '600'
+    },
+    successDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#10B981'
+    },
+    successText: {
+        fontSize: 14,
+        color: '#059669',
+        fontWeight: '600'
+    },
+    listContent: {
+        paddingBottom: 120,
+        gap: 8
+    },
+    stockCard: {
+        borderRadius: 14,
+        overflow: 'hidden',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.06,
         shadowRadius: 8,
-        elevation: 2,
-        borderWidth: 1,
-        borderColor: '#F1F5F9'
+        elevation: 2
+    },
+    cardGradient: {
+        position: 'relative',
+        overflow: 'hidden'
+    },
+    accentBorder: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: 4
+    },
+    cardContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#FFFFFF',
+        padding: 12,
+        gap: 12
+    },
+    shimmerOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'transparent'
     },
     itemSection: {
         flex: 1,
@@ -443,87 +509,140 @@ const styles = StyleSheet.create({
         minWidth: 0
     },
     itemIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 10,
+        width: 42,
+        height: 42,
+        borderRadius: 12,
         justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2
     },
     itemDetails: {
         flex: 1,
+        gap: 4,
         minWidth: 0
     },
     itemName: {
         fontSize: 15,
         fontWeight: '700',
-        color: '#1E293B',
-        letterSpacing: -0.2,
-        marginBottom: 3
+        color: '#0F172A',
+        letterSpacing: -0.2
+    },
+    stockLevelContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5
+    },
+    stockDot: {
+        width: 5,
+        height: 5,
+        borderRadius: 2.5
     },
     stockLevel: {
-        fontSize: 9,
-        fontWeight: '800',
+        fontSize: 10,
+        fontWeight: '700',
         letterSpacing: 0.5
     },
-    quantitySection: {
+    quantityBadge: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.12,
+        shadowRadius: 4,
+        elevation: 2
+    },
+    quantityGradient: {
+        minWidth: 58,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 12,
         alignItems: 'center',
-        paddingHorizontal: 8
+        justifyContent: 'center',
+        gap: 1
     },
     quantityNum: {
         fontSize: 20,
         fontWeight: '900',
+        color: '#FFFFFF',
         letterSpacing: -0.5
     },
     quantityLabel: {
         fontSize: 9,
-        color: '#64748B',
-        fontWeight: '700',
+        color: 'rgba(255, 255, 255, 0.85)',
+        fontWeight: '600',
         textTransform: 'uppercase',
-        letterSpacing: 0.3,
-        marginTop: 2
-    },
-    statusIndicator: {
-        width: 8,
-        height: 36,
-        borderRadius: 4
+        letterSpacing: 0.3
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingTop: 80
+        paddingTop: 100,
+        gap: 24
+    },
+    loadingCircle: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        justifyContent: 'center',
+        alignItems: 'center'
     },
     loadingText: {
-        marginTop: 16,
-        fontSize: 15,
+        fontSize: 16,
         color: '#64748B',
-        fontWeight: '600'
+        fontWeight: '600',
+        letterSpacing: 0.2
     },
     emptyState: {
         alignItems: 'center',
-        paddingVertical: 80,
-        paddingHorizontal: 32
+        paddingVertical: 100,
+        paddingHorizontal: 40,
+        gap: 20
     },
     emptyIconCircle: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
+        width: 140,
+        height: 140,
+        borderRadius: 70,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 24
+        marginBottom: 8
     },
     emptyTitle: {
         fontSize: 28,
-        fontWeight: '800',
-        color: '#1E293B',
-        marginBottom: 12,
-        letterSpacing: -0.5
+        fontWeight: '900',
+        color: '#0F172A',
+        letterSpacing: -0.8
     },
     emptyText: {
         fontSize: 15,
         color: '#64748B',
         textAlign: 'center',
-        lineHeight: 22,
-        fontWeight: '500'
+        lineHeight: 24,
+        fontWeight: '500',
+        maxWidth: 300
+    },
+    emptyButton: {
+        marginTop: 12,
+        shadowColor: '#7C3AED',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 12,
+        elevation: 6
+    },
+    emptyButtonGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingHorizontal: 24,
+        paddingVertical: 14,
+        borderRadius: 24
+    },
+    emptyButtonText: {
+        fontSize: 15,
+        fontWeight: '800',
+        color: '#FFFFFF',
+        letterSpacing: 0.3
     }
 });

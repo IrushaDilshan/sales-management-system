@@ -120,16 +120,20 @@ export default function RepSettings() {
 
     return (
         <View style={styles.container}>
-            {/* Modern Gradient Header */}
+            {/* Premium Gradient Header */}
             <LinearGradient
-                colors={['#6366F1', '#8B5CF6', '#D946EF']}
+                colors={['#7C3AED', '#A78BFA', '#EC4899', '#F472B6']}
                 style={styles.header}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
             >
+                {/* Decorative circles */}
+                <View style={styles.decorativeCircle1} />
+                <View style={styles.decorativeCircle2} />
+
                 <View style={styles.headerContent}>
                     <View>
-                        <Text style={styles.greeting}>Account</Text>
+                        <Text style={styles.greeting}>ACCOUNT</Text>
                         <Text style={styles.title}>Settings</Text>
                     </View>
                     <View style={styles.avatarContainer}>
@@ -137,7 +141,7 @@ export default function RepSettings() {
                             colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.1)']}
                             style={styles.avatar}
                         >
-                            <Ionicons name="person" size={32} color="#FFF" />
+                            <Ionicons name="person" size={28} color="#FFF" />
                         </LinearGradient>
                     </View>
                 </View>
@@ -152,7 +156,7 @@ export default function RepSettings() {
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
                         <View style={styles.iconWrapper}>
-                            <Ionicons name="person-outline" size={20} color="#6366F1" />
+                            <Ionicons name="person-outline" size={18} color="#7C3AED" />
                         </View>
                         <Text style={styles.sectionTitle}>Profile Information</Text>
                     </View>
@@ -193,7 +197,7 @@ export default function RepSettings() {
                         disabled={loading}
                     >
                         <LinearGradient
-                            colors={['#6366F1', '#8B5CF6']}
+                            colors={['#7C3AED', '#EC4899']}
                             style={styles.gradientBtn}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 1 }}
@@ -307,33 +311,56 @@ const styles = StyleSheet.create({
         backgroundColor: '#F8FAFC'
     },
     header: {
-        paddingTop: 50,
-        paddingBottom: 30,
-        paddingHorizontal: 20,
-        shadowColor: '#6366F1',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-        elevation: 10
+        paddingTop: 60,
+        paddingBottom: 36,
+        paddingHorizontal: 24,
+        shadowColor: '#7C3AED',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.4,
+        shadowRadius: 24,
+        elevation: 16,
+        overflow: 'hidden'
+    },
+    decorativeCircle1: {
+        position: 'absolute',
+        width: 200,
+        height: 200,
+        borderRadius: 100,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        top: -50,
+        right: -50
+    },
+    decorativeCircle2: {
+        position: 'absolute',
+        width: 150,
+        height: 150,
+        borderRadius: 75,
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        bottom: -30,
+        left: -40
     },
     headerContent: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        zIndex: 1
     },
     greeting: {
-        fontSize: 14,
+        fontSize: 12,
         color: 'rgba(255, 255, 255, 0.85)',
         marginBottom: 4,
-        fontWeight: '600',
-        letterSpacing: 1,
+        fontWeight: '700',
+        letterSpacing: 1.2,
         textTransform: 'uppercase'
     },
     title: {
-        fontSize: 32,
-        fontWeight: '800',
-        color: '#fff',
-        letterSpacing: -0.5
+        fontSize: 36,
+        fontWeight: '900',
+        color: '#FFFFFF',
+        letterSpacing: -1,
+        textShadowColor: 'rgba(0, 0, 0, 0.1)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 8
     },
     avatarContainer: {
         shadowColor: '#000',
@@ -343,9 +370,9 @@ const styles = StyleSheet.create({
         elevation: 5
     },
     avatar: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 3,
@@ -360,25 +387,25 @@ const styles = StyleSheet.create({
     },
     section: {
         backgroundColor: 'white',
-        borderRadius: 20,
+        borderRadius: 16,
         padding: 20,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        elevation: 3
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+        elevation: 2
     },
     sectionHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 18,
         gap: 12
     },
     iconWrapper: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
-        backgroundColor: '#EEF2FF',
+        width: 38,
+        height: 38,
+        borderRadius: 11,
+        backgroundColor: '#EDE9FE',
         justifyContent: 'center',
         alignItems: 'center'
     },
@@ -403,11 +430,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#F8F9FA',
-        borderRadius: 14,
+        borderRadius: 12,
         borderWidth: 2,
         borderColor: '#E5E7EB',
         paddingHorizontal: 14,
-        height: 52
+        height: 48
     },
     inputIcon: {
         marginRight: 10
@@ -430,19 +457,19 @@ const styles = StyleSheet.create({
     },
     primaryBtn: {
         marginTop: 8,
-        borderRadius: 14,
+        borderRadius: 12,
         overflow: 'hidden',
-        shadowColor: '#6366F1',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4
+        shadowColor: '#7C3AED',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.25,
+        shadowRadius: 6,
+        elevation: 3
     },
     gradientBtn: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 16,
+        padding: 14,
         gap: 8
     },
     btnDisabled: {
@@ -458,8 +485,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: 18,
-        borderRadius: 14,
+        padding: 16,
+        borderRadius: 12,
         borderWidth: 2,
         borderColor: '#FEE2E2',
         backgroundColor: '#FAFAFA'
