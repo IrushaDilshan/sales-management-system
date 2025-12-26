@@ -60,11 +60,8 @@ const Shops = () => {
             const formattedShops = (shopsData || []).map(shop => {
                 const assignedRep = repsData?.find(r => r.id === shop.rep_id);
                 const assignedRoute = routesData?.find(r => r.id === shop.route_id);
-                let assignedSalesman = salesmenData?.find(s => s.id === shop.salesman_id);
-
-                if (!assignedSalesman) {
-                    assignedSalesman = salesmenData?.find(s => s.shop_id === shop.id);
-                }
+                // Find salesman by checking which user has this shop assigned
+                const assignedSalesman = salesmenData?.find(s => s.shop_id === shop.id);
 
                 return {
                     ...shop,
@@ -90,7 +87,7 @@ const Shops = () => {
                 name: shop.name || '',
                 rep_id: shop.rep_id || '',
                 route_id: shop.route_id || '',
-                salesman_id: shop.salesman_id || ''
+                salesman_id: shop.salesman?.id || ''
             });
         } else {
             setFormData({ id: null, name: '', rep_id: '', route_id: '', salesman_id: '' });
@@ -112,28 +109,54 @@ const Shops = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const updates = {
+            const shopUpdates = {
                 name: formData.name,
                 rep_id: formData.rep_id || null,
-                route_id: formData.route_id || null,
-                salesman_id: formData.salesman_id || null
+                route_id: formData.route_id || null
             };
 
+            let shopId;
             let error;
+
+            // First, create or update the shop
             if (formData.id) {
+                // Update existing shop
                 const { error: updateError } = await supabase
                     .from('shops')
-                    .update(updates)
+                    .update(shopUpdates)
                     .eq('id', formData.id);
                 error = updateError;
+                shopId = formData.id;
             } else {
-                const { error: insertError } = await supabase
+                // Create new shop
+                const { data: newShop, error: insertError } = await supabase
                     .from('shops')
-                    .insert([updates]);
+                    .insert([shopUpdates])
+                    .select()
+                    .single();
                 error = insertError;
+                shopId = newShop?.id;
             }
 
             if (error) throw error;
+
+            // Second, if a salesman was selected, update that user's shop_id
+            if (formData.salesman_id) {
+                // First, clear the shop_id for any other user assigned to this shop
+                await supabase
+                    .from('users')
+                    .update({ shop_id: null })
+                    .eq('shop_id', shopId)
+                    .neq('id', formData.salesman_id);
+
+                // Then assign the selected salesman to this shop
+                const { error: userUpdateError } = await supabase
+                    .from('users')
+                    .update({ shop_id: shopId })
+                    .eq('id', formData.salesman_id);
+
+                if (userUpdateError) throw userUpdateError;
+            }
 
             fetchData();
             handleCloseModal();
@@ -143,18 +166,27 @@ const Shops = () => {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this shop?')) {
+        if (window.confirm('Are you sure you want to delete this shop?\n\nNote: Any salesmen assigned to this shop will be unassigned.')) {
             try {
+                // First, clear shop_id from any users assigned to this shop
+                await supabase
+                    .from('users')
+                    .update({ shop_id: null })
+                    .eq('shop_id', id);
+
+                // Then delete the shop
                 const { error } = await supabase
                     .from('shops')
                     .delete()
                     .eq('id', id);
 
                 if (error) throw error;
+
+                alert('Shop deleted successfully!');
                 fetchData();
             } catch (err) {
                 console.error('Error deleting shop:', err);
-                alert('Failed to delete shop');
+                alert('Failed to delete shop: ' + err.message);
             }
         }
     };

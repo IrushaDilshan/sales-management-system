@@ -4,10 +4,9 @@ import '../shared/ModernPage.css';
 
 const Users = () => {
     const [users, setUsers] = useState([]);
-    const [shops, setShops] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [formData, setFormData] = useState({ id: null, name: '', email: '', password: '', role: 'salesman', shop_id: '' });
+    const [formData, setFormData] = useState({ id: null, name: '', email: '', password: '', role: 'salesman' });
     const [error, setError] = useState(null);
 
     // Filter states
@@ -19,22 +18,7 @@ const Users = () => {
 
     useEffect(() => {
         fetchUsers();
-        fetchShops();
     }, []);
-
-    const fetchShops = async () => {
-        try {
-            const { data, error } = await supabase
-                .from('shops')
-                .select('id, name')
-                .order('name');
-
-            if (error) throw error;
-            setShops(data || []);
-        } catch (err) {
-            console.error('Error fetching shops:', err);
-        }
-    };
 
     const fetchUsers = async () => {
         try {
@@ -76,11 +60,10 @@ const Users = () => {
                 name: user.name || '',
                 email: user.email || '',
                 password: '', // Never show password
-                role: user.role || 'salesman',
-                shop_id: user.shop_id || ''
+                role: user.role || 'salesman'
             });
         } else {
-            setFormData({ id: null, name: '', email: '', password: '', role: 'salesman', shop_id: '' });
+            setFormData({ id: null, name: '', email: '', password: '', role: 'salesman' });
         }
         setIsModalOpen(true);
         setError(null);
@@ -88,7 +71,7 @@ const Users = () => {
 
     const handleCloseModal = () => {
         setIsModalOpen(false);
-        setFormData({ id: null, name: '', email: '', password: '', role: 'salesman', shop_id: '' });
+        setFormData({ id: null, name: '', email: '', password: '', role: 'salesman' });
     };
 
     const handleInputChange = (e) => {
@@ -103,8 +86,7 @@ const Users = () => {
                 // UPDATING existing user - only update database
                 const updates = {
                     name: formData.name,
-                    role: formData.role,
-                    shop_id: formData.shop_id || null
+                    role: formData.role
                 };
 
                 const { error: updateError } = await supabase
@@ -140,15 +122,14 @@ const Users = () => {
                     throw new Error('Failed to create user account');
                 }
 
-                // Step 2: Create database user record (for role/shop)
+                // Step 2: Create database user record (for role) - NO shop_id
                 const { error: dbError } = await supabase
                     .from('users')
                     .insert([{
                         id: authData.user.id, // Use same ID as auth user
                         name: formData.name,
                         email: formData.email,
-                        role: formData.role,
-                        shop_id: formData.shop_id || null
+                        role: formData.role
                     }]);
 
                 if (dbError) {
@@ -163,7 +144,7 @@ const Users = () => {
             if (formData.id) {
                 alert('User updated successfully!');
             } else {
-                alert(`User created successfully!\n\nLogin Credentials:\nEmail: ${formData.email}\nPassword: ${formData.password}\n\nPlease save these credentials. The user can now log in.`);
+                alert(`User created successfully!\n\nLogin Credentials:\nEmail: ${formData.email}\nPassword: ${formData.password}\n\nPlease save these credentials. The user can now log in.\n\nTo assign this user to a shop, go to Shop Management and select them when adding/editing a shop.`);
             }
         } catch (err) {
             console.error('Error:', err);
@@ -205,6 +186,7 @@ const Users = () => {
     const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this user?\n\nWarning: This cannot be undone and may fail if the user has related data (requests, transactions, etc.)')) {
             try {
+                // First, try to delete from database
                 const { error } = await supabase
                     .from('users')
                     .delete()
@@ -215,7 +197,26 @@ const Users = () => {
                     throw error;
                 }
 
-                alert('User deleted successfully!');
+                // Then, try to delete the auth user (may fail if client-side)
+                const { error: authDeleteError } = await supabase.auth.admin.deleteUser(id);
+
+                if (authDeleteError) {
+                    console.warn('Auth deletion warning:', authDeleteError);
+                    alert(
+                        'User deleted from database!\n\n' +
+                        '⚠️ Note: The authentication account could not be deleted.\n' +
+                        'This means the email cannot be reused immediately.\n\n' +
+                        'To fully remove the user and allow email reuse,\n' +
+                        'you need to delete the auth user from the Supabase Dashboard:\n' +
+                        '1. Go to Supabase Dashboard\n' +
+                        '2. Authentication → Users\n' +
+                        '3. Find and delete the user manually\n\n' +
+                        'User ID: ' + id
+                    );
+                } else {
+                    alert('User deleted successfully! (Database + Auth)');
+                }
+
                 fetchUsers();
             } catch (err) {
                 console.error('Error deleting user:', err);
@@ -680,27 +681,6 @@ const Users = () => {
                                 </select>
                             </div>
 
-                            {/* Only show shop assignment for salesman role */}
-                            {formData.role === 'salesman' && (
-                                <div className="form-group">
-                                    <label className="form-label">Assign Shop (Required for Salesman)</label>
-                                    <select
-                                        className="form-select"
-                                        name="shop_id"
-                                        value={formData.shop_id}
-                                        onChange={handleInputChange}
-                                        required={formData.role === 'salesman'}
-                                    >
-                                        <option value="">Select Shop</option>
-                                        {shops.map(shop => (
-                                            <option key={shop.id} value={shop.id}>{shop.name}</option>
-                                        ))}
-                                    </select>
-                                    <small style={{ color: '#666', fontSize: '0.85rem', marginTop: '0.5rem', display: 'block' }}>
-                                        Salesman will only see data from their assigned shop
-                                    </small>
-                                </div>
-                            )}
 
                             <div className="modal-actions">
                                 <button type="button" className="btn-cancel" onClick={handleCloseModal}>
