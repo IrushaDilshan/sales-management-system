@@ -33,22 +33,38 @@ const Settings = () => {
             const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
             if (authError) throw authError;
 
+            if (!authUser) {
+                throw new Error('Not authenticated');
+            }
+
             setUser(authUser);
 
             const { data, error: dbError } = await supabase
                 .from('users')
                 .select('*')
                 .eq('id', authUser.id)
-                .single();
+                .maybeSingle(); // Use maybeSingle() instead of single() to handle missing records
 
             if (dbError) throw dbError;
+
+            if (!data) {
+                // User exists in auth but not in database
+                setError(
+                    'Account setup incomplete. Your account exists in authentication but not in the database.\n\n' +
+                    'Please contact an administrator to add your user record.\n' +
+                    'User ID: ' + authUser.id
+                );
+                setUserData(null);
+                setProfileData({ name: '' });
+                return;
+            }
 
             setUserData(data);
             setProfileData({ name: data.name || '' });
 
         } catch (err) {
             console.error('Error fetching user data:', err);
-            setError('Failed to load user data');
+            setError('Failed to load user data: ' + (err.message || 'Unknown error'));
         } finally {
             setLoading(false);
         }
