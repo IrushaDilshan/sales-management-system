@@ -8,7 +8,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 export default function ActionScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
-    const { type, itemId, itemName, currentQty } = params;
+    const { type, itemId: rawItemId, itemName: rawItemName, currentQty } = params;
+
+    // Ensure itemId and itemName are strings, not arrays
+    const itemId = Array.isArray(rawItemId) ? rawItemId[0] : rawItemId;
+    const itemName = Array.isArray(rawItemName) ? rawItemName[0] : rawItemName;
 
     const [loading, setLoading] = useState(false);
     const [reps, setReps] = useState<any[]>([]);
@@ -176,10 +180,10 @@ export default function ActionScreen() {
 
     const getColor = () => {
         switch (type) {
-            case 'ADD': return ['#4CAF50', '#45A049'];
-            case 'ISSUE': return ['#2196F3', '#1976D2'];
-            case 'RETURN': return ['#FF9800', '#F57C00'];
-            default: return ['#4CAF50', '#45A049'];
+            case 'ADD': return ['#4CAF50', '#45A049'] as const;
+            case 'ISSUE': return ['#2196F3', '#1976D2'] as const;
+            case 'RETURN': return ['#FF9800', '#F57C00'] as const;
+            default: return ['#4CAF50', '#45A049'] as const;
         }
     };
 
@@ -263,14 +267,14 @@ export default function ActionScreen() {
                                     return;
                                 }
 
-                                const buttons = reps.map(rep => ({
+                                const buttons: Array<{ text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }> = reps.map(rep => ({
                                     text: rep.name,
                                     onPress: () => setRepId(rep.id)
                                 }));
 
                                 buttons.push({
                                     text: 'Cancel',
-                                    style: 'cancel' as any
+                                    style: 'cancel'
                                 });
 
                                 Alert.alert(
@@ -310,14 +314,14 @@ export default function ActionScreen() {
                                     { text: 'Other', value: 'Other' }
                                 ];
 
-                                const buttons = reasons.map(r => ({
+                                const buttons: Array<{ text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }> = reasons.map(r => ({
                                     text: r.text,
                                     onPress: () => setReason(r.value)
                                 }));
 
                                 buttons.push({
                                     text: 'Cancel',
-                                    style: 'cancel' as any
+                                    style: 'cancel'
                                 });
 
                                 Alert.alert(

@@ -371,10 +371,11 @@ const styles = StyleSheet.create({
     actionsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 14
+        justifyContent: 'space-between'
     },
     actionCard: {
-        width: '48%',
+        width: '48.5%',
+        marginBottom: 14,
         borderRadius: 20,
         overflow: 'hidden',
         shadowColor: '#000',

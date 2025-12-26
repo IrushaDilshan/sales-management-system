@@ -272,7 +272,7 @@ export default function SalesmanSettings() {
             <View style={styles.bottomNav}>
                 <TouchableOpacity
                     style={styles.navItem}
-                    onPress={() => router.push('/(tabs)/salesman-dashboard')}
+                    onPress={() => router.push('/dashboard')}
                 >
                     <Ionicons name="home-outline" size={24} color="#6b7280" />
                     <Text style={styles.navText}>Dashboard</Text>

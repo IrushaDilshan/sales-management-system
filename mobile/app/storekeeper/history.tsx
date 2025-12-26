@@ -7,7 +7,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 export default function HistoryScreen() {
     const router = useRouter();
-    const { itemId, itemName } = useLocalSearchParams();
+    const params = useLocalSearchParams();
+    const { itemId: rawItemId, itemName: rawItemName } = params;
+
+    // Ensure itemId and itemName are strings, not arrays
+    const itemId = Array.isArray(rawItemId) ? rawItemId[0] : rawItemId;
+    const itemName = Array.isArray(rawItemName) ? rawItemName[0] : rawItemName;
+
     const [loading, setLoading] = useState(true);
     const [history, setHistory] = useState<any[]>([]);
 
@@ -37,29 +43,29 @@ export default function HistoryScreen() {
         switch (type) {
             case 'IN':
                 return {
-                    icon: 'add-circle',
-                    color: ['#4CAF50', '#45A049'],
+                    icon: 'add-circle' as const,
+                    color: ['#4CAF50', '#45A049'] as const,
                     label: 'Stock Added',
                     textColor: '#4CAF50'
                 };
             case 'OUT':
                 return {
-                    icon: 'arrow-up-circle',
-                    color: ['#2196F3', '#1976D2'],
+                    icon: 'arrow-up-circle' as const,
+                    color: ['#2196F3', '#1976D2'] as const,
                     label: 'Stock Issued',
                     textColor: '#2196F3'
                 };
             case 'RETURN':
                 return {
-                    icon: 'arrow-down-circle',
-                    color: ['#FF9800', '#F57C00'],
+                    icon: 'arrow-down-circle' as const,
+                    color: ['#FF9800', '#F57C00'] as const,
                     label: 'Stock Returned',
                     textColor: '#FF9800'
                 };
             default:
                 return {
-                    icon: 'cube',
-                    color: ['#9E9E9E', '#757575'],
+                    icon: 'cube' as const,
+                    color: ['#9E9E9E', '#757575'] as const,
                     label: type,
                     textColor: '#9E9E9E'
                 };
