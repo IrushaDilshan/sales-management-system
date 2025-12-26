@@ -30,6 +30,19 @@ export default function SingleRequestView() {
     const fetchRequestDetails = async () => {
         setLoading(true);
         try {
+            // Check for active session
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+            if (sessionError || !session) {
+                console.error('Session error:', sessionError);
+                Alert.alert(
+                    'Session Expired',
+                    'Please log in again to continue.',
+                    [{ text: 'OK', onPress: () => router.replace('/login') }]
+                );
+                return;
+            }
+
             // Fetch request details
             const { data: requestData, error: requestError } = await supabase
                 .from('requests')

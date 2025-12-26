@@ -138,28 +138,59 @@ export default function SalesmanDashboard() {
                     </TouchableOpacity>
                 </View>
 
-                {/* Stats Cards */}
+                {/* Premium Stats Cards */}
                 <View style={styles.statsContainer}>
-                    <View style={styles.statCard}>
-                        <View style={styles.statIconContainer}>
-                            <Ionicons name="receipt" size={20} color="#2196F3" />
+                    {/* First Row: Total Orders and Pending */}
+                    <View style={styles.statsRow}>
+                        {/* Total Orders Card */}
+                        <View style={styles.statCard}>
+                            <LinearGradient
+                                colors={['rgba(255, 255, 255, 0.95)', 'rgba(255, 255, 255, 0.85)']}
+                                style={styles.statCardGradient}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <View style={[styles.statIconContainer, { backgroundColor: '#E3F2FD' }]}>
+                                    <Ionicons name="receipt-outline" size={24} color="#2196F3" />
+                                </View>
+                                <Text style={styles.statValue}>{stats.totalRequests}</Text>
+                                <Text style={styles.statLabel}>Total Orders</Text>
+                            </LinearGradient>
                         </View>
-                        <Text style={styles.statValue}>{stats.totalRequests}</Text>
-                        <Text style={styles.statLabel}>Total Orders</Text>
+
+                        {/* Pending Card */}
+                        <View style={styles.statCard}>
+                            <LinearGradient
+                                colors={['rgba(255, 255, 255, 0.95)', 'rgba(255, 255, 255, 0.85)']}
+                                style={styles.statCardGradient}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <View style={[styles.statIconContainer, { backgroundColor: '#FFF3E0' }]}>
+                                    <Ionicons name="time-outline" size={24} color="#FF9800" />
+                                </View>
+                                <Text style={styles.statValue}>{stats.pendingRequests}</Text>
+                                <Text style={styles.statLabel}>Pending</Text>
+                            </LinearGradient>
+                        </View>
                     </View>
-                    <View style={styles.statCard}>
-                        <View style={[styles.statIconContainer, { backgroundColor: '#FFF3E0' }]}>
-                            <Ionicons name="time" size={20} color="#FF9800" />
-                        </View>
-                        <Text style={styles.statValue}>{stats.pendingRequests}</Text>
-                        <Text style={styles.statLabel}>Pending</Text>
-                    </View>
-                    <View style={styles.statCard}>
-                        <View style={[styles.statIconContainer, { backgroundColor: '#E8F5E9' }]}>
-                            <Ionicons name="wallet" size={20} color="#4CAF50" />
-                        </View>
-                        <Text style={styles.statValue}>Rs.{stats.totalIncome.toLocaleString()}</Text>
-                        <Text style={styles.statLabel}>Total Income</Text>
+
+                    {/* Second Row: Total Income (Full Width) */}
+                    <View style={styles.statCardFull}>
+                        <LinearGradient
+                            colors={['rgba(255, 255, 255, 0.95)', 'rgba(255, 255, 255, 0.85)']}
+                            style={styles.statCardGradientFull}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <View style={[styles.statIconContainer, { backgroundColor: '#E8F5E9' }]}>
+                                <Ionicons name="wallet-outline" size={24} color="#4CAF50" />
+                            </View>
+                            <View style={styles.incomeTextContainer}>
+                                <Text style={styles.statValue}>Rs.{stats.totalIncome.toLocaleString()}</Text>
+                                <Text style={styles.statLabel}>Total Income</Text>
+                            </View>
+                        </LinearGradient>
                     </View>
                 </View>
             </LinearGradient>
@@ -304,42 +335,84 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255, 255, 255, 0.3)'
     },
     statsContainer: {
-        flexDirection: 'row',
-        gap: 10,
+        gap: 12,
         marginTop: 4
+    },
+    statsRow: {
+        flexDirection: 'row',
+        gap: 12
     },
     statCard: {
         flex: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        borderRadius: 16,
-        padding: 12,
-        alignItems: 'center',
+        borderRadius: 18,
+        overflow: 'hidden',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
+        elevation: 6
+    },
+    statCardFull: {
+        borderRadius: 18,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
+        elevation: 6,
+        marginTop: 12
+    },
+    statCardGradient: {
+        padding: 14,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.4)',
+        borderRadius: 18
+    },
+    statCardGradientFull: {
+        padding: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.4)',
+        borderRadius: 18
+    },
+    incomeTextContainer: {
+        alignItems: 'center'
     },
     statIconContainer: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         backgroundColor: '#E3F2FD',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 8
+        marginBottom: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 2
     },
     statValue: {
-        fontSize: 18,
-        fontWeight: '800',
+        fontSize: 22,
+        fontWeight: '900',
         color: '#1a1a2e',
-        marginBottom: 2
+        marginBottom: 4,
+        letterSpacing: -0.5,
+        flexShrink: 1,
+        textAlign: 'center'
     },
     statLabel: {
         fontSize: 11,
-        fontWeight: '600',
+        fontWeight: '700',
         color: '#64748b',
-        textAlign: 'center'
+        textAlign: 'center',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        lineHeight: 14
     },
     scrollView: {
         flex: 1

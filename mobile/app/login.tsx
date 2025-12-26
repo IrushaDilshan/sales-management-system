@@ -116,8 +116,6 @@ export default function LoginScreen() {
                 }
             }
         } catch (error: any) {
-            console.error('Login error:', error);
-
             // Silently ignore abort errors (user navigated away quickly)
             if (error.name === 'AbortError' || error.message?.includes('Aborted') || error.message?.includes('AuthRetryableFetchError')) {
                 console.log('Login aborted or network issue - likely user navigated away');
@@ -125,15 +123,18 @@ export default function LoginScreen() {
                 return;
             }
 
+            // Log login issues (not as error to avoid console spam)
+            console.log('Login failed:', error.message || error);
+
             // Better error messages for network issues
             let errorMessage = 'Login failed. ';
 
             if (error.message?.includes('Network request failed') || error.name === 'TypeError') {
-                errorMessage = '❌ Network Error\n\nCannot connect to server. Please check your internet connection.\n\n✅ Try Demo Mode:\n• Email: salesman@test.com\n• Password: demo';
+                errorMessage = '❌ Network Error\n\nCannot connect to server. Please check your internet connection.\n\n✅ Try Demo Mode:\n• Email: rep@test.com\n• Password: demo';
             } else if (error.message?.includes('Invalid login credentials')) {
-                errorMessage = '❌ Invalid Credentials\n\nEmail or password is incorrect.\n\n✅ Try Demo Mode:\n• Email: salesman@test.com\n• Password: demo';
+                errorMessage = '❌ Invalid Credentials\n\nEmail or password is incorrect.\n\n✅ Try Demo Mode:\n• Email: rep@test.com\n• Password: demo';
             } else {
-                errorMessage = error.message || '❌ Login Failed\n\nPlease try demo mode:\n• Email: salesman@test.com\n• Password: demo';
+                errorMessage = error.message || '❌ Login Failed\n\nPlease try demo mode:\n• Email: rep@test.com\n• Password: demo';
             }
 
             Alert.alert('Login Error', errorMessage);
