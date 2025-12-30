@@ -49,6 +49,15 @@ const Sidebar = () => {
                     {!isCollapsed && <span className="nav-text">Shops</span>}
                 </Link>
 
+                <div style={{ height: '1px', backgroundColor: '#e5e7eb', margin: '1rem 0' }}></div>
+
+                <Link to="/sales-dashboard" className={isActive('/sales-dashboard')} title="Sales Portal" style={{ backgroundColor: '#f3f4f6' }}>
+                    <span className="nav-icon">🛒</span>
+                    {!isCollapsed && <span className="nav-text" style={{ fontWeight: 'bold' }}>Sales Portal</span>}
+                </Link>
+
+                <div style={{ height: '1px', backgroundColor: '#e5e7eb', margin: '1rem 0' }}></div>
+
                 <Link to="/routes" className={isActive('/routes')} title="Routes">
                     <span className="nav-icon">🗺️</span>
                     {!isCollapsed && <span className="nav-text">Routes</span>}

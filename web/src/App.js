@@ -1,12 +1,18 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
+import SalesSidebar from './components/SalesSidebar';
 import StoreKeeperSidebar from './components/StoreKeeperSidebar';
 import Dashboard from './pages/Dashboard';
+import SalesDashboard from './pages/SalesDashboard';
 import Users from './pages/Users';
 import Shops from './pages/Shops';
 import Items from './pages/Items';
 import Stock from './pages/Stock';
+import Categories from './pages/Categories';
+import Customers from './pages/Customers';
+import Sales from './pages/Sales';
+import SalesHistory from './pages/SalesHistory';
 import Storekeeper from './pages/Storekeeper';
 import DailyIncome from './pages/DailyIncome';
 import RoutesPage from './pages/Routes';
@@ -36,6 +42,15 @@ function App() {
             </div>
           } />
 
+          <Route path="/sales-dashboard" element={
+            <div className="app-layout">
+              <SalesSidebar />
+              <div className="main-content">
+                <SalesDashboard />
+              </div>
+            </div>
+          } />
+
           <Route path="/users" element={
             <div className="app-layout">
               <Sidebar />
@@ -59,6 +74,60 @@ function App() {
               <Sidebar />
               <div className="main-content">
                 <RoutesPage />
+              </div>
+            </div>
+          } />
+
+          <Route path="/categories" element={
+            <div className="app-layout">
+              <SalesSidebar />
+              <div className="main-content">
+                <Categories />
+              </div>
+            </div>
+          } />
+
+          <Route path="/items" element={
+            <div className="app-layout">
+              <SalesSidebar />
+              <div className="main-content">
+                <Items />
+              </div>
+            </div>
+          } />
+
+          <Route path="/stock" element={
+            <div className="app-layout">
+              <SalesSidebar />
+              <div className="main-content">
+                <Stock />
+              </div>
+            </div>
+          } />
+
+          <Route path="/customers" element={
+            <div className="app-layout">
+              <SalesSidebar />
+              <div className="main-content">
+                <Customers />
+              </div>
+            </div>
+          } />
+
+          <Route path="/sales" element={
+            <div className="app-layout">
+              <SalesSidebar />
+              <div className="main-content">
+                <Sales />
+              </div>
+            </div>
+          } />
+
+          <Route path="/sales-history" element={
+            <div className="app-layout">
+              <SalesSidebar />
+              <div className="main-content">
+                <SalesHistory />
               </div>
             </div>
           } />
