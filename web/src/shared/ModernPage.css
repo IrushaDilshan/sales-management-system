@@ -330,3 +330,81 @@
 .text-left {
     text-align: left !important;
 }
+
+/* Modern Role Selector */
+.role-selector-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.role-option-card {
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1rem 0.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.role-option-card:hover {
+    border-color: #6366f1;
+    background: white;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(99, 102, 241, 0.08);
+}
+
+.role-option-card.selected {
+    border-color: #6366f1;
+    background: #f5f3ff;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.role-option-card.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: #6366f1;
+    color: white;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    font-size: 0.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+}
+
+.role-icon-lg {
+    font-size: 1.75rem;
+    transition: transform 0.3s ease;
+}
+
+.role-option-card:hover .role-icon-lg {
+    transform: scale(1.15);
+}
+
+.role-label-sm {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #1e293b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.role-desc-xs {
+    font-size: 0.6rem;
+    color: #64748b;
+    line-height: 1.3;
+    font-weight: 500;
+}

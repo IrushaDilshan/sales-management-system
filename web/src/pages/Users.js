@@ -264,13 +264,27 @@ const Users = () => {
                             </div>
                             <div className="form-group" style={{ marginBottom: '2rem' }}>
                                 <label className="form-label">Operations Role Mapping *</label>
-                                <select className="form-control" name="role" value={formData.role} onChange={handleInputChange} required>
-                                    <option value="admin">Administrator (Complete Gov-Access)</option>
-                                    <option value="storekeeper">Storekeeper (Warehouse Control)</option>
-                                    <option value="ma">Management Assistant</option>
-                                    <option value="rep">Field Representative (Route Management)</option>
-                                    <option value="salesman">Salesman (Frontend POS)</option>
-                                </select>
+                                <div className="role-selector-grid">
+                                    {[
+                                        { id: 'admin', label: 'Admin', icon: '🛡️', desc: 'Full Access' },
+                                        { id: 'storekeeper', label: 'Stock', icon: '📦', desc: 'Warehouse' },
+                                        { id: 'ma', label: 'MA', icon: '📝', desc: 'Admin Asst' },
+                                        { id: 'rep', label: 'Field', icon: '🚚', desc: 'Routes' },
+                                        { id: 'salesman', label: 'Sales', icon: '💰', desc: 'POS System' }
+                                    ].map(role => (
+                                        <div
+                                            key={role.id}
+                                            className={`role-option-card ${formData.role === role.id ? 'selected' : ''}`}
+                                            onClick={() => setFormData(prev => ({ ...prev, role: role.id }))}
+                                        >
+                                            <span className="role-icon-lg">{role.icon}</span>
+                                            <div>
+                                                <div className="role-label-sm">{role.label}</div>
+                                                <div className="role-desc-xs">{role.desc}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                             <div style={{ display: 'flex', gap: '1rem' }}>
                                 <button type="button" className="btn-cancel" style={{ flex: 1 }} onClick={handleCloseModal}>Abort</button>
