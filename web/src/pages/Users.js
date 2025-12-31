@@ -17,25 +17,6 @@ const Users = () => {
 
     const [searchQuery, setSearchQuery] = useState('');
     const [roleFilter, setRoleFilter] = useState('all');
-    const governanceRef = useRef(null);
-    const [stickyOffset, setStickyOffset] = useState(0);
-
-    useEffect(() => {
-        if (!governanceRef.current) return;
-
-        const updateOffset = () => {
-            if (governanceRef.current) {
-                // The panel sticks at top: 0, so the header sticks exactly at its height.
-                setStickyOffset(governanceRef.current.offsetHeight);
-            }
-        };
-
-        const resizeObserver = new ResizeObserver(updateOffset);
-        resizeObserver.observe(governanceRef.current);
-        updateOffset(); // Initial measure
-
-        return () => resizeObserver.disconnect();
-    }, []);
 
     useEffect(() => {
         fetchUsers();
@@ -168,8 +149,8 @@ const Users = () => {
     );
 
     return (
-        <div className="page-container" style={{ '--sticky-offset': `${stickyOffset}px`, padding: 0 }}>
-            <div className="sticky-governance-panel" ref={governanceRef} style={{ top: 0, paddingLeft: '2.5rem', paddingRight: '2.5rem' }}>
+        <div className="page-container" style={{ '--sticky-offset': `${stickyOffset}px` }}>
+            <div className="sticky-governance-panel" style={{ top: 0 }}>
                 <div className="page-header">
                     <div>
                         <h1 className="page-title">Personnel Management</h1>
@@ -242,7 +223,7 @@ const Users = () => {
                     <p style={{ marginTop: '1rem', color: '#64748b' }}>Accessing personnel database...</p>
                 </div>
             ) : (
-                <div className="table-container" style={{ margin: '0 2.5rem 2.5rem' }}>
+                <div className="table-container">
                     {filteredUsers.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '5rem' }}>
                             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👤</div>

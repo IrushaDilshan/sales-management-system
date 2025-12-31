@@ -136,7 +136,7 @@
 
 .data-table thead th {
     position: sticky;
-    top: var(--sticky-offset, 250px);
+    top: 215px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     z-index: 1001;
     /* Higher than governance panel to stay on top if needed, but matched below */
