@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../shared/supabaseClient';
 import '../shared/ModernPage.css';
 
@@ -17,23 +17,29 @@ const Users = () => {
 
     const [searchQuery, setSearchQuery] = useState('');
     const [roleFilter, setRoleFilter] = useState('all');
-    const panelRef = React.useRef(null);
+    const governanceRef = useRef(null);
+    const [stickyOffset, setStickyOffset] = useState(0);
 
     useEffect(() => {
-        fetchUsers();
+        if (!governanceRef.current) return;
 
-        const updatePanelHeight = () => {
-            if (panelRef.current) {
-                const height = panelRef.current.offsetHeight;
-                document.documentElement.style.setProperty('--governance-height', `${height - 40}px`);
+        const updateOffset = () => {
+            if (governanceRef.current) {
+                // The panel sticks to y=0, we want the table header to stick right under it.
+                // We subtract the padding offset if necessary, but offsetHeight is safer.
+                setStickyOffset(governanceRef.current.offsetHeight - 40);
             }
         };
 
-        const observer = new ResizeObserver(updatePanelHeight);
-        if (panelRef.current) observer.observe(panelRef.current);
+        const resizeObserver = new ResizeObserver(updateOffset);
+        resizeObserver.observe(governanceRef.current);
+        updateOffset(); // Initial measure
 
-        updatePanelHeight();
-        return () => observer.disconnect();
+        return () => resizeObserver.disconnect();
+    }, []);
+
+    useEffect(() => {
+        fetchUsers();
     }, []);
 
     const fetchUsers = async () => {
@@ -163,8 +169,8 @@ const Users = () => {
     );
 
     return (
-        <div className="page-container">
-            <div className="sticky-governance-panel" ref={panelRef}>
+        <div className="page-container" style={{ '--sticky-offset': `${stickyOffset}px` }}>
+            <div className="sticky-governance-panel" ref={governanceRef}>
                 <div className="page-header">
                     <div>
                         <h1 className="page-title">Personnel Management</h1>

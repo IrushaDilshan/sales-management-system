@@ -136,8 +136,7 @@
 
 .data-table thead th {
     position: sticky;
-    top: 236px;
-    /* Offset for sticky panel height */
+    top: calc(var(--sticky-offset, 250px) + 2px);
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     z-index: 100;
     padding: 1.25rem 1.75rem;
