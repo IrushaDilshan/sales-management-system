@@ -12,6 +12,7 @@ import organizationHq from '../assets/nldb_organization_hq_v2.png';
 const Home = () => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [activeCategory, setActiveCategory] = useState('dairy');
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         const handleScroll = () => {
@@ -57,6 +58,29 @@ const Home = () => {
             { name: 'Compost', img: '/nldb_products/compost.jpg', desc: 'Organic compost manufactured at NLDB farms.', tag: 'Organic' }
         ]
     };
+
+    const nldbOutlets = [
+        { name: 'Melsiripura Sale Center', loc: 'Melsiripura', tel: '0377 294 792', type: 'Major Center' },
+        { name: 'Mahaberithenna Sale Center', loc: 'Digana', tel: '0817 294 638', type: 'Farm Outlet' },
+        { name: 'Rosita Sale Center', loc: 'Kotagala', tel: '0515 675 404', type: 'Upcountry' },
+        { name: 'Koulwewa Sale Center', loc: 'Peragaswela, Kuliyapitiya', tel: '0377 294 112', type: 'Regional' },
+        { name: 'Narangalle Sale Center', loc: 'Kithalawa', tel: '0373 157 400', type: 'North Western' },
+        { name: 'Nikawaratiya Sale Center', loc: 'Nikawaratiya', tel: '0372 260 288', type: 'Regional' },
+        { name: 'Siringapatha Sale Center', loc: 'Badalgama', tel: '0312 269 204', type: 'Western' },
+        { name: 'Martin Sale Center', loc: 'Bangadeniya', tel: '0327 294 584', type: 'Regional' },
+        { name: 'Weerawila Sale Center', loc: 'Thissamaharamaya', tel: '0473 499 997', type: 'Southern' },
+        { name: 'Welisara Sale Center', loc: 'Alpitiwala, Ragama', tel: '0114 294 489', type: 'Major' },
+        { name: 'Beligama Sale Center', loc: 'Beligamuwa', tel: '0773 782 136', type: 'Regional' },
+        { name: 'Haragama Sale Center', loc: 'Haragama, Gurudeniya', tel: '0817 294 061', type: 'Regional' },
+        { name: 'Karandagolla Sale Center', loc: 'Kundasale', tel: '081 729 42 98', type: 'Regional' },
+        { name: 'Apeksha Hospital Center', loc: 'Maharagama', tel: '0114 294 489', type: 'Special' },
+        { name: 'Maawaththa Farm Center', loc: 'Maawaththa', tel: '031 225 5232', type: 'Farm Outlet' }
+    ];
+
+    const filteredOutlets = nldbOutlets.filter(outlet =>
+        outlet.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        outlet.loc.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     return (
         <div className="home-white-modern">
@@ -274,41 +298,37 @@ const Home = () => {
 
                     <div className="outlet-search-box">
                         <div className="search-pill">
-                            <input type="text" placeholder="Search your nearest city (e.g. Narahenpita, Digana...)" className="outlet-input" />
+                            <input
+                                type="text"
+                                placeholder="Search your nearest city (e.g. Narahenpita, Digana...)"
+                                className="outlet-input"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
                             <button className="btn-search-outlet">Find Nearest</button>
                         </div>
                     </div>
 
                     <div className="outlet-grid-premium">
-                        {[
-                            { name: 'Melsiripura Sale Center', loc: 'Melsiripura', tel: '0377 294 792', type: 'Major Center' },
-                            { name: 'Mahaberithenna Sale Center', loc: 'Digana', tel: '0817 294 638', type: 'Farm Outlet' },
-                            { name: 'Rosita Sale Center', loc: 'Kotagala', tel: '0515 675 404', type: 'Upcountry' },
-                            { name: 'Koulwewa Sale Center', loc: 'Peragaswela, Kuliyapitiya', tel: '0377 294 112', type: 'Regional' },
-                            { name: 'Narangalle Sale Center', loc: 'Kithalawa', tel: '0373 157 400', type: 'North Western' },
-                            { name: 'Nikawaratiya Sale Center', loc: 'Nikawaratiya', tel: '0372 260 288', type: 'Regional' },
-                            { name: 'Siringapatha Sale Center', loc: 'Badalgama', tel: '0312 269 204', type: 'Western' },
-                            { name: 'Martin Sale Center', loc: 'Bangadeniya', tel: '0327 294 584', type: 'Regional' },
-                            { name: 'Weerawila Sale Center', loc: 'Thissamaharamaya', tel: '0473 499 997', type: 'Southern' },
-                            { name: 'Welisara Sale Center', loc: 'Alpitiwala, Ragama', tel: '0114 294 489', type: 'Major' },
-                            { name: 'Beligama Sale Center', loc: 'Beligamuwa', tel: '0773 782 136', type: 'Regional' },
-                            { name: 'Haragama Sale Center', loc: 'Haragama, Gurudeniya', tel: '0817 294 061', type: 'Regional' },
-                            { name: 'Karandagolla Sale Center', loc: 'Kundasale', tel: '081 729 42 98', type: 'Regional' },
-                            { name: 'Apeksha Hospital Center', loc: 'Maharagama', tel: '0114 294 489', type: 'Special' },
-                            { name: 'Maawaththa Farm Center', loc: 'Maawaththa', tel: '031 225 5232', type: 'Farm Outlet' }
-                        ].map((outlet, idx) => (
-                            <div key={idx} className="outlet-card-v2">
-                                <div className="outlet-details">
-                                    <span className="outlet-category">{outlet.type}</span>
-                                    <h4>{outlet.name}</h4>
-                                    <p className="loc-text">{outlet.loc}</p>
-                                    <div className="outlet-contact">
-                                        <span>📞 {outlet.tel}</span>
+                        {filteredOutlets.length > 0 ? (
+                            filteredOutlets.map((outlet, idx) => (
+                                <div key={idx} className="outlet-card-v2 animate-fade">
+                                    <div className="outlet-details">
+                                        <span className="outlet-category">{outlet.type}</span>
+                                        <h4>{outlet.name}</h4>
+                                        <p className="loc-text">{outlet.loc}</p>
+                                        <div className="outlet-contact">
+                                            <span>📞 {outlet.tel}</span>
+                                        </div>
                                     </div>
+                                    <button className="btn-view-map">View Map</button>
                                 </div>
-                                <button className="btn-view-map">View Map</button>
+                            ))
+                        ) : (
+                            <div className="no-results">
+                                <p>No outlets found matching "{searchQuery}". Please check the spelling or try a different city.</p>
                             </div>
-                        ))}
+                        )}
                     </div>
                 </div>
             </section>
