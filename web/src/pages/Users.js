@@ -127,11 +127,14 @@ const Users = () => {
     };
 
     const filteredUsers = users.filter(user => {
-        const query = searchQuery.toLowerCase();
-        const matchesSearch = !searchQuery ||
+        const query = searchQuery.toLowerCase().trim();
+        const matchesSearch = !query ||
             user.name?.toLowerCase().includes(query) ||
             user.role?.toLowerCase().includes(query);
-        const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+
+        const matchesRole = roleFilter === 'all' ||
+            user.role?.toLowerCase() === roleFilter.toLowerCase();
+
         return matchesSearch && matchesRole;
     });
 
@@ -168,30 +171,41 @@ const Users = () => {
             {success && <div style={{ background: '#f0fdf4', color: '#166534', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', fontWeight: '600', border: '1px solid #dcfce7' }}>✅ {success}</div>}
 
             <div className="registry-filter-hub animate-fade">
-                <div className="search-field-modern">
+                <div className="search-field-modern" style={{ maxWidth: '400px' }}>
                     <span className="icon">🔍</span>
                     <input
                         type="text"
                         className="form-control"
-                        placeholder="Search by name, role or operation tag..."
+                        placeholder="Search identity..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
-                <div className="filter-group-modern">
-                    <select
-                        className="form-control"
-                        value={roleFilter}
-                        onChange={(e) => setRoleFilter(e.target.value)}
-                    >
-                        <option value="all">All Access Groups</option>
-                        <option value="admin">Administrators</option>
-                        <option value="storekeeper">Stock Control</option>
-                        <option value="ma">Management Assistance</option>
-                        <option value="rep">Field Operations</option>
-                        <option value="salesman">Sales Teams</option>
-                    </select>
+
+                <div className="filter-chips-wrapper" style={{ flex: 1 }}>
+                    {[
+                        { id: 'all', label: 'All Access' },
+                        { id: 'admin', label: 'Admins' },
+                        { id: 'storekeeper', label: 'Stock' },
+                        { id: 'ma', label: 'MA' },
+                        { id: 'rep', label: 'Field' },
+                        { id: 'salesman', label: 'Sales' }
+                    ].map(chip => (
+                        <div
+                            key={chip.id}
+                            className={`filter-chip ${roleFilter === chip.id ? 'active' : ''}`}
+                            onClick={() => setRoleFilter(chip.id)}
+                        >
+                            {chip.label}
+                            {chip.id !== 'all' && (
+                                <span className="count">
+                                    {users.filter(u => u.role === chip.id).length}
+                                </span>
+                            )}
+                        </div>
+                    ))}
                 </div>
+
                 <button
                     className="btn-reset-modern"
                     onClick={() => { setSearchQuery(''); setRoleFilter('all'); }}
