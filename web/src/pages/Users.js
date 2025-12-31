@@ -18,6 +18,8 @@ const Users = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [roleFilter, setRoleFilter] = useState('all');
 
+    const [isPendingModalOpen, setIsPendingModalOpen] = useState(false);
+
     useEffect(() => {
         fetchUsers();
     }, []);
@@ -28,7 +30,7 @@ const Users = () => {
             const { data, error } = await supabase
                 .from('users')
                 .select('*')
-                .order('name');
+                .order('created_at', { ascending: false }); // Show newest first
 
             if (error) throw error;
             setUsers(data || []);
@@ -46,7 +48,7 @@ const Users = () => {
             setFormData({
                 name: user.name,
                 email: user.email || '',
-                role: user.role
+                role: user.role === 'pending' ? 'salesman' : user.role // Default to salesman if pending
             });
         } else {
             setCurrentUser(null);
@@ -57,6 +59,8 @@ const Users = () => {
             });
         }
         setIsModalOpen(true);
+        // If we are opening the edit modal from the pending list, close the pending list
+        if (isPendingModalOpen) setIsPendingModalOpen(false);
         setError(null);
         setSuccess(null);
     };
@@ -126,7 +130,10 @@ const Users = () => {
         }
     };
 
-    const filteredUsers = users.filter(user => {
+    const pendingUsers = users.filter(user => user.role === 'pending');
+    const activeUsers = users.filter(user => user.role !== 'pending');
+
+    const filteredUsers = activeUsers.filter(user => {
         const query = searchQuery.toLowerCase().trim();
         const matchesSearch = !query ||
             user.name?.toLowerCase().includes(query) ||
@@ -155,17 +162,36 @@ const Users = () => {
                     <h1 className="page-title">Personnel Management</h1>
                     <p className="page-subtitle">National Livestock Development Board - Human Resource & Access Governance</p>
                 </div>
-                <button className="btn-primary" onClick={() => handleOpenModal()}>
-                    <span>+</span> Onboard New Staff
-                </button>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button
+                        className="btn-secondary"
+                        onClick={() => setIsPendingModalOpen(true)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    >
+                        <span>🔔</span> Pending Requests
+                        {pendingUsers.length > 0 && (
+                            <span style={{
+                                background: '#ef4444',
+                                color: 'white',
+                                borderRadius: '50%',
+                                padding: '2px 8px',
+                                fontSize: '0.75rem',
+                                fontWeight: 'bold'
+                            }}>{pendingUsers.length}</span>
+                        )}
+                    </button>
+                    <button className="btn-primary" onClick={() => handleOpenModal()}>
+                        <span>+</span> Onboard New Staff
+                    </button>
+                </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
-                <StatCard icon="👥" label="Total Force" value={users.length} color="#6366f1" />
-                <StatCard icon="🛡️" label="Admins" value={users.filter(u => u.role === 'admin').length} color="#ef4444" />
-                <StatCard icon="📦" label="Storekeepers" value={users.filter(u => u.role === 'storekeeper').length} color="#f59e0b" />
-                <StatCard icon="💰" label="Sales Team" value={users.filter(u => u.role === 'salesman').length} color="#8b5cf6" />
-                <StatCard icon="🚚" label="Field Reps" value={users.filter(u => u.role === 'rep').length} color="#10b981" />
+                <StatCard icon="👥" label="Total Force" value={activeUsers.length} color="#6366f1" />
+                <StatCard icon="🛡️" label="Admins" value={activeUsers.filter(u => u.role === 'admin').length} color="#ef4444" />
+                <StatCard icon="📦" label="Storekeepers" value={activeUsers.filter(u => u.role === 'storekeeper').length} color="#f59e0b" />
+                <StatCard icon="💰" label="Sales Team" value={activeUsers.filter(u => u.role === 'salesman').length} color="#8b5cf6" />
+                <StatCard icon="🚚" label="Field Reps" value={activeUsers.filter(u => u.role === 'rep').length} color="#10b981" />
             </div>
 
             {error && <div style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', marginBottom: '1rem', fontWeight: '600', border: '1px solid #fee2e2' }}>⚠️ {error}</div>}
@@ -200,7 +226,7 @@ const Users = () => {
                             {chip.label}
                             {chip.id !== 'all' && (
                                 <span className="count">
-                                    {users.filter(u => u.role === chip.id).length}
+                                    {activeUsers.filter(u => u.role === chip.id).length}
                                 </span>
                             )}
                         </div>
@@ -222,7 +248,7 @@ const Users = () => {
                         <p style={{ marginTop: '1rem', color: '#64748b' }}>Accessing personnel database...</p>
                     </div>
                 ) : (
-                    <div className="table-container">
+                    <div className="modern-table-container">
                         {filteredUsers.length === 0 ? (
                             <div style={{ textAlign: 'center', padding: '5rem' }}>
                                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👤</div>
@@ -230,7 +256,7 @@ const Users = () => {
                                 <p style={{ color: '#64748b' }}>Try broadening your search parameters.</p>
                             </div>
                         ) : (
-                            <table className="data-table">
+                            <table className="modern-table">
                                 <thead>
                                     <tr>
                                         <th>Personnel Identity</th>
@@ -280,6 +306,78 @@ const Users = () => {
                     </div>
                 )
             }
+
+            {/* Pending Requests Modal */}
+            {isPendingModalOpen && (
+                <div className="modal-overlay">
+                    <div className="modal-content" style={{ maxWidth: '650px', borderRadius: '24px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                            <div>
+                                <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '900' }}>Pending Access Requests</h2>
+                                <p style={{ margin: '0.5rem 0 0', color: '#64748b' }}>Review and approve new personnel registrations</p>
+                            </div>
+                            <button onClick={() => setIsPendingModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8' }}>×</button>
+                        </div>
+
+                        {pendingUsers.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '3rem', background: '#f8f9fa', borderRadius: '16px' }}>
+                                <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>✅</div>
+                                <h3 style={{ color: '#1e293b' }}>All caught up!</h3>
+                                <p style={{ color: '#64748b' }}>There are no pending requests at this time.</p>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {pendingUsers.map(user => (
+                                    <div key={user.id} style={{
+                                        padding: '1.5rem',
+                                        background: 'white',
+                                        border: '1px solid #e2e8f0',
+                                        borderRadius: '16px',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                            <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#f59e0b10', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '1.2rem' }}>
+                                                {user.name?.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <div style={{ fontWeight: '800', color: '#1e293b', fontSize: '1.1rem' }}>{user.name}</div>
+                                                <div style={{ color: '#64748b', fontSize: '0.9rem' }}>{user.email}</div>
+                                                <div style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: '4px' }}>Requested: {new Date(user.created_at).toLocaleDateString()}</div>
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                            <button
+                                                className="btn-cancel"
+                                                style={{ padding: '0.6rem 1rem' }}
+                                                onClick={() => {
+                                                    if (window.confirm('Reject and delete this request?')) {
+                                                        handleDeleteUser(user.id);
+                                                    }
+                                                }}
+                                            >
+                                                Reject
+                                            </button>
+                                            <button
+                                                className="btn-primary"
+                                                style={{ padding: '0.6rem 1rem' }}
+                                                onClick={() => handleOpenModal(user)}
+                                            >
+                                                Review & Approve
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        <div style={{ marginTop: '2rem', textAlign: 'right' }}>
+                            <button className="btn-secondary" onClick={() => setIsPendingModalOpen(false)}>Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {
                 isModalOpen && (

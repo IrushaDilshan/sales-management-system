@@ -216,15 +216,15 @@ export default function LoginScreen() {
                     </TouchableOpacity>
                 </View>
 
-                {/* Footer */}
-                <View style={styles.footer}>
-                    <Text style={styles.footerText}>
-                        🌐 No Internet? Use Demo Mode
-                    </Text>
-                    <Text style={[styles.footerText, { fontWeight: '700', color: '#2196F3', marginTop: 8 }]}>
-                        salesman@test.com / demo
-                    </Text>
+                {/* Sign Up Link */}
+                <View style={styles.signupContainer}>
+                    <Text style={styles.signupText}>Don't have an account? </Text>
+                    <TouchableOpacity onPress={() => router.push('/signup')}>
+                        <Text style={styles.signupLink}>Sign Up</Text>
+                    </TouchableOpacity>
                 </View>
+
+
             </View>
         </KeyboardAvoidingView>
     );
@@ -310,13 +310,20 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: '700'
     },
-    footer: {
-        marginTop: 40,
+
+    signupContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        marginTop: 24,
         alignItems: 'center'
     },
-    footerText: {
+    signupText: {
         fontSize: 14,
-        color: '#9ca3af',
-        textAlign: 'center'
+        color: '#6b7280'
+    },
+    signupLink: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#2196F3'
     }
 });
