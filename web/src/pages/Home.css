@@ -716,139 +716,127 @@
 
 .outlet-grid-premium {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 30px;
     width: 100%;
 }
 
-.outlet-card-premium {
-    background: white;
-    border-radius: 32px;
-    padding: 0;
-    border: 1px solid rgba(0, 0, 0, 0.04);
-    position: relative;
-    overflow: hidden;
-    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
-}
-
-.outlet-card-premium:hover {
-    transform: translateY(-12px);
-    box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.08);
-    border-color: var(--accent-green);
-}
-
-.outlet-accent-bar {
-    height: 6px;
-    width: 100%;
-    background: linear-gradient(to right, var(--accent-green), var(--primary-green));
-}
-
-.outlet-content {
+.outlet-card-clean {
+    background: #ffffff;
+    border: 1px solid #f1f5f9;
+    border-radius: 28px;
     padding: 35px;
-    flex-grow: 1;
+    position: relative;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
     display: flex;
     flex-direction: column;
-}
-
-.outlet-header {
-    display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    text-align: center;
 }
 
-.outlet-badge {
+.outlet-card-clean:hover {
+    border-color: var(--accent-green);
+    box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.05);
+    transform: translateY(-8px);
+}
+
+.outlet-type-tag {
+    position: absolute;
+    top: 20px;
+    right: 20px;
     font-size: 0.65rem;
     font-weight: 800;
-    background: #f1f5f9;
-    color: #64748b;
-    padding: 6px 14px;
-    border-radius: 100px;
+    color: #94a3b8;
     text-transform: uppercase;
     letter-spacing: 1px;
 }
 
-.outlet-status {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--accent-green);
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.outlet-icon-box {
+    margin-bottom: 25px;
 }
 
-.dot-online {
-    width: 8px;
-    height: 8px;
-    background: var(--accent-green);
+.location-pin-circle {
+    width: 70px;
+    height: 70px;
+    background: #f8fafc;
     border-radius: 50%;
-    box-shadow: 0 0 10px var(--accent-green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    position: relative;
+    border: 1px solid #f1f5f9;
+}
+
+.dot-pulse {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 10px;
+    height: 10px;
+    background: #10b981;
+    border-radius: 50%;
+    border: 2px solid white;
     animation: pulseAvailability 2s infinite;
 }
 
-.outlet-content h4 {
-    font-size: 1.5rem;
+.outlet-info-center {
+    margin-bottom: 30px;
+    flex-grow: 1;
+}
+
+.outlet-info-center h4 {
+    font-size: 1.4rem;
     font-weight: 800;
     color: var(--text-dark);
-    margin-bottom: 20px;
-    line-height: 1.3;
+    margin-bottom: 10px;
+    line-height: 1.2;
 }
 
-.outlet-info-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 15px;
-    margin-bottom: 12px;
-}
-
-.info-icon {
-    font-size: 1rem;
-    opacity: 0.8;
-}
-
-.outlet-info-row .loc-text,
-.outlet-info-row .contact-text {
+.loc-detail {
     font-size: 0.95rem;
     color: var(--text-gray);
-    line-height: 1.5;
-    margin: 0;
+    font-weight: 500;
 }
 
-.outlet-actions-modern {
-    margin-top: 30px;
-}
-
-.btn-map-modern {
+.outlet-footer-actions {
     width: 100%;
-    padding: 18px;
-    border-radius: 20px;
-    background: var(--surface-bg);
-    border: 1px solid var(--border-color);
-    color: var(--text-dark);
-    font-weight: 700;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: all 0.3s;
-    cursor: pointer;
+    flex-direction: column;
+    gap: 12px;
 }
 
-.btn-map-modern:hover {
+.btn-contact-mini {
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-gray);
+    padding: 8px;
+    transition: 0.3s;
+}
+
+.btn-contact-mini:hover {
+    color: var(--accent-green);
+}
+
+.btn-directions-modern {
+    width: 100%;
+    padding: 16px;
+    border-radius: 50px;
     background: var(--text-dark);
     color: white;
-    border-color: var(--text-dark);
+    border: none;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.btn-map-modern .arrow-icon {
-    font-style: normal;
-    transition: transform 0.3s;
-}
-
-.btn-map-modern:hover .arrow-icon {
-    transform: translate(3px, -3px);
+.btn-directions-modern:hover {
+    background: var(--accent-green);
+    transform: scale(1.02);
+    box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2);
 }
 
 .no-results {

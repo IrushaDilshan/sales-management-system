@@ -317,33 +317,28 @@ const Home = () => {
                     <div className="outlet-grid-premium">
                         {filteredOutlets.length > 0 ? (
                             filteredOutlets.map((outlet, idx) => (
-                                <div key={idx} className="outlet-card-premium animate-fade">
-                                    <div className="outlet-accent-bar"></div>
-                                    <div className="outlet-content">
-                                        <div className="outlet-header">
-                                            <span className="outlet-badge">{outlet.type}</span>
-                                            <div className="outlet-status">
-                                                <span className="dot-online"></span> Official Store
-                                            </div>
+                                <div key={idx} className="outlet-card-clean animate-fade">
+                                    <div className="outlet-type-tag">{outlet.type}</div>
+                                    <div className="outlet-icon-box">
+                                        <div className="location-pin-circle">
+                                            <span className="dot-pulse"></span>
+                                            📍
                                         </div>
+                                    </div>
+                                    <div className="outlet-info-center">
                                         <h4>{outlet.name}</h4>
-                                        <div className="outlet-info-row">
-                                            <span className="info-icon">📍</span>
-                                            <p className="loc-text">{outlet.loc}</p>
-                                        </div>
-                                        <div className="outlet-info-row">
-                                            <span className="info-icon">📞</span>
-                                            <p className="contact-text">{outlet.tel}</p>
-                                        </div>
-                                        <div className="outlet-actions-modern">
-                                            <button
-                                                className="btn-map-modern"
-                                                onClick={() => handleViewMap(outlet)}
-                                            >
-                                                <span>Show on Map</span>
-                                                <i className="arrow-icon">↗</i>
-                                            </button>
-                                        </div>
+                                        <p className="loc-detail">{outlet.loc}</p>
+                                    </div>
+                                    <div className="outlet-footer-actions">
+                                        <a href={`tel:${outlet.tel}`} className="btn-contact-mini">
+                                            <span>📞 {outlet.tel}</span>
+                                        </a>
+                                        <button
+                                            className="btn-directions-modern"
+                                            onClick={() => handleViewMap(outlet)}
+                                        >
+                                            Get Directions
+                                        </button>
                                     </div>
                                 </div>
                             ))
