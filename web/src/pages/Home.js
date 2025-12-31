@@ -249,12 +249,55 @@ const Home = () => {
                                     <h3>{p.name}</h3>
                                     <p>{p.desc}</p>
                                     <div className="p-card-footer-modern">
-                                        <button className="btn-outlet-modern">
+                                        <button
+                                            className="btn-outlet-modern"
+                                            onClick={() => document.getElementById('outlets').scrollIntoView({ behavior: 'smooth' })}
+                                        >
                                             <span>Locate Outlet</span>
                                             <i className="arrow-icon">→</i>
                                         </button>
                                     </div>
                                 </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* Outlet Locator Section */}
+            <section id="outlets" className="section-padding">
+                <div className="container">
+                    <div className="section-title-box">
+                        <h2 className="headline-h2">Global <span className="text-green">Outlets</span></h2>
+                        <p className="subtitle-p">Experience farm-to-table freshness at any of our official sales centers nationwide.</p>
+                    </div>
+
+                    <div className="outlet-search-box">
+                        <div className="search-pill">
+                            <input type="text" placeholder="Search your nearest city (e.g. Narahenpita, Digana...)" className="outlet-input" />
+                            <button className="btn-search-outlet">Find Nearest</button>
+                        </div>
+                    </div>
+
+                    <div className="outlet-grid-premium">
+                        {[
+                            { name: 'Narahenpita Milk Shop', loc: 'Head Office, Colombo', tel: '+94 11 250 1701', type: 'Flagship' },
+                            { name: 'Kollupitiya Farm Shop', loc: 'Colombo 03', tel: '+94 11 429 4489', type: 'Premium' },
+                            { name: 'Welisara Sale Center', loc: 'Ragama Rd, Welisara', tel: '011 429 4489', type: 'Major' },
+                            { name: 'Mahaberithenna', loc: 'Digana, Kandy', tel: '081 729 4638', type: 'Farm Center' },
+                            { name: 'Melsiripura Center', loc: 'Kurunegala District', tel: '037 729 4792', type: 'North Western' },
+                            { name: 'Weerawila Center', loc: 'Tissa Road, Weerawila', tel: '047 349 9997', type: 'Southern' }
+                        ].map((outlet, idx) => (
+                            <div key={idx} className="outlet-card-v2">
+                                <div className="outlet-details">
+                                    <span className="outlet-category">{outlet.type}</span>
+                                    <h4>{outlet.name}</h4>
+                                    <p className="loc-text">{outlet.loc}</p>
+                                    <div className="outlet-contact">
+                                        <span>📞 {outlet.tel}</span>
+                                    </div>
+                                </div>
+                                <button className="btn-view-map">View Map</button>
                             </div>
                         ))}
                     </div>
