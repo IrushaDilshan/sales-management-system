@@ -395,20 +395,20 @@
     top: -60px;
     right: -60px;
     width: 220px;
-    filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.15));
-    animation: simpleFloat 4s ease-in-out infinite;
+    clip-path: circle(50%);
+    /* Removes white square corners */
+    filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.2));
+    animation: rotateSlow 25s linear infinite;
     z-index: 5;
 }
 
-@keyframes simpleFloat {
-
-    0%,
-    100% {
-        transform: translateY(0);
+@keyframes rotateSlow {
+    from {
+        transform: rotate(0deg);
     }
 
-    50% {
-        transform: translateY(-15px);
+    to {
+        transform: rotate(360deg);
     }
 }
 
