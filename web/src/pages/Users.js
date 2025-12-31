@@ -150,69 +150,71 @@ const Users = () => {
 
     return (
         <div className="page-container">
-            <div className="page-header">
-                <div>
-                    <h1 className="page-title">Personnel Management</h1>
-                    <p className="page-subtitle">National Livestock Development Board - Human Resource & Access Governance</p>
-                </div>
-                <button className="btn-primary" onClick={() => handleOpenModal()}>
-                    <span>+</span> Onboard New Staff
-                </button>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
-                <StatCard icon="👥" label="Total Force" value={users.length} color="#6366f1" />
-                <StatCard icon="🛡️" label="Admins" value={users.filter(u => u.role === 'admin').length} color="#ef4444" />
-                <StatCard icon="📦" label="Storekeepers" value={users.filter(u => u.role === 'storekeeper').length} color="#f59e0b" />
-                <StatCard icon="💰" label="Sales Team" value={users.filter(u => u.role === 'salesman').length} color="#8b5cf6" />
-                <StatCard icon="🚚" label="Field Reps" value={users.filter(u => u.role === 'rep').length} color="#10b981" />
-            </div>
-
-            {error && <div style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', fontWeight: '600', border: '1px solid #fee2e2' }}>⚠️ {error}</div>}
-            {success && <div style={{ background: '#f0fdf4', color: '#166534', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', fontWeight: '600', border: '1px solid #dcfce7' }}>✅ {success}</div>}
-
-            <div className="registry-filter-hub animate-fade">
-                <div className="search-field-modern" style={{ maxWidth: '400px' }}>
-                    <span className="icon">🔍</span>
-                    <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Search identity..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
+            <div className="sticky-governance-panel">
+                <div className="page-header">
+                    <div>
+                        <h1 className="page-title">Personnel Management</h1>
+                        <p className="page-subtitle">National Livestock Development Board - Human Resource & Access Governance</p>
+                    </div>
+                    <button className="btn-primary" onClick={() => handleOpenModal()}>
+                        <span>+</span> Onboard New Staff
+                    </button>
                 </div>
 
-                <div className="filter-chips-wrapper" style={{ flex: 1 }}>
-                    {[
-                        { id: 'all', label: 'All Access' },
-                        { id: 'admin', label: 'Admins' },
-                        { id: 'storekeeper', label: 'Stock' },
-                        { id: 'ma', label: 'MA' },
-                        { id: 'rep', label: 'Field' },
-                        { id: 'salesman', label: 'Sales' }
-                    ].map(chip => (
-                        <div
-                            key={chip.id}
-                            className={`filter-chip ${roleFilter === chip.id ? 'active' : ''}`}
-                            onClick={() => setRoleFilter(chip.id)}
-                        >
-                            {chip.label}
-                            {chip.id !== 'all' && (
-                                <span className="count">
-                                    {users.filter(u => u.role === chip.id).length}
-                                </span>
-                            )}
-                        </div>
-                    ))}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
+                    <StatCard icon="👥" label="Total Force" value={users.length} color="#6366f1" />
+                    <StatCard icon="🛡️" label="Admins" value={users.filter(u => u.role === 'admin').length} color="#ef4444" />
+                    <StatCard icon="📦" label="Storekeepers" value={users.filter(u => u.role === 'storekeeper').length} color="#f59e0b" />
+                    <StatCard icon="💰" label="Sales Team" value={users.filter(u => u.role === 'salesman').length} color="#8b5cf6" />
+                    <StatCard icon="🚚" label="Field Reps" value={users.filter(u => u.role === 'rep').length} color="#10b981" />
                 </div>
 
-                <button
-                    className="btn-reset-modern"
-                    onClick={() => { setSearchQuery(''); setRoleFilter('all'); }}
-                >
-                    Reset
-                </button>
+                {error && <div style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', marginBottom: '1rem', fontWeight: '600', border: '1px solid #fee2e2' }}>⚠️ {error}</div>}
+                {success && <div style={{ background: '#f0fdf4', color: '#166534', padding: '1rem', borderRadius: '12px', marginBottom: '1rem', fontWeight: '600', border: '1px solid #dcfce7' }}>✅ {success}</div>}
+
+                <div className="registry-filter-hub animate-fade" style={{ marginBottom: 0 }}>
+                    <div className="search-field-modern" style={{ maxWidth: '400px' }}>
+                        <span className="icon">🔍</span>
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Search identity..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="filter-chips-wrapper" style={{ flex: 1 }}>
+                        {[
+                            { id: 'all', label: 'All Access' },
+                            { id: 'admin', label: 'Admins' },
+                            { id: 'storekeeper', label: 'Stock' },
+                            { id: 'ma', label: 'MA' },
+                            { id: 'rep', label: 'Field' },
+                            { id: 'salesman', label: 'Sales' }
+                        ].map(chip => (
+                            <div
+                                key={chip.id}
+                                className={`filter-chip ${roleFilter === chip.id ? 'active' : ''}`}
+                                onClick={() => setRoleFilter(chip.id)}
+                            >
+                                {chip.label}
+                                {chip.id !== 'all' && (
+                                    <span className="count">
+                                        {users.filter(u => u.role === chip.id).length}
+                                    </span>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    <button
+                        className="btn-reset-modern"
+                        onClick={() => { setSearchQuery(''); setRoleFilter('all'); }}
+                    >
+                        Reset
+                    </button>
+                </div>
             </div>
 
             {loading ? (

@@ -553,3 +553,23 @@
     background: #6366f1;
     color: white;
 }
+
+/* Sticky Governance UI */
+.sticky-governance-panel {
+    position: sticky;
+    top: -2.5rem;
+    /* Offsets container padding */
+    z-index: 1000;
+    background: #f5f7fa;
+    /* Matches container background */
+    padding: 2.5rem 0 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+/* Sticky active state (optional class if we use JS to detect scroll) */
+.sticky-governance-panel.scrolled {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    border-bottom-color: #e2e8f0;
+}
