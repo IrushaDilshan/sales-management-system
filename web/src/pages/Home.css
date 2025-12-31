@@ -392,19 +392,23 @@
 
 .badge-float {
     position: absolute;
-    top: -40px;
-    right: -40px;
-    width: 200px;
-    animation: rotateSlow 20s linear infinite;
+    top: -60px;
+    right: -60px;
+    width: 220px;
+    filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.15));
+    animation: simpleFloat 4s ease-in-out infinite;
+    z-index: 5;
 }
 
-@keyframes rotateSlow {
-    from {
-        transform: rotate(0deg);
+@keyframes simpleFloat {
+
+    0%,
+    100% {
+        transform: translateY(0);
     }
 
-    to {
-        transform: rotate(360deg);
+    50% {
+        transform: translateY(-15px);
     }
 }
 
