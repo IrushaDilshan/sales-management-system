@@ -201,16 +201,23 @@ const Home = () => {
                         <p className="subtitle-p">A definitive collection of NLDB's premium output, refined for excellence.</p>
                     </div>
 
-                    <div className="category-tabs">
-                        {['dairy', 'meat', 'agro'].map(cat => (
-                            <button
-                                key={cat}
-                                onClick={() => setActiveCategory(cat)}
-                                className={`tab-btn ${activeCategory === cat ? 'active' : ''}`}
-                            >
-                                {cat === 'dairy' ? 'Milk & Dairy' : cat === 'meat' ? 'Poultry & Meat' : 'Agro Products'}
-                            </button>
-                        ))}
+                    <div className="text-center">
+                        <div className="category-tabs">
+                            {[
+                                { id: 'dairy', label: 'Milk & Dairy', icon: '🥛' },
+                                { id: 'meat', label: 'Poultry & Meat', icon: '🥩' },
+                                { id: 'agro', label: 'Agro Products', icon: '🥥' }
+                            ].map(cat => (
+                                <button
+                                    key={cat.id}
+                                    onClick={() => setActiveCategory(cat.id)}
+                                    className={`tab-btn ${activeCategory === cat.id ? 'active' : ''}`}
+                                >
+                                    <span style={{ marginRight: '8px' }}>{cat.icon}</span>
+                                    {cat.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     <div className="product-showcase-grid">
@@ -218,13 +225,19 @@ const Home = () => {
                             <div key={i} className="product-card-premium animate-fade" style={{ animationDelay: `${i * 0.1}s` }}>
                                 <div className="p-card-img">
                                     <img src={p.img} alt={p.name} />
+                                    <div className="p-card-availability">
+                                        <span className="dot-live"></span> Available in Outlets
+                                    </div>
                                 </div>
                                 <div className="p-card-info">
-                                    <span className="p-category">{activeCategory}</span>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span className="p-category">{activeCategory}</span>
+                                        <span className="p-tag">{p.tag}</span>
+                                    </div>
                                     <h3>{p.name}</h3>
                                     <p>{p.desc}</p>
-                                    <div className="p-card-footer">
-                                        <span className="p-tag">{p.tag}</span>
+                                    <div className="p-card-footer" style={{ marginTop: 'auto', paddingTop: '20px' }}>
+                                        <button className="btn-outlet">View Outlets</button>
                                     </div>
                                 </div>
                             </div>
