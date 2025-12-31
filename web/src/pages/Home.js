@@ -405,38 +405,62 @@ const Home = () => {
                 </div>
             </section>
 
-            {/* Official Footer v2 */}
+            {/* Official Footer - Modernized */}
             <footer className="footer-modern-v2">
                 <div className="container">
-                    <div className="footer-top-grid">
-                        <div className="footer-brand">
-                            <h2>NLDB</h2>
-                            <p>The National Livestock Development Board of Sri Lanka. Empowering the nation since 1973.</p>
+                    <div className="footer-main-grid">
+                        <div className="footer-brand-module">
+                            <div className="f-logo-trilingual">
+                                <span className="si">ජාතික පශු සම්පත් සංවර්ධන මණ්ඩලය</span>
+                                <span className="ta">தேசிய கால்நடை அபிவிருத்திச் சபை</span>
+                                <span className="en">National Livestock Development Board</span>
+                            </div>
+                            <p className="f-description">
+                                A premier state organization dedicated to the elevation of the national livestock sector through scientific breeding and sustainable farming since 1973.
+                            </p>
+                            <div className="f-social-integrated">
+                                <a href="#" className="s-link">Facebook</a>
+                                <a href="#" className="s-link">Instagram</a>
+                                <a href="#" className="s-link">LinkedIn</a>
+                            </div>
                         </div>
-                        <div className="footer-links">
-                            <h4>The Registry</h4>
-                            <a href="#products">Dairy Catalog</a>
-                            <a href="#products">Meat Catalog</a>
-                            <a href="#ops">Agro Exports</a>
-                        </div>
-                        <div className="footer-links">
-                            <h4>Corporate</h4>
-                            <a href="#about">Our Mission</a>
-                            <a href="#ops">Operations</a>
-                            <a href="#">Official Tenders</a>
-                            <a href="#">Annual Reports</a>
-                        </div>
-                        <div className="footer-links">
-                            <h4>Portal</h4>
-                            <Link to="/login">Employee Login</Link>
-                            <Link to="/login">Manager Access</Link>
-                            <Link to="/login">Storekeeping</Link>
+
+                        <div className="footer-nav-hub">
+                            <div className="f-nav-group">
+                                <h5>The Registry</h5>
+                                <ul>
+                                    <li><a href="#products">Dairy Catalog</a></li>
+                                    <li><a href="#products">Meat Catalog</a></li>
+                                    <li><a href="#products">Agro Exports</a></li>
+                                </ul>
+                            </div>
+                            <div className="f-nav-group">
+                                <h5>Corporate</h5>
+                                <ul>
+                                    <li><a href="#about">Our Mission</a></li>
+                                    <li><a href="#ops">Operations</a></li>
+                                    <li><a href="#">Official Tenders</a></li>
+                                    <li><a href="#">Annual Reports</a></li>
+                                </ul>
+                            </div>
+                            <div className="f-nav-group">
+                                <h5>Portal</h5>
+                                <ul>
+                                    <li><Link to="/login">Employee Login</Link></li>
+                                    <li><Link to="/login">Manager Access</Link></li>
+                                    <li><Link to="/login">Storekeeping</Link></li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
-                    <div className="footer-bottom-clean flex-sb" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                        <span>© 2025 National Livestock Development Board. All Rights Reserved.</span>
-                        <div className="social-links-minimal">
-                            <span>FACEBOOK</span> • <span>INSTAGRAM</span> • <span>LINKEDIN</span>
+
+                    <div className="footer-legal-bar">
+                        <div className="legal-flex">
+                            <p>© 2025 National Livestock Development Board. All Rights Reserved.</p>
+                            <div className="legal-links">
+                                <a href="#">Privacy Policy</a>
+                                <a href="#">Terms of Service</a>
+                            </div>
                         </div>
                     </div>
                 </div>
