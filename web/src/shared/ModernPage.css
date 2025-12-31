@@ -122,10 +122,11 @@
 /* Modern Table */
 .table-container {
     background: white;
-    border-radius: 16px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-    overflow: hidden;
-    margin-top: 2rem;
+    border-radius: 20px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+    overflow: visible;
+    /* Required for sticky header on page scroll */
+    margin-top: 1rem;
 }
 
 .data-table {
@@ -135,19 +136,28 @@
 
 .data-table thead th {
     position: sticky;
-    top: var(--governance-height, 350px);
-    /* Height of the sticky panel above it */
-    z-index: 999;
-    background: #ffffff;
+    top: 236px;
+    /* Offset for sticky panel height */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    z-index: 100;
     padding: 1.25rem 1.75rem;
     text-align: left;
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     font-weight: 800;
-    color: #64748b;
+    color: white;
+    /* Changed to white for better contrast on purple */
     text-transform: uppercase;
     letter-spacing: 1.5px;
-    border-bottom: 2px solid #f1f5f9;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.data-table thead th:first-child {
+    border-top-left-radius: 12px;
+}
+
+.data-table thead th:last-child {
+    border-top-right-radius: 12px;
 }
 
 .data-table tbody tr {
