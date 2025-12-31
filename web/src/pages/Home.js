@@ -281,12 +281,21 @@ const Home = () => {
 
                     <div className="outlet-grid-premium">
                         {[
-                            { name: 'Narahenpita Milk Shop', loc: 'Head Office, Colombo', tel: '+94 11 250 1701', type: 'Flagship' },
-                            { name: 'Kollupitiya Farm Shop', loc: 'Colombo 03', tel: '+94 11 429 4489', type: 'Premium' },
-                            { name: 'Welisara Sale Center', loc: 'Ragama Rd, Welisara', tel: '011 429 4489', type: 'Major' },
-                            { name: 'Mahaberithenna', loc: 'Digana, Kandy', tel: '081 729 4638', type: 'Farm Center' },
-                            { name: 'Melsiripura Center', loc: 'Kurunegala District', tel: '037 729 4792', type: 'North Western' },
-                            { name: 'Weerawila Center', loc: 'Tissa Road, Weerawila', tel: '047 349 9997', type: 'Southern' }
+                            { name: 'Melsiripura Sale Center', loc: 'Melsiripura', tel: '0377 294 792', type: 'Major Center' },
+                            { name: 'Mahaberithenna Sale Center', loc: 'Digana', tel: '0817 294 638', type: 'Farm Outlet' },
+                            { name: 'Rosita Sale Center', loc: 'Kotagala', tel: '0515 675 404', type: 'Upcountry' },
+                            { name: 'Koulwewa Sale Center', loc: 'Peragaswela, Kuliyapitiya', tel: '0377 294 112', type: 'Regional' },
+                            { name: 'Narangalle Sale Center', loc: 'Kithalawa', tel: '0373 157 400', type: 'North Western' },
+                            { name: 'Nikawaratiya Sale Center', loc: 'Nikawaratiya', tel: '0372 260 288', type: 'Regional' },
+                            { name: 'Siringapatha Sale Center', loc: 'Badalgama', tel: '0312 269 204', type: 'Western' },
+                            { name: 'Martin Sale Center', loc: 'Bangadeniya', tel: '0327 294 584', type: 'Regional' },
+                            { name: 'Weerawila Sale Center', loc: 'Thissamaharamaya', tel: '0473 499 997', type: 'Southern' },
+                            { name: 'Welisara Sale Center', loc: 'Alpitiwala, Ragama', tel: '0114 294 489', type: 'Major' },
+                            { name: 'Beligama Sale Center', loc: 'Beligamuwa', tel: '0773 782 136', type: 'Regional' },
+                            { name: 'Haragama Sale Center', loc: 'Haragama, Gurudeniya', tel: '0817 294 061', type: 'Regional' },
+                            { name: 'Karandagolla Sale Center', loc: 'Kundasale', tel: '081 729 42 98', type: 'Regional' },
+                            { name: 'Apeksha Hospital Center', loc: 'Maharagama', tel: '0114 294 489', type: 'Special' },
+                            { name: 'Maawaththa Farm Center', loc: 'Maawaththa', tel: '031 225 5232', type: 'Farm Outlet' }
                         ].map((outlet, idx) => (
                             <div key={idx} className="outlet-card-v2">
                                 <div className="outlet-details">
