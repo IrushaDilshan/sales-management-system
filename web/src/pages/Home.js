@@ -294,8 +294,8 @@ const Home = () => {
             </section>
 
             {/* Outlet Locator Section */}
-            <section id="outlets" className="section-padding">
-                <div className="container">
+            <section id="outlets" className="section-padding-fluid">
+                <div className="container-fluid">
                     <div className="section-title-box">
                         <h2 className="headline-h2">Global <span className="text-green">Outlets</span></h2>
                         <p className="subtitle-p">Experience farm-to-table freshness at any of our official sales centers nationwide.</p>
