@@ -136,9 +136,10 @@
 
 .data-table thead th {
     position: sticky;
-    top: calc(var(--sticky-offset, 250px) + 2px);
+    top: var(--sticky-offset, 250px);
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    z-index: 100;
+    z-index: 1001;
+    /* Higher than governance panel to stay on top if needed, but matched below */
     padding: 1.25rem 1.75rem;
     text-align: left;
     font-size: 0.85rem;
@@ -568,14 +569,13 @@
 /* Sticky Governance UI */
 .sticky-governance-panel {
     position: sticky;
-    top: -2.5rem;
-    /* Offsets container padding */
+    top: 0;
     z-index: 1000;
     background: #f5f7fa;
-    /* Matches container background */
-    padding: 2.5rem 0 1rem;
+    padding-top: 2.5rem;
+    padding-bottom: 1rem;
     margin-bottom: 1rem;
-    border-bottom: 2px solid transparent;
+    border-bottom: 1px solid #e2e8f0;
     transition: all 0.3s ease;
 }
 
