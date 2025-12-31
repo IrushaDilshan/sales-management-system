@@ -81,14 +81,45 @@
 }
 
 .trilingual-titles {
-    font-size: 0.65rem;
-    font-weight: 600;
-    color: var(--text-gray);
-    border-left: 2px solid var(--accent-green);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    border-left: 3px solid var(--accent-green);
     margin-left: 20px;
     padding-left: 20px;
     display: flex;
     flex-direction: column;
+    line-height: 1.2;
+}
+
+.trilingual-titles .sinhala {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 1.1rem;
+}
+
+.trilingual-titles .english {
+    font-weight: 800;
+    font-size: 1.2rem;
+    color: var(--text-dark);
+}
+
+.trilingual-titles .tamil {
+    font-size: 1rem;
+    opacity: 0.8;
+}
+
+.logo-main {
+    font-family: 'Outfit', sans-serif;
+    font-size: 2.8rem;
+    font-weight: 900;
+    letter-spacing: -2px;
+    color: #cc6600;
+    /* Matching the orange in the image */
+    line-height: 1;
+}
+
+.logo-main .n-accent {
+    color: #cc6600;
 }
 
 .branding {

@@ -59,8 +59,9 @@ const Home = () => {
                             <span className="n-accent">N</span>LDB
                         </div>
                         <div className="trilingual-titles">
-                            <span>ජාතික පශු සම්පත් මණ්ඩලය</span>
-                            <span>National Livestock Development Board</span>
+                            <span className="sinhala">ජාතික පශු සම්පත් සංවර්ධන මණ්ඩලය</span>
+                            <span className="english">National Livestock Development Board</span>
+                            <span className="tamil">தேசிய பண்ணை விலங்கு அபிவிருத்தி சபை</span>
                         </div>
                     </div>
 
