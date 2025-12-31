@@ -7,7 +7,7 @@ import premiumHeroBg from '../assets/nldb_hero_premium.png';
 import labResearch from '../assets/nldb_lab.png';
 import logisticsImg from '../assets/nldb_logistics.png';
 import qualityBadge from '../assets/nldb_quality_badge.png';
-import organizationHq from '../assets/nldb_organization_hq.png';
+import organizationHq from '../assets/nldb_organization_hq_v2.png';
 
 const Home = () => {
     const [isScrolled, setIsScrolled] = useState(false);
