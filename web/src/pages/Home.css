@@ -1037,3 +1037,38 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* Corporate Banner Section */
+.corporate-banner-section {
+    padding: 60px 0;
+    background: #f8fafc;
+}
+
+.banner-wrapper {
+    width: 100%;
+    border-radius: 32px;
+    overflow: hidden;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.12);
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.banner-wrapper:hover {
+    transform: translateY(-10px);
+}
+
+.full-width-banner {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+}
+
+@media (max-width: 768px) {
+    .corporate-banner-section {
+        padding: 40px 0;
+    }
+
+    .banner-wrapper {
+        border-radius: 16px;
+    }
+}

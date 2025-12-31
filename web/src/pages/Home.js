@@ -8,6 +8,7 @@ import labResearch from '../assets/nldb_lab.png';
 import logisticsImg from '../assets/nldb_logistics.png';
 import qualityBadge from '../assets/nldb_quality_badge.png';
 import organizationHq from '../assets/nldb_organization_hq_v2.png';
+import nldbCorporateBanner from '../assets/nldb-corporate-banner.png';
 
 const Home = () => {
     const [isScrolled, setIsScrolled] = useState(false);
@@ -349,6 +350,15 @@ const Home = () => {
                                 <p>No outlets found matching "{searchQuery}". Please check the spelling or try a different city.</p>
                             </div>
                         )}
+                    </div>
+                </div>
+            </section>
+
+            {/* Corporate Showcase Banner */}
+            <section className="corporate-banner-section">
+                <div className="container-fluid">
+                    <div className="banner-wrapper animate-fade">
+                        <img src={nldbCorporateBanner} alt="NLDB Corporate Journey" className="full-width-banner" />
                     </div>
                 </div>
             </section>
