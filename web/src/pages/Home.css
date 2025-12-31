@@ -1063,6 +1063,26 @@
     object-fit: cover;
 }
 
+.outlet-card-banner {
+    width: 100%;
+    height: 120px;
+    margin-top: 20px;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.outlet-card-banner img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.9;
+    transition: opacity 0.3s;
+}
+
+.outlet-card-clean:hover .outlet-card-banner img {
+    opacity: 1;
+}
+
 @media (max-width: 768px) {
     .corporate-banner-section {
         padding: 40px 0;

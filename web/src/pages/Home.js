@@ -343,6 +343,9 @@ const Home = () => {
                                             Get Directions
                                         </button>
                                     </div>
+                                    <div className="outlet-card-banner">
+                                        <img src={nldbCorporateBanner} alt="NLDB Logo" />
+                                    </div>
                                 </div>
                             ))
                         ) : (
@@ -350,15 +353,6 @@ const Home = () => {
                                 <p>No outlets found matching "{searchQuery}". Please check the spelling or try a different city.</p>
                             </div>
                         )}
-                    </div>
-                </div>
-            </section>
-
-            {/* Corporate Showcase Banner */}
-            <section className="corporate-banner-section">
-                <div className="container-fluid">
-                    <div className="banner-wrapper animate-fade">
-                        <img src={nldbCorporateBanner} alt="NLDB Corporate Journey" className="full-width-banner" />
                     </div>
                 </div>
             </section>
@@ -448,7 +442,7 @@ const Home = () => {
                     </div>
                 </div>
             </footer>
-        </div>
+        </div >
     );
 };
 
