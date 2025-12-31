@@ -136,10 +136,10 @@
 
 .data-table thead th {
     position: sticky;
-    top: 215px;
+    top: 104px;
+    /* Dock right under the sticky hub */
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     z-index: 1001;
-    /* Higher than governance panel to stay on top if needed, but matched below */
     padding: 1.25rem 1.75rem;
     text-align: left;
     font-size: 0.85rem;
@@ -566,17 +566,29 @@
     color: white;
 }
 
-/* Sticky Governance UI */
-.sticky-governance-panel {
+/* Sticky Hub for Search & Filters */
+.sticky-registry-hub {
     position: sticky;
     top: 0;
-    z-index: 1000;
+    z-index: 1002;
+    background: #f5f7fa;
+    padding: 1.5rem 0;
+    margin-bottom: 0 !important;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+/* Base style for the hub in non-sticky state if needed */
+.registry-filter-hub {
+    transition: all 0.3s ease;
+}
+
+.sticky-governance-panel {
+    /* Kept for potential use in other pages, but unpinned here */
     background: #f5f7fa;
     padding-top: 2.5rem;
     padding-bottom: 1rem;
     margin-bottom: 1rem;
     border-bottom: 1px solid #e2e8f0;
-    transition: all 0.3s ease;
 }
 
 /* Sticky active state (optional class if we use JS to detect scroll) */

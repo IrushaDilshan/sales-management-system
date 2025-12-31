@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../shared/supabaseClient';
 import '../shared/ModernPage.css';
 
@@ -149,183 +149,185 @@ const Users = () => {
     );
 
     return (
-        <div className="page-container" style={{ '--sticky-offset': `${stickyOffset}px` }}>
-            <div className="sticky-governance-panel" style={{ top: 0 }}>
-                <div className="page-header">
-                    <div>
-                        <h1 className="page-title">Personnel Management</h1>
-                        <p className="page-subtitle">National Livestock Development Board - Human Resource & Access Governance</p>
-                    </div>
-                    <button className="btn-primary" onClick={() => handleOpenModal()}>
-                        <span>+</span> Onboard New Staff
-                    </button>
+        <div className="page-container">
+            <div className="page-header">
+                <div>
+                    <h1 className="page-title">Personnel Management</h1>
+                    <p className="page-subtitle">National Livestock Development Board - Human Resource & Access Governance</p>
                 </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
-                    <StatCard icon="👥" label="Total Force" value={users.length} color="#6366f1" />
-                    <StatCard icon="🛡️" label="Admins" value={users.filter(u => u.role === 'admin').length} color="#ef4444" />
-                    <StatCard icon="📦" label="Storekeepers" value={users.filter(u => u.role === 'storekeeper').length} color="#f59e0b" />
-                    <StatCard icon="💰" label="Sales Team" value={users.filter(u => u.role === 'salesman').length} color="#8b5cf6" />
-                    <StatCard icon="🚚" label="Field Reps" value={users.filter(u => u.role === 'rep').length} color="#10b981" />
-                </div>
-
-                {error && <div style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', marginBottom: '1rem', fontWeight: '600', border: '1px solid #fee2e2' }}>⚠️ {error}</div>}
-                {success && <div style={{ background: '#f0fdf4', color: '#166534', padding: '1rem', borderRadius: '12px', marginBottom: '1rem', fontWeight: '600', border: '1px solid #dcfce7' }}>✅ {success}</div>}
-
-                <div className="registry-filter-hub animate-fade" style={{ marginBottom: 0 }}>
-                    <div className="search-field-modern" style={{ maxWidth: '400px' }}>
-                        <span className="icon">🔍</span>
-                        <input
-                            type="text"
-                            className="form-control"
-                            placeholder="Search identity..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-
-                    <div className="filter-chips-wrapper" style={{ flex: 1 }}>
-                        {[
-                            { id: 'all', label: 'All Access' },
-                            { id: 'admin', label: 'Admins' },
-                            { id: 'storekeeper', label: 'Stock' },
-                            { id: 'ma', label: 'MA' },
-                            { id: 'rep', label: 'Field' },
-                            { id: 'salesman', label: 'Sales' }
-                        ].map(chip => (
-                            <div
-                                key={chip.id}
-                                className={`filter-chip ${roleFilter === chip.id ? 'active' : ''}`}
-                                onClick={() => setRoleFilter(chip.id)}
-                            >
-                                {chip.label}
-                                {chip.id !== 'all' && (
-                                    <span className="count">
-                                        {users.filter(u => u.role === chip.id).length}
-                                    </span>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-
-                    <button
-                        className="btn-reset-modern"
-                        onClick={() => { setSearchQuery(''); setRoleFilter('all'); }}
-                    >
-                        Reset
-                    </button>
-                </div>
+                <button className="btn-primary" onClick={() => handleOpenModal()}>
+                    <span>+</span> Onboard New Staff
+                </button>
             </div>
 
-            {loading ? (
-                <div style={{ textAlign: 'center', padding: '5rem' }}>
-                    <div className="loading-spinner" style={{ margin: '0 auto', borderTopColor: '#6366f1' }}></div>
-                    <p style={{ marginTop: '1rem', color: '#64748b' }}>Accessing personnel database...</p>
-                </div>
-            ) : (
-                <div className="table-container">
-                    {filteredUsers.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '5rem' }}>
-                            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👤</div>
-                            <h3 style={{ color: '#1e293b' }}>No personnel discovered</h3>
-                            <p style={{ color: '#64748b' }}>Try broadening your search parameters.</p>
-                        </div>
-                    ) : (
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Personnel Identity</th>
-                                    <th>Access Classification</th>
-                                    <th>Temporal Activity</th>
-                                    <th className="text-right">Access Governance</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredUsers.map(user => (
-                                    <tr key={user.id}>
-                                        <td>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#6366f110', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800' }}>
-                                                    {user.name?.charAt(0)}
-                                                </div>
-                                                <div style={{ fontWeight: '800', color: '#1e293b' }}>{user.name}</div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span style={{
-                                                padding: '4px 12px',
-                                                borderRadius: '20px',
-                                                fontSize: '0.7rem',
-                                                fontWeight: '800',
-                                                textTransform: 'uppercase',
-                                                background: user.role === 'admin' ? '#fee2e2' : user.role === 'rep' ? '#dcfce7' : '#f1f5f9',
-                                                color: user.role === 'admin' ? '#ef4444' : user.role === 'rep' ? '#166534' : '#64748b',
-                                                border: `1px solid ${user.role === 'admin' ? '#fecaca' : user.role === 'rep' ? '#bbf7d0' : '#e2e8f0'}`
-                                            }}>{user.role}</span>
-                                        </td>
-                                        <td>
-                                            <div style={{ fontWeight: '600', color: '#64748b' }}>{user.last_login ? new Date(user.last_login).toLocaleDateString() : ' Archival Record'}</div>
-                                            <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{user.last_login ? new Date(user.last_login).toLocaleTimeString() : 'No recent login detected'}</div>
-                                        </td>
-                                        <td style={{ textAlign: 'right' }}>
-                                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                                                <button className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem' }} onClick={() => handleOpenModal(user)}>Edit Core</button>
-                                                <button className="btn-cancel" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', color: '#ef4444' }} onClick={() => handleDeleteUser(user.id)}>Revoke Access</button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
-                </div>
-            )}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
+                <StatCard icon="👥" label="Total Force" value={users.length} color="#6366f1" />
+                <StatCard icon="🛡️" label="Admins" value={users.filter(u => u.role === 'admin').length} color="#ef4444" />
+                <StatCard icon="📦" label="Storekeepers" value={users.filter(u => u.role === 'storekeeper').length} color="#f59e0b" />
+                <StatCard icon="💰" label="Sales Team" value={users.filter(u => u.role === 'salesman').length} color="#8b5cf6" />
+                <StatCard icon="🚚" label="Field Reps" value={users.filter(u => u.role === 'rep').length} color="#10b981" />
+            </div>
 
-            {isModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-content" style={{ maxWidth: '550px', borderRadius: '24px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                            <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '900' }}>{currentUser ? 'Modify Personnel Access' : 'Initialize Staff Onboarding'}</h2>
-                            <button onClick={handleCloseModal} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8' }}>×</button>
-                        </div>
-                        <form onSubmit={handleSubmit}>
-                            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                                <label className="form-label">Full Legal Name *</label>
-                                <input type="text" className="form-control" name="name" value={formData.name} onChange={handleInputChange} required placeholder="NLDB Employee Full Name" />
-                            </div>
-                            <div className="form-group" style={{ marginBottom: '2rem' }}>
-                                <label className="form-label">Operations Role Mapping *</label>
-                                <div className="role-selector-grid">
-                                    {[
-                                        { id: 'admin', label: 'Admin', icon: '🛡️', desc: 'Full Access' },
-                                        { id: 'storekeeper', label: 'Stock', icon: '📦', desc: 'Warehouse' },
-                                        { id: 'ma', label: 'MA', icon: '📝', desc: 'Admin Asst' },
-                                        { id: 'rep', label: 'Field', icon: '🚚', desc: 'Routes' },
-                                        { id: 'salesman', label: 'Sales', icon: '💰', desc: 'POS System' }
-                                    ].map(role => (
-                                        <div
-                                            key={role.id}
-                                            className={`role-option-card ${formData.role === role.id ? 'selected' : ''}`}
-                                            onClick={() => setFormData(prev => ({ ...prev, role: role.id }))}
-                                        >
-                                            <span className="role-icon-lg">{role.icon}</span>
-                                            <div>
-                                                <div className="role-label-sm">{role.label}</div>
-                                                <div className="role-desc-xs">{role.desc}</div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                            <div style={{ display: 'flex', gap: '1rem' }}>
-                                <button type="button" className="btn-cancel" style={{ flex: 1 }} onClick={handleCloseModal}>Abort</button>
-                                <button type="submit" className="btn-primary" style={{ flex: 2 }}>{currentUser ? 'Update Governance' : 'Authorize Entry'}</button>
-                            </div>
-                        </form>
-                    </div>
+            {error && <div style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', marginBottom: '1rem', fontWeight: '600', border: '1px solid #fee2e2' }}>⚠️ {error}</div>}
+            {success && <div style={{ background: '#f0fdf4', color: '#166534', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', fontWeight: '600', border: '1px solid #dcfce7' }}>✅ {success}</div>}
+
+            <div className="registry-filter-hub sticky-registry-hub animate-fade">
+                <div className="search-field-modern" style={{ maxWidth: '400px' }}>
+                    <span className="icon">🔍</span>
+                    <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Search identity..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
                 </div>
-            )}
-        </div>
+
+                <div className="filter-chips-wrapper" style={{ flex: 1 }}>
+                    {[
+                        { id: 'all', label: 'All Access' },
+                        { id: 'admin', label: 'Admins' },
+                        { id: 'storekeeper', label: 'Stock' },
+                        { id: 'ma', label: 'MA' },
+                        { id: 'rep', label: 'Field' },
+                        { id: 'salesman', label: 'Sales' }
+                    ].map(chip => (
+                        <div
+                            key={chip.id}
+                            className={`filter-chip ${roleFilter === chip.id ? 'active' : ''}`}
+                            onClick={() => setRoleFilter(chip.id)}
+                        >
+                            {chip.label}
+                            {chip.id !== 'all' && (
+                                <span className="count">
+                                    {users.filter(u => u.role === chip.id).length}
+                                </span>
+                            )}
+                        </div>
+                    ))}
+                </div>
+
+                <button
+                    className="btn-reset-modern"
+                    onClick={() => { setSearchQuery(''); setRoleFilter('all'); }}
+                >
+                    Reset
+                </button>
+            </div>
+
+            {
+                loading ? (
+                    <div style={{ textAlign: 'center', padding: '5rem' }}>
+                        <div className="loading-spinner" style={{ margin: '0 auto', borderTopColor: '#6366f1' }}></div>
+                        <p style={{ marginTop: '1rem', color: '#64748b' }}>Accessing personnel database...</p>
+                    </div>
+                ) : (
+                    <div className="table-container">
+                        {filteredUsers.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '5rem' }}>
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👤</div>
+                                <h3 style={{ color: '#1e293b' }}>No personnel discovered</h3>
+                                <p style={{ color: '#64748b' }}>Try broadening your search parameters.</p>
+                            </div>
+                        ) : (
+                            <table className="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Personnel Identity</th>
+                                        <th>Access Classification</th>
+                                        <th>Temporal Activity</th>
+                                        <th className="text-right">Access Governance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredUsers.map(user => (
+                                        <tr key={user.id}>
+                                            <td>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#6366f110', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800' }}>
+                                                        {user.name?.charAt(0)}
+                                                    </div>
+                                                    <div style={{ fontWeight: '800', color: '#1e293b' }}>{user.name}</div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span style={{
+                                                    padding: '4px 12px',
+                                                    borderRadius: '20px',
+                                                    fontSize: '0.7rem',
+                                                    fontWeight: '800',
+                                                    textTransform: 'uppercase',
+                                                    background: user.role === 'admin' ? '#fee2e2' : user.role === 'rep' ? '#dcfce7' : '#f1f5f9',
+                                                    color: user.role === 'admin' ? '#ef4444' : user.role === 'rep' ? '#166534' : '#64748b',
+                                                    border: `1px solid ${user.role === 'admin' ? '#fecaca' : user.role === 'rep' ? '#bbf7d0' : '#e2e8f0'}`
+                                                }}>{user.role}</span>
+                                            </td>
+                                            <td>
+                                                <div style={{ fontWeight: '600', color: '#64748b' }}>{user.last_login ? new Date(user.last_login).toLocaleDateString() : ' Archival Record'}</div>
+                                                <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{user.last_login ? new Date(user.last_login).toLocaleTimeString() : 'No recent login detected'}</div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                                    <button className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem' }} onClick={() => handleOpenModal(user)}>Edit Core</button>
+                                                    <button className="btn-cancel" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', color: '#ef4444' }} onClick={() => handleDeleteUser(user.id)}>Revoke Access</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                )
+            }
+
+            {
+                isModalOpen && (
+                    <div className="modal-overlay">
+                        <div className="modal-content" style={{ maxWidth: '550px', borderRadius: '24px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                                <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '900' }}>{currentUser ? 'Modify Personnel Access' : 'Initialize Staff Onboarding'}</h2>
+                                <button onClick={handleCloseModal} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8' }}>×</button>
+                            </div>
+                            <form onSubmit={handleSubmit}>
+                                <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                                    <label className="form-label">Full Legal Name *</label>
+                                    <input type="text" className="form-control" name="name" value={formData.name} onChange={handleInputChange} required placeholder="NLDB Employee Full Name" />
+                                </div>
+                                <div className="form-group" style={{ marginBottom: '2rem' }}>
+                                    <label className="form-label">Operations Role Mapping *</label>
+                                    <div className="role-selector-grid">
+                                        {[
+                                            { id: 'admin', label: 'Admin', icon: '🛡️', desc: 'Full Access' },
+                                            { id: 'storekeeper', label: 'Stock', icon: '📦', desc: 'Warehouse' },
+                                            { id: 'ma', label: 'MA', icon: '📝', desc: 'Admin Asst' },
+                                            { id: 'rep', label: 'Field', icon: '🚚', desc: 'Routes' },
+                                            { id: 'salesman', label: 'Sales', icon: '💰', desc: 'POS System' }
+                                        ].map(role => (
+                                            <div
+                                                key={role.id}
+                                                className={`role-option-card ${formData.role === role.id ? 'selected' : ''}`}
+                                                onClick={() => setFormData(prev => ({ ...prev, role: role.id }))}
+                                            >
+                                                <span className="role-icon-lg">{role.icon}</span>
+                                                <div>
+                                                    <div className="role-label-sm">{role.label}</div>
+                                                    <div className="role-desc-xs">{role.desc}</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '1rem' }}>
+                                    <button type="button" className="btn-cancel" style={{ flex: 1 }} onClick={handleCloseModal}>Abort</button>
+                                    <button type="submit" className="btn-primary" style={{ flex: 2 }}>{currentUser ? 'Update Governance' : 'Authorize Entry'}</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )
+            }
+        </div >
     );
 };
 
