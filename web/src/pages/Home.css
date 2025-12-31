@@ -1063,27 +1063,112 @@
     object-fit: cover;
 }
 
-.outlet-card-banner {
-    width: 100%;
-    height: 120px;
-    margin-top: 20px;
-    border-radius: 16px;
-    overflow: hidden;
+/* Immersive Outlets Section */
+.outlets-immersive-bg {
+    position: relative;
+    background-attachment: fixed;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    padding: 120px 0;
 }
 
-.outlet-card-banner img {
-    width: 100%;
+.bg-overlay-dark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.6));
+    z-index: 1;
+}
+
+.relative-z {
+    position: relative;
+    z-index: 2;
+}
+
+.text-white {
+    color: #fff !important;
+}
+
+.text-white-op {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.text-green-bright {
+    color: #10b981 !important;
+}
+
+.glass-search {
+    background: rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.glass-search input {
+    color: white !important;
+}
+
+.glass-search input::placeholder {
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.outlet-card-glass {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(30px) saturate(200%);
+    -webkit-backdrop-filter: blur(30px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 32px;
+    padding: 40px;
+    text-align: center;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    color: white;
     height: 100%;
-    object-fit: cover;
-    opacity: 0.9;
-    transition: opacity 0.3s;
 }
 
-.outlet-card-clean:hover .outlet-card-banner img {
-    opacity: 1;
+.outlet-card-glass:hover {
+    transform: translateY(-15px) scale(1.02);
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 50px 100px rgba(0, 0, 0, 0.5);
+}
+
+.outlet-card-glass h4 {
+    color: white;
+    font-size: 1.4rem;
+    margin-bottom: 8px;
+}
+
+.outlet-card-glass .loc-detail {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.btn-contact-mini {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white !important;
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-weight: 700;
+    transition: all 0.3s;
+}
+
+.btn-contact-mini:hover {
+    background: white;
+    color: #0f172a !important;
+}
+
+.outlet-card-banner {
+    display: none;
 }
 
 @media (max-width: 768px) {
+    .outlets-immersive-bg {
+        padding: 60px 0;
+        background-attachment: scroll;
+    }
+
     .corporate-banner-section {
         padding: 40px 0;
     }

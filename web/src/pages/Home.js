@@ -297,15 +297,16 @@ const Home = () => {
             </section>
 
             {/* Outlet Locator Section */}
-            <section id="outlets" className="section-padding-fluid">
-                <div className="container-fluid">
-                    <div className="section-title-box">
-                        <h2 className="headline-h2">Global <span className="text-green">Outlets</span></h2>
-                        <p className="subtitle-p">Experience farm-to-table freshness at any of our official sales centers nationwide.</p>
+            <section id="outlets" className="section-padding-fluid outlets-immersive-bg" style={{ backgroundImage: `url(${premiumHeroBg})` }}>
+                <div className="bg-overlay-dark"></div>
+                <div className="container-fluid relative-z">
+                    <div className="section-title-box dark-text-fix">
+                        <h2 className="headline-h2 text-white">Global <span className="text-green-bright">Outlets</span></h2>
+                        <p className="subtitle-p text-white-op">Experience farm-to-table freshness at any of our official sales centers nationwide.</p>
                     </div>
 
                     <div className="outlet-search-box">
-                        <div className="search-pill">
+                        <div className="search-pill glass-search">
                             <input
                                 type="text"
                                 placeholder="Search your nearest city (e.g. Narahenpita, Digana...)"
@@ -320,7 +321,7 @@ const Home = () => {
                     <div className="outlet-grid-premium">
                         {filteredOutlets.length > 0 ? (
                             filteredOutlets.map((outlet, idx) => (
-                                <div key={idx} className="outlet-card-clean animate-fade">
+                                <div key={idx} className="outlet-card-glass animate-fade">
                                     <div className="outlet-type-tag">{outlet.type}</div>
                                     <div className="outlet-icon-box">
                                         <div className="location-pin-circle">
@@ -343,14 +344,11 @@ const Home = () => {
                                             Get Directions
                                         </button>
                                     </div>
-                                    <div className="outlet-card-banner">
-                                        <img src={nldbCorporateBanner} alt="NLDB Logo" />
-                                    </div>
                                 </div>
                             ))
                         ) : (
                             <div className="no-results">
-                                <p>No outlets found matching "{searchQuery}". Please check the spelling or try a different city.</p>
+                                <p className="text-white">No outlets found matching "{searchQuery}". Please check the spelling or try a different city.</p>
                             </div>
                         )}
                     </div>
