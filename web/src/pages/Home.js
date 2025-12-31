@@ -386,18 +386,17 @@ const Home = () => {
                         </div>
                     </div>
                     <div className="contact-action-panel">
-                        <div className="hq-map-card animate-fade">
-                            <div className="map-overlay-content">
-                                <div className="map-icon-circle">📍</div>
-                                <h3>Visit our Head Office</h3>
-                                <p>No. 40, Narahenpita Road, Colombo 05</p>
-                                <button
-                                    className="btn-map-hq"
-                                    onClick={() => window.open('https://www.google.com/maps/search/?api=1&query=NLDB+Head+Office+Narahenpita+Colombo', '_blank')}
-                                >
-                                    Open in Google Maps
-                                </button>
-                            </div>
+                        <div className="map-embed-container animate-fade">
+                            <iframe
+                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.9161245781373!2d79.88043637403328!3d6.890453318958257!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ae2596489436e9d%3A0x86bd6d33f28cf9ed!2sNational%20Livestock%20Development%20Board%20(NLDB)!5e0!3m2!1sen!2slk!4v1704041000000!5m2!1sen!2slk"
+                                width="100%"
+                                height="100%"
+                                style={{ border: 0, borderRadius: '32px' }}
+                                allowFullScreen=""
+                                loading="lazy"
+                                referrerPolicy="no-referrer-when-downgrade"
+                                title="NLDB HQ Map"
+                            ></iframe>
                         </div>
                     </div>
                 </div>
