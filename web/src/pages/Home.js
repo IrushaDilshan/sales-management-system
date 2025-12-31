@@ -83,7 +83,7 @@ const Home = () => {
     );
 
     const handleViewMap = (outlet) => {
-        const query = encodeURIComponent(`${outlet.name} ${outlet.loc} Sri Lanka`);
+        const query = encodeURIComponent(`NLDB ${outlet.name} ${outlet.loc} Sri Lanka`);
         window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
     };
 
