@@ -6,15 +6,17 @@ const Users = () => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [formData, setFormData] = useState({ id: null, name: '', email: '', password: '', role: 'salesman' });
-    const [error, setError] = useState(null);
-
-    // Filter states
-    const [filters, setFilters] = useState({
-        role: 'all',
-        shop: 'all',
-        search: ''
+    const [currentUser, setCurrentUser] = useState(null);
+    const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        role: 'salesman'
     });
+    const [error, setError] = useState(null);
+    const [success, setSuccess] = useState(null);
+
+    const [searchQuery, setSearchQuery] = useState('');
+    const [roleFilter, setRoleFilter] = useState('all');
 
     useEffect(() => {
         fetchUsers();
@@ -26,28 +28,13 @@ const Users = () => {
             const { data, error } = await supabase
                 .from('users')
                 .select('*')
-                .order('name', { ascending: true });
+                .order('name');
 
             if (error) throw error;
-
-            // Fetch shop names for each user
-            const usersWithShops = await Promise.all(
-                (data || []).map(async (user) => {
-                    if (user.shop_id) {
-                        const { data: shop } = await supabase
-                            .from('shops')
-                            .select('name')
-                            .eq('id', user.shop_id)
-                            .single();
-                        return { ...user, shopName: shop?.name || null };
-                    }
-                    return { ...user, shopName: null };
-                })
-            );
-
-            setUsers(usersWithShops);
+            setUsers(data || []);
         } catch (err) {
             console.error('Error fetching users:', err);
+            setError('Failed to load personnel registry.');
         } finally {
             setLoading(false);
         }
@@ -55,23 +42,28 @@ const Users = () => {
 
     const handleOpenModal = (user = null) => {
         if (user) {
+            setCurrentUser(user);
             setFormData({
-                id: user.id,
-                name: user.name || '',
+                name: user.name,
                 email: user.email || '',
-                password: '', // Never show password
-                role: user.role || 'salesman'
+                role: user.role
             });
         } else {
-            setFormData({ id: null, name: '', email: '', password: '', role: 'salesman' });
+            setCurrentUser(null);
+            setFormData({
+                name: '',
+                email: '',
+                role: 'salesman'
+            });
         }
         setIsModalOpen(true);
         setError(null);
+        setSuccess(null);
     };
 
     const handleCloseModal = () => {
         setIsModalOpen(false);
-        setFormData({ id: null, name: '', email: '', password: '', role: 'salesman' });
+        setCurrentUser(null);
     };
 
     const handleInputChange = (e) => {
@@ -81,614 +73,208 @@ const Users = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setError(null);
+        setSuccess(null);
+
         try {
-            if (formData.id) {
-                // UPDATING existing user - only update database
-                const updates = {
-                    name: formData.name,
-                    role: formData.role
-                };
-
-                const { error: updateError } = await supabase
+            if (currentUser) {
+                const { error } = await supabase
                     .from('users')
-                    .update(updates)
-                    .eq('id', formData.id);
+                    .update({
+                        name: formData.name,
+                        role: formData.role
+                    })
+                    .eq('id', currentUser.id);
 
-                if (updateError) throw updateError;
+                if (error) throw error;
+                setSuccess('Personnel profile updated successfully.');
             } else {
-                // CREATING new user - create auth account AND database record
-
-                // Validate password
-                if (!formData.password || formData.password.length < 6) {
-                    throw new Error('Password must be at least 6 characters');
-                }
-
-                // Step 1: Create auth user (for login) with email confirmation disabled
-                const { data: authData, error: authError } = await supabase.auth.signUp({
-                    email: formData.email,
-                    password: formData.password,
-                    options: {
-                        emailRedirectTo: undefined,
-                        data: {
-                            name: formData.name,
-                            email_confirmed: true
-                        }
-                    }
-                });
-
-                if (authError) throw authError;
-
-                if (!authData.user) {
-                    throw new Error('Failed to create user account');
-                }
-
-                // Step 2: Create database user record (for role) - NO shop_id
-                const { error: dbError } = await supabase
+                const { error } = await supabase
                     .from('users')
                     .insert([{
-                        id: authData.user.id, // Use same ID as auth user
                         name: formData.name,
-                        email: formData.email,
                         role: formData.role
                     }]);
 
-                if (dbError) {
-                    console.error('Database insert failed:', dbError);
-                    throw new Error('User created in auth but failed to save to database. Error: ' + dbError.message);
-                }
+                if (error) throw error;
+                setSuccess('New personnel entry initialized.');
             }
 
             fetchUsers();
             handleCloseModal();
-
-            if (formData.id) {
-                alert('User updated successfully!');
-            } else {
-                alert(`User created successfully!\n\nLogin Credentials:\nEmail: ${formData.email}\nPassword: ${formData.password}\n\nPlease save these credentials. The user can now log in.\n\nTo assign this user to a shop, go to Shop Management and select them when adding/editing a shop.`);
-            }
         } catch (err) {
-            console.error('Error:', err);
-            setError(err.message);
+            console.error('Submit error:', err);
+            setError(err.message || 'Registry update failed.');
         }
     };
 
-    const handleResetPassword = async (userId, userEmail) => {
-        const confirmReset = window.confirm(
-            `Send password reset email to:\n${userEmail}\n\n` +
-            `The user will receive an email with a link to reset their password.\n\n` +
-            `Click OK to send the email.`
-        );
-
-        if (!confirmReset) return;
+    const handleDeleteUser = async (id) => {
+        if (!window.confirm('Strike this individual from the active personnel registry?')) return;
 
         try {
-            // Send password reset email (this works from client-side)
-            const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-                userEmail,
-                {
-                    redirectTo: `${window.location.origin}/login`
-                }
-            );
-
-            if (resetError) throw resetError;
-
-            alert(
-                `Password reset email sent successfully!\n\n` +
-                `The user will receive an email at:\n${userEmail}\n\n` +
-                `They can click the link in the email to set a new password.`
-            );
-        } catch (err) {
-            console.error('Error sending password reset:', err);
-            alert('Failed to send password reset email: ' + err.message);
-        }
-    };
-
-    const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this user?\n\nWarning: This cannot be undone and may fail if the user has related data (requests, transactions, etc.)')) {
-            try {
-                // First, try to delete from database
-                const { error } = await supabase
-                    .from('users')
-                    .delete()
-                    .eq('id', id);
-
-                if (error) {
-                    console.error('Delete error:', error);
-                    throw error;
-                }
-
-                // Then, try to delete the auth user (may fail if client-side)
-                const { error: authDeleteError } = await supabase.auth.admin.deleteUser(id);
-
-                if (authDeleteError) {
-                    console.warn('Auth deletion warning:', authDeleteError);
-                    alert(
-                        'User deleted from database!\n\n' +
-                        '⚠️ Note: The authentication account could not be deleted.\n' +
-                        'This means the email cannot be reused immediately.\n\n' +
-                        'To fully remove the user and allow email reuse,\n' +
-                        'you need to delete the auth user from the Supabase Dashboard:\n' +
-                        '1. Go to Supabase Dashboard\n' +
-                        '2. Authentication → Users\n' +
-                        '3. Find and delete the user manually\n\n' +
-                        'User ID: ' + id
-                    );
-                } else {
-                    alert('User deleted successfully! (Database + Auth)');
-                }
-
-                fetchUsers();
-            } catch (err) {
-                console.error('Error deleting user:', err);
-
-                let errorMessage = 'Failed to delete user.\n\n';
-
-                // Check for common errors
-                if (err.message.includes('foreign key') || err.code === '23503') {
-                    // Offer force delete option
-                    const forceDelete = window.confirm(
-                        'This user cannot be deleted because they have related data:\n' +
-                        '- Sales requests\n' +
-                        '- Daily income records\n' +
-                        '- Stock transactions\n' +
-                        '- Assigned routes\n\n' +
-                        '⚠️ FORCE DELETE OPTION ⚠️\n\n' +
-                        'Click OK to PERMANENTLY delete this user and ALL their related data.\n' +
-                        'This action cannot be undone!\n\n' +
-                        'Click Cancel to keep the user and their data.'
-                    );
-
-                    if (forceDelete) {
-                        await handleForceDelete(id);
-                    }
-                } else {
-                    errorMessage += 'Error: ' + (err.message || 'Unknown error');
-                    alert(errorMessage);
-                }
-            }
-        }
-    };
-
-    const handleForceDelete = async (userId) => {
-        try {
-            console.log('=== Starting force delete for user:', userId, '===');
-
-            // Delete in order: children first, then parent
-
-            // 1. Delete requests (salesman_id)
-            console.log('1. Deleting requests...');
-            const { error: reqError } = await supabase
-                .from('requests')
-                .delete()
-                .eq('salesman_id', userId);
-            if (reqError) {
-                console.error('Error deleting requests:', reqError);
-                throw new Error(`Failed to delete requests: ${reqError.message}`);
-            }
-            console.log('✓ Requests deleted');
-
-            // 2. Skip daily income - it's linked to shops, not users
-            console.log('2. Skipping daily income (linked to shops, not users)...');
-
-            // 3. First, get routes owned by this user
-            console.log('3. Finding routes owned by user...');
-            const { data: userRoutes } = await supabase
-                .from('routes')
-                .select('id')
-                .eq('rep_id', userId);
-
-            if (userRoutes && userRoutes.length > 0) {
-                const routeIds = userRoutes.map(r => r.id);
-                console.log(`Found ${routeIds.length} routes to clean up`);
-
-                // 3a. Remove route references from shops
-                console.log('3a. Removing route references from shops...');
-                const { error: shopsUpdateError } = await supabase
-                    .from('shops')
-                    .update({ route_id: null })
-                    .in('route_id', routeIds);
-                if (shopsUpdateError) {
-                    console.error('Error updating shops:', shopsUpdateError);
-                }
-                console.log('✓ Shop route references removed');
-            }
-
-            // 4. Delete routes where user is the rep
-            console.log('4. Deleting routes...');
-            const { error: routesError } = await supabase
-                .from('routes')
-                .delete()
-                .eq('rep_id', userId);
-            if (routesError) {
-                console.error('Error deleting routes:', routesError);
-                throw new Error(`Failed to delete routes: ${routesError.message}`);
-            }
-            console.log('✓ Routes deleted');
-
-            // 5. Delete stock transactions (if table exists)
-            console.log('5. Deleting stock transactions...');
-
-            // Delete by user_id
-            const { error: stockError1 } = await supabase
-                .from('stock_transactions')
-                .delete()
-                .eq('user_id', userId);
-            if (stockError1 && !stockError1.message.includes('does not exist')) {
-                console.error('Error deleting stock transactions (user_id):', stockError1);
-            }
-
-            // Delete by rep_id
-            const { error: stockError2 } = await supabase
-                .from('stock_transactions')
-                .delete()
-                .eq('rep_id', userId);
-            if (stockError2 && !stockError2.message.includes('does not exist')) {
-                console.error('Error deleting stock transactions (rep_id):', stockError2);
-            }
-
-            console.log('✓ Stock transactions checked');
-
-            // 6. Delete route assignments (if table exists)
-            console.log('6. Deleting route assignments...');
-            const { error: routeAssignError } = await supabase
-                .from('route_assignments')
-                .delete()
-                .eq('user_id', userId);
-            if (routeAssignError && !routeAssignError.message.includes('does not exist')) {
-                console.error('Error deleting route assignments:', routeAssignError);
-                // Don't throw - this table might not exist
-            }
-            console.log('✓ Route assignments checked');
-
-            // 7. Delete the database user record
-            console.log('7. Deleting user from database...');
-            const { error: userError } = await supabase
+            const { error } = await supabase
                 .from('users')
                 .delete()
-                .eq('id', userId);
+                .eq('id', id);
 
-            if (userError) {
-                console.error('Error deleting user:', userError);
-                throw new Error(`Failed to delete user: ${userError.message}`);
-            }
-            console.log('✓ User deleted from database');
-
-            // 8. Delete the auth user (so email can be reused)
-            console.log('8. Deleting auth user...');
-            const { error: authDeleteError } = await supabase.auth.admin.deleteUser(userId);
-            if (authDeleteError) {
-                console.warn('⚠ Warning: Could not delete auth user:', authDeleteError.message);
-                console.warn('This is normal if using client-side deletion. The auth account may still exist.');
-            } else {
-                console.log('✓ Auth user deleted');
-            }
-
-            console.log('=== Force delete completed successfully ===');
-            alert('✅ User and all related data deleted successfully!\n\nNote: If using client-side auth, the user may still be able to log in. Contact admin to fully remove auth account.');
+            if (error) throw error;
+            setSuccess('Personnel entry archived/removed.');
             fetchUsers();
-
-        } catch (error) {
-            console.error('=== Force delete failed ===');
-            console.error(error);
-            alert('❌ Force delete failed:\n\n' + (error.message || 'Unknown error') + '\n\nPlease check the console for details.\n\nSome data may have been partially deleted.');
+        } catch (err) {
+            console.error('Delete error:', err);
+            setError('Failed to archive personnel entry.');
         }
     };
 
-    // Filter users based on selected filters
-    const getFilteredUsers = () => {
-        return users.filter(user => {
-            // Filter by role
-            if (filters.role !== 'all' && user.role !== filters.role) {
-                return false;
-            }
+    const filteredUsers = users.filter(user => {
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = !searchQuery ||
+            user.name?.toLowerCase().includes(query) ||
+            user.role?.toLowerCase().includes(query);
+        const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+        return matchesSearch && matchesRole;
+    });
 
-            // Filter by shop assignment
-            if (filters.shop === 'assigned' && !user.shop_id) {
-                return false;
-            }
-            if (filters.shop === 'unassigned' && user.shop_id) {
-                return false;
-            }
-
-            // Filter by search query
-            if (filters.search) {
-                const searchLower = filters.search.toLowerCase();
-                const matchesName = user.name?.toLowerCase().includes(searchLower);
-                const matchesEmail = user.email?.toLowerCase().includes(searchLower);
-                const matchesShop = user.shopName?.toLowerCase().includes(searchLower);
-
-                if (!matchesName && !matchesEmail && !matchesShop) {
-                    return false;
-                }
-            }
-
-            return true;
-        });
-    };
-
-    const filteredUsers = getFilteredUsers();
+    const StatCard = ({ icon, label, value, color }) => (
+        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '1.25rem', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderLeft: `6px solid ${color}` }}>
+            <div style={{ fontSize: '2rem', background: `${color}10`, width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px' }}>{icon}</div>
+            <div>
+                <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>{label}</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#1e293b' }}>{value}</div>
+            </div>
+        </div>
+    );
 
     return (
         <div className="page-container">
             <div className="page-header">
-                <h1 className="page-title">User Management</h1>
+                <div>
+                    <h1 className="page-title">Personnel Management</h1>
+                    <p className="page-subtitle">National Livestock Development Board - Human Resource & Access Governance</p>
+                </div>
                 <button className="btn-primary" onClick={() => handleOpenModal()}>
-                    <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>+</span> Add User
+                    <span>+</span> Onboard New Staff
                 </button>
             </div>
 
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+                <StatCard icon="👥" label="Total Force" value={users.length} color="#6366f1" />
+                <StatCard icon="🛡️" label="Administrators" value={users.filter(u => u.role === 'admin').length} color="#ef4444" />
+                <StatCard icon="🚚" label="Field Reps" value={users.filter(u => u.role === 'rep').length} color="#10b981" />
+                <StatCard icon="📦" label="Logistics Staff" value={users.filter(u => u.role === 'storekeeper').length} color="#f59e0b" />
+            </div>
+
+            {error && <div style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', fontWeight: '600', border: '1px solid #fee2e2' }}>⚠️ {error}</div>}
+            {success && <div style={{ background: '#f0fdf4', color: '#166534', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', fontWeight: '600', border: '1px solid #dcfce7' }}>✅ {success}</div>}
+
+            <div style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', marginBottom: '2rem', display: 'flex', gap: '1.5rem', alignItems: 'flex-end' }}>
+                <div style={{ flex: 1 }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Identity Search</label>
+                    <input type="text" className="form-control" placeholder="Identify by name or operations role..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                </div>
+                <div style={{ width: '250px' }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Role Classification</label>
+                    <select className="form-control" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+                        <option value="all">All Classifications</option>
+                        <option value="admin">Administrator (Full Access)</option>
+                        <option value="storekeeper">Storekeeper (Inventory Control)</option>
+                        <option value="ma">Management Assistant</option>
+                        <option value="rep">Representative (Field Org)</option>
+                        <option value="salesman">Salesman (Direct Transactions)</option>
+                    </select>
+                </div>
+                <button className="btn-secondary" style={{ width: 'auto', padding: '0.75rem 1.5rem' }} onClick={() => { setSearchQuery(''); setRoleFilter('all'); }}>Reset Registry</button>
+            </div>
+
             {loading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '3rem' }}>
-                    <div className="loading-spinner"></div>
+                <div style={{ textAlign: 'center', padding: '5rem' }}>
+                    <div className="loading-spinner" style={{ margin: '0 auto', borderTopColor: '#6366f1' }}></div>
+                    <p style={{ marginTop: '1rem', color: '#64748b' }}>Accessing personnel database...</p>
                 </div>
             ) : (
-                <>
-                    {/* FILTER CONTROLS */}
-                    <div style={{
-                        backgroundColor: 'white',
-                        padding: '1.5rem',
-                        borderRadius: '8px',
-                        marginBottom: '1.5rem',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                    }}>
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: '2fr 1fr 1fr auto',
-                            gap: '1rem',
-                            alignItems: 'end'
-                        }}>
-                            {/* Search */}
-                            <div>
-                                <label style={{
-                                    display: 'block',
-                                    marginBottom: '0.5rem',
-                                    fontSize: '0.9rem',
-                                    fontWeight: '600',
-                                    color: '#374151'
-                                }}>
-                                    Search
-                                </label>
-                                <input
-                                    type="text"
-                                    placeholder="Search by name, email, or shop..."
-                                    className="form-input"
-                                    value={filters.search}
-                                    onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                                    style={{ width: '100%' }}
-                                />
-                            </div>
-
-                            {/* Role Filter */}
-                            <div>
-                                <label style={{
-                                    display: 'block',
-                                    marginBottom: '0.5rem',
-                                    fontSize: '0.9rem',
-                                    fontWeight: '600',
-                                    color: '#374151'
-                                }}>
-                                    Filter by Role
-                                </label>
-                                <select
-                                    className="form-select"
-                                    value={filters.role}
-                                    onChange={(e) => setFilters({ ...filters, role: e.target.value })}
-                                    style={{ width: '100%' }}
-                                >
-                                    <option value="all">All Roles</option>
-                                    <option value="salesman">Salesman</option>
-                                    <option value="rep">Representative</option>
-                                    <option value="storekeeper">Storekeeper</option>
-                                    <option value="admin">Admin</option>
-                                </select>
-                            </div>
-
-                            {/* Shop Filter */}
-                            <div>
-                                <label style={{
-                                    display: 'block',
-                                    marginBottom: '0.5rem',
-                                    fontSize: '0.9rem',
-                                    fontWeight: '600',
-                                    color: '#374151'
-                                }}>
-                                    Shop Status
-                                </label>
-                                <select
-                                    className="form-select"
-                                    value={filters.shop}
-                                    onChange={(e) => setFilters({ ...filters, shop: e.target.value })}
-                                    style={{ width: '100%' }}
-                                >
-                                    <option value="all">All Users</option>
-                                    <option value="assigned">Has Shop</option>
-                                    <option value="unassigned">No Shop</option>
-                                </select>
-                            </div>
-
-                            {/* Clear Filters */}
-                            <div>
-                                <button
-                                    className="btn-secondary"
-                                    onClick={() => setFilters({ role: 'all', shop: 'all', search: '' })}
-                                    style={{
-                                        padding: '0.6rem 1.2rem',
-                                        fontSize: '0.9rem'
-                                    }}
-                                >
-                                    Clear Filters
-                                </button>
-                            </div>
+                <div className="table-container">
+                    {filteredUsers.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '5rem' }}>
+                            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👤</div>
+                            <h3 style={{ color: '#1e293b' }}>No personnel discovered</h3>
+                            <p style={{ color: '#64748b' }}>Try broadening your search parameters.</p>
                         </div>
-
-                        {/* Results Count */}
-                        <div style={{
-                            marginTop: '1rem',
-                            fontSize: '0.9rem',
-                            color: '#6B7280',
-                            fontWeight: '500'
-                        }}>
-                            Showing {filteredUsers.length} of {users.length} users
-                        </div>
-                    </div>
-
-                    <div className="table-container">
-                        {filteredUsers.length === 0 ? (
-                            <div className="empty-state">
-                                <h3>No users found</h3>
-                                <p>Click "Add User" to create your first user.</p>
-                            </div>
-                        ) : (
-                            <table className="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Email</th>
-                                        <th>Role</th>
-                                        <th>Password</th>
-                                        <th>Assigned Shop</th>
-                                        <th style={{ textAlign: 'right' }}>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredUsers.map((user) => (
-                                        <tr key={user.id || Math.random()}>
-                                            <td>{user.name}</td>
-                                            <td><span style={{ color: '#666', fontSize: '0.9rem' }}>{user.email || 'N/A'}</span></td>
-                                            <td>
-                                                <span className="status-badge status-active">
-                                                    {user.role}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    <span style={{ color: '#999', fontSize: '0.9rem' }}>••••••••</span>
-                                                    <button
-                                                        className="action-btn"
-                                                        style={{
-                                                            fontSize: '0.85rem',
-                                                            padding: '4px 12px',
-                                                            background: '#f59e0b',
-                                                            color: 'white',
-                                                            borderRadius: '6px',
-                                                            fontWeight: '600'
-                                                        }}
-                                                        onClick={() => handleResetPassword(user.id, user.email)}
-                                                    >
-                                                        Reset
-                                                    </button>
+                    ) : (
+                        <table className="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Personnel Identity</th>
+                                    <th>Access Classification</th>
+                                    <th>Temporal Activity</th>
+                                    <th className="text-right">Access Governance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredUsers.map(user => (
+                                    <tr key={user.id}>
+                                        <td>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#6366f110', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800' }}>
+                                                    {user.name?.charAt(0)}
                                                 </div>
-                                            </td>
-                                            <td>
-                                                <span style={{ color: user.shopName ? '#2196F3' : '#999', fontWeight: user.shopName ? '600' : 'normal' }}>
-                                                    {user.shopName || 'No shop assigned'}
-                                                </span>
-                                            </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                <button className="action-btn btn-edit" onClick={() => handleOpenModal(user)}>
-                                                    Edit
-                                                </button>
-                                                <button className="action-btn btn-delete" onClick={() => handleDelete(user.id)}>
-                                                    Delete
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        )}
-                    </div>
-                </>
+                                                <div style={{ fontWeight: '800', color: '#1e293b' }}>{user.name}</div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span style={{
+                                                padding: '4px 12px',
+                                                borderRadius: '20px',
+                                                fontSize: '0.7rem',
+                                                fontWeight: '800',
+                                                textTransform: 'uppercase',
+                                                background: user.role === 'admin' ? '#fee2e2' : user.role === 'rep' ? '#dcfce7' : '#f1f5f9',
+                                                color: user.role === 'admin' ? '#ef4444' : user.role === 'rep' ? '#166534' : '#64748b',
+                                                border: `1px solid ${user.role === 'admin' ? '#fecaca' : user.role === 'rep' ? '#bbf7d0' : '#e2e8f0'}`
+                                            }}>{user.role}</span>
+                                        </td>
+                                        <td>
+                                            <div style={{ fontWeight: '600', color: '#64748b' }}>{user.last_login ? new Date(user.last_login).toLocaleDateString() : ' Archival Record'}</div>
+                                            <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{user.last_login ? new Date(user.last_login).toLocaleTimeString() : 'No recent login detected'}</div>
+                                        </td>
+                                        <td style={{ textAlign: 'right' }}>
+                                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                                <button className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem' }} onClick={() => handleOpenModal(user)}>Edit Core</button>
+                                                <button className="btn-cancel" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', color: '#ef4444' }} onClick={() => handleDeleteUser(user.id)}>Revoke Access</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
             )}
 
             {isModalOpen && (
                 <div className="modal-overlay">
-                    <div className="modal-content">
-                        <h2 style={{ marginTop: 0, marginBottom: '1.5rem' }}>
-                            {formData.id ? 'Edit User' : 'Add New User'}
-                        </h2>
-
-                        {error && (
-                            <div style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1rem' }}>
-                                {error}
-                            </div>
-                        )}
-
+                    <div className="modal-content" style={{ maxWidth: '550px', borderRadius: '24px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                            <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '900' }}>{currentUser ? 'Modify Personnel Access' : 'Initialize Staff Onboarding'}</h2>
+                            <button onClick={handleCloseModal} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8' }}>×</button>
+                        </div>
                         <form onSubmit={handleSubmit}>
-                            <div className="form-group">
-                                <label className="form-label">Full Name</label>
-                                <input
-                                    type="text"
-                                    className="form-input"
-                                    name="name"
-                                    value={formData.name}
-                                    onChange={handleInputChange}
-                                    required
-                                    placeholder="John Doe"
-                                />
+                            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                                <label className="form-label">Full Legal Name *</label>
+                                <input type="text" className="form-control" name="name" value={formData.name} onChange={handleInputChange} required placeholder="NLDB Employee Full Name" />
                             </div>
-
-                            <div className="form-group">
-                                <label className="form-label">Email</label>
-                                <input
-                                    type="email"
-                                    className="form-input"
-                                    name="email"
-                                    value={formData.email}
-                                    onChange={handleInputChange}
-                                    required
-                                    placeholder="john@example.com"
-                                    disabled={formData.id !== null}
-                                />
-                                {formData.id && (
-                                    <small style={{ color: '#666', fontSize: '0.85rem', marginTop: '0.5rem', display: 'block' }}>
-                                        Email cannot be changed after creation
-                                    </small>
-                                )}
-                            </div>
-
-                            {!formData.id && (
-                                <div className="form-group">
-                                    <label className="form-label">Password</label>
-                                    <input
-                                        type="password"
-                                        className="form-input"
-                                        name="password"
-                                        value={formData.password}
-                                        onChange={handleInputChange}
-                                        required
-                                        placeholder="Minimum 6 characters"
-                                        minLength={6}
-                                    />
-                                    <small style={{ color: '#666', fontSize: '0.85rem', marginTop: '0.5rem', display: 'block' }}>
-                                        User will use this password to log in to the mobile app
-                                    </small>
-                                </div>
-                            )}
-
-                            <div className="form-group">
-                                <label className="form-label">Role</label>
-                                <select
-                                    className="form-select"
-                                    name="role"
-                                    value={formData.role}
-                                    onChange={handleInputChange}
-                                >
-                                    <option value="salesman">Salesman</option>
-                                    <option value="rep">Representative</option>
-                                    <option value="storekeeper">Store Keeper</option>
-                                    <option value="admin">Admin</option>
+                            <div className="form-group" style={{ marginBottom: '2rem' }}>
+                                <label className="form-label">Operations Role Mapping *</label>
+                                <select className="form-control" name="role" value={formData.role} onChange={handleInputChange} required>
+                                    <option value="admin">Administrator (Complete Gov-Access)</option>
+                                    <option value="storekeeper">Storekeeper (Warehouse Control)</option>
+                                    <option value="ma">Management Assistant</option>
+                                    <option value="rep">Field Representative (Route Management)</option>
+                                    <option value="salesman">Salesman (Frontend POS)</option>
                                 </select>
                             </div>
-
-
-                            <div className="modal-actions">
-                                <button type="button" className="btn-cancel" onClick={handleCloseModal}>
-                                    Cancel
-                                </button>
-                                <button type="submit" className="btn-primary">
-                                    {formData.id ? 'Save Changes' : 'Create User'}
-                                </button>
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                <button type="button" className="btn-cancel" style={{ flex: 1 }} onClick={handleCloseModal}>Abort</button>
+                                <button type="submit" className="btn-primary" style={{ flex: 2 }}>{currentUser ? 'Update Governance' : 'Authorize Entry'}</button>
                             </div>
                         </form>
                     </div>

@@ -7,342 +7,179 @@ const RepDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [lastUpdated, setLastUpdated] = useState(null);
     const [error, setError] = useState(null);
-    const [currentUserId, setCurrentUserId] = useState(null);
+    const [stats, setStats] = useState({
+        totalRequests: 0,
+        fulfilledToday: 0,
+        assignedShops: 0
+    });
 
     useEffect(() => {
-        fetchPendingRequests();
+        fetchDashboardData();
     }, []);
 
-    // Auto-refresh every 30 seconds
     useEffect(() => {
         const interval = setInterval(() => {
-            fetchPendingRequests(true); // silent refresh
-        }, 30000);
-
+            fetchDashboardData(true);
+        }, 60000);
         return () => clearInterval(interval);
     }, []);
 
-    const fetchPendingRequests = async (silent = false) => {
+    const fetchDashboardData = async (silent = false) => {
         if (!silent) setLoading(true);
-        setError(null);
-
         try {
-            // Get current user
-            const { data: userData } = await supabase.auth.getUser();
-            const userEmail = userData?.user?.email;
-
-            if (!userEmail) {
-                throw new Error('User not authenticated');
-            }
-
-            // Get user ID from users table
-            const { data: userRecord, error: userError } = await supabase
-                .from('users')
-                .select('id')
-                .eq('email', userEmail)
-                .single();
-
-            if (userError) throw userError;
-
+            const { data: { user } } = await supabase.auth.getUser();
+            const { data: userRecord } = await supabase.from('users').select('id').eq('email', user?.email).single();
             const userId = userRecord?.id;
-            setCurrentUserId(userId);
 
-            // Step 1: Find all routes where this rep is assigned
-            const { data: myRoutes, error: routesError } = await supabase
-                .from('routes')
-                .select('id')
-                .eq('rep_id', userId);
-
-            if (routesError && routesError.code !== 'PGRST116') throw routesError;
-
+            const { data: myRoutes } = await supabase.from('routes').select('id').eq('rep_id', userId);
             const myRouteIds = myRoutes?.map(r => r.id) || [];
 
-            // Step 2: Find all shops assigned to this rep (either directly or through routes)
-            let shopsQuery = supabase
-                .from('shops')
-                .select('id');
-
-            // Build the query to find shops where:
-            // - rep_id matches current user (direct assignment)
-            // - OR route_id is in the rep's assigned routes
+            let shopsQuery = supabase.from('shops').select('id');
             if (myRouteIds.length > 0) {
-                // Rep has routes OR direct shop assignments
                 shopsQuery = shopsQuery.or(`rep_id.eq.${userId},route_id.in.(${myRouteIds.join(',')})`);
             } else {
-                // Rep only has direct shop assignments, no routes
                 shopsQuery = shopsQuery.eq('rep_id', userId);
             }
+            const { data: myShops } = await shopsQuery;
+            const myShopIds = myShops?.map(s => s.id) || [];
 
-            const { data: myShops, error: shopsError } = await shopsQuery;
-
-            if (shopsError) throw shopsError;
-
-            if (!myShops || myShops.length === 0) {
-                // No shops assigned to this rep
-                setPendingItems([]);
-                setLastUpdated(new Date());
+            if (myShopIds.length === 0) {
+                setStats(prev => ({ ...prev, assignedShops: 0 }));
+                setLoading(false);
                 return;
             }
 
-            const myShopIds = myShops.map(s => s.id);
+            const { data: requestsData } = await supabase.from('requests').select('id, status').in('shop_id', myShopIds);
+            const pendingReqs = requestsData?.filter(r => r.status === 'pending') || [];
 
-            // Step 3: Fetch pending requests ONLY from the rep's assigned shops
-            const { data: requestsData, error: reqError } = await supabase
-                .from('requests')
-                .select('id, status, shop_id')
-                .eq('status', 'pending')
-                .in('shop_id', myShopIds);
+            const reqIds = pendingReqs.map(r => r.id);
+            const { data: itemsData } = await supabase.from('request_items').select('qty, delivered_qty, item_id').in('request_id', reqIds);
 
-            if (reqError) throw reqError;
+            const itemIds = Array.from(new Set(itemsData?.map(i => i.item_id)));
+            const { data: productsData } = await supabase.from('items').select('id, name').in('id', itemIds);
+            const { data: stockTrans } = await supabase.from('stock_transactions').select('item_id, qty, type').eq('rep_id', userId).in('item_id', itemIds);
 
-            if (!requestsData || requestsData.length === 0) {
-                setPendingItems([]);
-                setLastUpdated(new Date());
-                return;
-            }
-
-            // Fetch request items for these requests
-            const requestIds = requestsData.map(r => r.id);
-            const { data: itemsData, error: itemsError } = await supabase
-                .from('request_items')
-                .select('id, request_id, qty, delivered_qty, item_id')
-                .in('request_id', requestIds);
-
-            if (itemsError) throw itemsError;
-
-            // Get unique item IDs
-            const itemIds = Array.from(new Set(itemsData?.map(row => row.item_id)));
-
-            // Fetch item details
-            const { data: productsData, error: productsError } = await supabase
-                .from('items')
-                .select('id, name')
-                .in('id', itemIds);
-
-            if (productsError) throw productsError;
-
-            // Fetch rep's stock from stock_transactions
-            const { data: repTransactions, error: stockError } = await supabase
-                .from('stock_transactions')
-                .select('item_id, qty, type')
-                .eq('rep_id', userId)
-                .in('item_id', itemIds);
-
-            if (stockError && stockError.code !== 'PGRST116') throw stockError;
-
-            // Create maps
             const itemsMap = new Map();
-            const repStockMap = new Map();
-
             productsData?.forEach(p => itemsMap.set(p.id, p.name));
 
-            // Calculate rep's available stock per item
-            repTransactions?.forEach(trans => {
-                const currentStock = repStockMap.get(trans.item_id) || 0;
-                if (trans.type === 'OUT') {
-                    repStockMap.set(trans.item_id, currentStock + trans.qty);
-                }
+            const repStockMap = new Map();
+            stockTrans?.forEach(t => {
+                const current = repStockMap.get(t.item_id) || 0;
+                repStockMap.set(t.item_id, t.type === 'OUT' ? current + t.qty : current - t.qty);
             });
 
-            // Aggregate pending items
-            const itemsAggregationMap = new Map();
-
+            const aggregation = new Map();
             itemsData?.forEach(row => {
                 const pending = row.qty - (row.delivered_qty || 0);
                 if (pending <= 0) return;
-
-                const itemId = row.item_id;
-                if (!itemId) return;
-
-                const itemName = itemsMap.get(itemId) || 'Unknown Item';
-                const currentStock = repStockMap.get(itemId) || 0;
-
-                if (itemsAggregationMap.has(itemId)) {
-                    const existing = itemsAggregationMap.get(itemId);
-                    existing.totalPendingQty += pending;
-                } else {
-                    itemsAggregationMap.set(itemId, {
-                        itemId: itemId,
-                        itemName: itemName,
-                        totalPendingQty: pending,
-                        availableStock: currentStock
-                    });
-                }
+                const existing = aggregation.get(row.item_id) || { itemName: itemsMap.get(row.item_id), totalPendingQty: 0, availableStock: repStockMap.get(row.item_id) || 0 };
+                aggregation.set(row.item_id, { ...existing, totalPendingQty: existing.totalPendingQty + pending });
             });
 
-            setPendingItems(Array.from(itemsAggregationMap.values()));
+            setPendingItems(Array.from(aggregation.values()));
+            setStats({
+                totalRequests: pendingReqs.length,
+                fulfilledToday: requestsData?.filter(r => r.status === 'fulfilled' && new Date(r.updated_at).toDateString() === new Date().toDateString()).length || 0,
+                assignedShops: myShopIds.length
+            });
             setLastUpdated(new Date());
-
         } catch (err) {
-            console.error('Error fetching pending requests:', err);
-            if (!silent) {
-                setError(err.message || 'Failed to load data');
-            }
+            console.error(err);
+            setError('Registry synchronization failed.');
         } finally {
-            if (!silent) setLoading(false);
+            setLoading(false);
         }
     };
 
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
-        window.location.href = '/login';
-    };
+    const StatCard = ({ icon, label, value, color }) => (
+        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '1.25rem', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderLeft: `6px solid ${color}` }}>
+            <div style={{ fontSize: '2rem', background: `${color}10`, width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px' }}>{icon}</div>
+            <div>
+                <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>{label}</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#1e293b' }}>{value}</div>
+            </div>
+        </div>
+    );
 
     return (
-        <div className="page-container">
-            {/* Header */}
+        <div className="page-container" style={{ maxWidth: '1400px', margin: '0 auto' }}>
             <div className="page-header">
                 <div>
-                    <h1 className="page-title">Rep Dashboard</h1>
-                    {lastUpdated && (
-                        <p style={{ fontSize: '0.875rem', color: '#6B7280', marginTop: '0.25rem' }}>
-                            Last updated: {lastUpdated.toLocaleTimeString()}
-                        </p>
-                    )}
+                    <h1 className="page-title">Field Operations Control</h1>
+                    <p className="page-subtitle">National Livestock Development Board - Representative Terminal</p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                    <button
-                        className="btn-secondary"
-                        onClick={() => fetchPendingRequests()}
-                        disabled={loading}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                    >
-                        <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>↻</span>
-                        Refresh
-                    </button>
-                    <button
-                        className="btn-secondary"
-                        onClick={handleLogout}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                    >
-                        <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>⎋</span>
-                        Logout
-                    </button>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    {lastUpdated && <span style={{ padding: '0.5rem 1rem', background: '#f1f5f9', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', display: 'flex', alignItems: 'center' }}>SYNC: {lastUpdated.toLocaleTimeString()}</span>}
+                    <button className="btn-primary" onClick={() => fetchDashboardData()}>Refresh Registry</button>
+                    <button className="btn-cancel" style={{ width: 'auto' }} onClick={() => { supabase.auth.signOut(); window.location.href = '/login'; }}>Logout</button>
                 </div>
             </div>
 
-            {/* Error Message */}
-            {error && <div className="alert error">{error}</div>}
-
-            {/* Navigation Cards */}
-            <div className="dashboard-grid" style={{ marginBottom: '2rem' }}>
-                <div
-                    className="card overview-card"
-                    onClick={() => window.location.href = '/rep/shops'}
-                    style={{
-                        cursor: 'pointer',
-                        background: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
-                        color: 'white',
-                        transition: 'transform 0.2s'
-                    }}
-                    onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                    onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                >
-                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🏪</div>
-                    <h3 style={{ color: 'white', marginBottom: '0.5rem' }}>Shop Requests</h3>
-                    <div className="card-value" style={{ color: 'white' }}>View & Manage</div>
-                </div>
-
-                <div
-                    className="card overview-card"
-                    onClick={() => window.location.href = '/rep/stock'}
-                    style={{
-                        cursor: 'pointer',
-                        background: 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)',
-                        color: 'white',
-                        transition: 'transform 0.2s'
-                    }}
-                    onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                    onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                >
-                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📦</div>
-                    <h3 style={{ color: 'white', marginBottom: '0.5rem' }}>My Stock</h3>
-                    <div className="card-value" style={{ color: 'white' }}>Inventory</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
+                <StatCard icon="📥" label="Pending Shop Requests" value={stats.totalRequests} color="#6366f1" />
+                <StatCard icon="🏪" label="Managed Outlets" value={stats.assignedShops} color="#10b981" />
+                <StatCard icon="✅" label="Fulfilled (Today)" value={stats.fulfilledToday} color="#06b6d4" />
+                <div onClick={() => window.location.href = '/rep/stock'} style={{ background: '#1e293b', padding: '1.5rem', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '1.25rem', cursor: 'pointer', transition: '0.2s' }}>
+                    <div style={{ fontSize: '2rem', background: 'rgba(255,255,255,0.1)', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px' }}>📦</div>
+                    <div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Vehicle Stock</div>
+                        <div style={{ fontSize: '1rem', fontWeight: '800', color: 'white' }}>Manage Inventory →</div>
+                    </div>
                 </div>
             </div>
 
-            {/* Pending Items Summary */}
-            <div className="table-container">
-                <h2 className="section-title">Pending Items Summary</h2>
+            {error && <div style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', border: '1px solid #fee2e2' }}>⚠️ {error}</div>}
+
+            <div style={{ background: 'white', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', padding: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                    <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '900' }}>Live Fulfillment Summary</h2>
+                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Consolidated requirement across all managed routes</div>
+                </div>
 
                 {loading ? (
-                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '3rem' }}>
-                        <div className="loading-spinner"></div>
+                    <div style={{ textAlign: 'center', padding: '5rem' }}>
+                        <div className="loading-spinner" style={{ margin: '0 auto', borderTopColor: '#6366f1' }}></div>
+                        <p style={{ marginTop: '1rem', color: '#64748b' }}>Recalculating field requirements...</p>
                     </div>
                 ) : pendingItems.length === 0 ? (
-                    <div className="empty-state">
-                        <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>✅</div>
-                        <h3>No Pending Items</h3>
-                        <p>All shop requests have been fulfilled</p>
+                    <div style={{ textAlign: 'center', padding: '5rem' }}>
+                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏆</div>
+                        <h3 style={{ color: '#1e293b' }}>Grid Sector Clear</h3>
+                        <p style={{ color: '#64748b' }}>All distribution requests in your sector have been satisfied.</p>
                     </div>
                 ) : (
                     <table className="data-table">
                         <thead>
                             <tr>
-                                <th>Item Name</th>
-                                <th style={{ textAlign: 'center' }}>Total Pending Qty</th>
-                                <th style={{ textAlign: 'center' }}>My Available Stock</th>
-                                <th style={{ textAlign: 'center' }}>Status</th>
+                                <th>Biological / Product SKU</th>
+                                <th style={{ textAlign: 'center' }}>Aggregate Requirement</th>
+                                <th style={{ textAlign: 'center' }}>Vehicle Stock On-Hand</th>
+                                <th style={{ textAlign: 'center' }}>Deployment Status</th>
                             </tr>
                         </thead>
                         <tbody>
                             {pendingItems.map(item => {
                                 const hasEnough = item.availableStock >= item.totalPendingQty;
-                                const statusColor = hasEnough ? '#4CAF50' : '#FF9800';
-                                const statusText = hasEnough ? 'Stock Available' : 'Need More Stock';
-
                                 return (
                                     <tr key={item.itemId}>
-                                        <td>
-                                            <div style={{ fontWeight: '600', fontSize: '1rem', color: '#1A1A2E' }}>
-                                                {item.itemName}
-                                            </div>
+                                        <td><strong style={{ fontSize: '1.05rem', color: '#1e293b' }}>{item.itemName}</strong></td>
+                                        <td style={{ textAlign: 'center' }}>
+                                            <span style={{ padding: '6px 14px', borderRadius: '8px', background: '#fff1f2', color: '#e11d48', fontWeight: '800', fontSize: '1.1rem' }}>{item.totalPendingQty}</span>
+                                        </td>
+                                        <td style={{ textAlign: 'center' }}>
+                                            <span style={{ padding: '6px 14px', borderRadius: '8px', background: hasEnough ? '#f0fdf4' : '#fffbeb', color: hasEnough ? '#166534' : '#d97706', fontWeight: '800', fontSize: '1.1rem' }}>{item.availableStock}</span>
                                         </td>
                                         <td style={{ textAlign: 'center' }}>
                                             <span style={{
-                                                display: 'inline-block',
-                                                padding: '6px 14px',
-                                                borderRadius: '8px',
-                                                backgroundColor: '#FEE2E2',
-                                                border: '1px solid #FECACA',
-                                                fontWeight: '700',
-                                                fontSize: '1rem',
-                                                color: '#DC2626'
-                                            }}>
-                                                {item.totalPendingQty}
-                                            </span>
-                                        </td>
-                                        <td style={{ textAlign: 'center' }}>
-                                            <span style={{
-                                                display: 'inline-block',
-                                                padding: '6px 14px',
-                                                borderRadius: '8px',
-                                                backgroundColor: hasEnough ? '#D1FAE5' : '#FEF3C7',
-                                                border: `1px solid ${hasEnough ? '#A7F3D0' : '#FDE68A'}`,
-                                                fontWeight: '700',
-                                                fontSize: '1rem',
-                                                color: hasEnough ? '#065F46' : '#92400E'
-                                            }}>
-                                                {item.availableStock}
-                                            </span>
-                                        </td>
-                                        <td style={{ textAlign: 'center' }}>
-                                            <span style={{
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                gap: '6px',
                                                 padding: '6px 12px',
-                                                borderRadius: '8px',
-                                                backgroundColor: `${statusColor}15`,
-                                                border: `1px solid ${statusColor}40`,
-                                                fontSize: '0.75rem',
-                                                fontWeight: '700',
-                                                color: statusColor,
+                                                borderRadius: '20px',
+                                                fontSize: '0.7rem',
+                                                fontWeight: '900',
                                                 textTransform: 'uppercase',
-                                                letterSpacing: '0.5px'
-                                            }}>
-                                                {hasEnough ? '✓' : '⚠'} {statusText}
-                                            </span>
+                                                background: hasEnough ? '#10b981' : '#f59e0b',
+                                                color: 'white',
+                                                boxShadow: `0 4px 10px ${hasEnough ? '#10b98140' : '#f59e0b40'}`
+                                            }}>{hasEnough ? 'READY FOR DEPLOY' : 'STOCK DEFICIT'}</span>
                                         </td>
                                     </tr>
                                 );
