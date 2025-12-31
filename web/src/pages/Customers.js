@@ -24,9 +24,22 @@ const Customers = () => {
     const [filterType, setFilterType] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
 
+    const [stats, setStats] = useState({
+        total: 0,
+        active: 0,
+        corporate: 0,
+        outstanding: 0
+    });
+
     useEffect(() => {
         fetchCustomers();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    useEffect(() => {
+        calculateStats();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [customers]);
 
     const fetchCustomers = async () => {
         try {
@@ -44,6 +57,16 @@ const Customers = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const calculateStats = () => {
+        const s = {
+            total: customers.length,
+            active: customers.filter(c => c.is_active).length,
+            corporate: customers.filter(c => c.customer_type !== 'individual').length,
+            outstanding: customers.reduce((sum, c) => sum + (parseFloat(c.outstanding_balance) || 0), 0)
+        };
+        setStats(s);
     };
 
     const handleOpenModal = (customer = null) => {
@@ -166,7 +189,6 @@ const Customers = () => {
         }
     };
 
-    // Filter customers
     const filteredCustomers = customers.filter(customer => {
         const matchesType = filterType === 'all' || customer.customer_type === filterType;
         const matchesSearch = searchTerm === '' ||
@@ -186,149 +208,189 @@ const Customers = () => {
         return types[type] || type;
     };
 
-    const getCustomerTypeBadgeClass = (type) => {
-        const classes = {
-            individual: 'badge-info',
-            retailer: 'badge-success',
-            government: 'badge-warning',
-            institution: 'badge-secondary'
-        };
-        return classes[type] || 'badge-info';
-    };
+    const StatCard = ({ icon, label, value, color, suffix }) => (
+        <div style={{
+            background: 'white',
+            padding: '1.5rem',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1.25rem',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+            borderLeft: `6px solid ${color}`
+        }}>
+            <div style={{
+                fontSize: '2rem',
+                background: `${color}10`,
+                width: '50px',
+                height: '50px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '12px'
+            }}>{icon}</div>
+            <div>
+                <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>{label}</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>
+                    {suffix} {value}
+                </div>
+            </div>
+        </div>
+    );
 
     return (
         <div className="page-container">
             <div className="page-header">
                 <div>
-                    <h1 className="page-title">Customer Management</h1>
-                    <p className="page-subtitle">Manage NLDB customers - farmers, retailers, institutions</p>
+                    <h1 className="page-title">Entity Directory</h1>
+                    <p className="page-subtitle">National Livestock Development Board - Farmer & Retailer Management</p>
                 </div>
                 <button className="btn-primary" onClick={() => handleOpenModal()}>
-                    <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>+</span> Add Customer
+                    <span>+</span> Register New Customer
                 </button>
             </div>
 
-            {/* Filters */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-                <div style={{ flex: '1', minWidth: '200px' }}>
+            {/* Stats Dashboard */}
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gap: '1.5rem',
+                marginBottom: '2rem'
+            }}>
+                <StatCard icon="👥" label="Total Registered" value={stats.total} color="#6366f1" />
+                <StatCard icon="✅" label="Active Partners" value={stats.active} color="#10b981" />
+                <StatCard icon="🏢" label="Corporate Entities" value={stats.corporate} color="#f59e0b" />
+                <StatCard icon="💰" label="Total Outstanding" value={stats.outstanding.toLocaleString()} suffix="Rs." color="#ef4444" />
+            </div>
+
+            {/* Filter Card */}
+            <div style={{
+                backgroundColor: 'white',
+                padding: '1.5rem',
+                borderRadius: '16px',
+                marginBottom: '2rem',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+                display: 'flex',
+                gap: '1.5rem',
+                flexWrap: 'wrap',
+                alignItems: 'flex-end'
+            }}>
+                <div style={{ flex: '1', minWidth: '300px' }}>
+                    <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Search Records</label>
                     <input
                         type="text"
-                        className="form-input"
-                        placeholder="Search by name, phone, or email..."
+                        className="form-control"
+                        placeholder="Search by name, phone, or email identity..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        style={{ width: '100%' }}
                     />
                 </div>
-                <div style={{ minWidth: '180px' }}>
+                <div style={{ width: '250px' }}>
+                    <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Classification</label>
                     <select
-                        className="form-input"
+                        className="form-control"
                         value={filterType}
                         onChange={(e) => setFilterType(e.target.value)}
-                        style={{ width: '100%' }}
                     >
-                        <option value="all">All Customer Types</option>
-                        <option value="individual">Individual</option>
-                        <option value="retailer">Retailer</option>
-                        <option value="government">Government</option>
-                        <option value="institution">Institution</option>
+                        <option value="all">All Classifications</option>
+                        <option value="individual">Individual / Consumer</option>
+                        <option value="retailer">Retail Outlet / SME</option>
+                        <option value="government">Government Body</option>
+                        <option value="institution">Educational / Healthcare</option>
                     </select>
                 </div>
             </div>
 
             {loading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '3rem' }}>
-                    <div className="loading-spinner"></div>
+                <div style={{ textAlign: 'center', padding: '4rem' }}>
+                    <div className="loading-spinner" style={{ margin: '0 auto' }}></div>
+                    <p style={{ marginTop: '1.5rem', color: '#64748b' }}>Pulling latest directory data...</p>
                 </div>
             ) : (
                 <div className="table-container">
                     {filteredCustomers.length === 0 ? (
-                        <div className="empty-state">
-                            <h3>No customers found</h3>
-                            <p>{searchTerm || filterType !== 'all'
-                                ? 'Try adjusting your filters'
-                                : 'Click "Add Customer" to create your first customer.'}</p>
+                        <div style={{ padding: '5rem', textAlign: 'center' }}>
+                            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔎</div>
+                            <h3 style={{ color: '#1e293b' }}>No entities found</h3>
+                            <p style={{ color: '#64748b' }}>Try different search terms or register a new entity.</p>
                         </div>
                     ) : (
                         <table className="data-table">
                             <thead>
                                 <tr>
-                                    <th>Customer Name</th>
-                                    <th>Type</th>
-                                    <th>Contact</th>
-                                    <th style={{ textAlign: 'right' }}>Credit Limit</th>
-                                    <th style={{ textAlign: 'center' }}>Payment Terms</th>
-                                    <th style={{ textAlign: 'right' }}>Outstanding</th>
+                                    <th>Customer Identity</th>
+                                    <th>Classification</th>
+                                    <th>Point of Contact</th>
+                                    <th style={{ textAlign: 'right' }}>Credit Facility</th>
+                                    <th style={{ textAlign: 'right' }}>Dues (Rs.)</th>
                                     <th style={{ textAlign: 'center' }}>Status</th>
-                                    <th className="text-right">Actions</th>
+                                    <th className="text-right">Manage</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredCustomers.map((customer) => (
                                     <tr key={customer.id}>
                                         <td>
-                                            <strong>{customer.name}</strong>
-                                            {customer.contact_person && (
-                                                <div style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.25rem' }}>
-                                                    Contact: {customer.contact_person}
+                                            <div style={{ fontWeight: '700', color: '#1e293b' }}>{customer.name}</div>
+                                            {customer.city && (
+                                                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                                                    📍 {customer.city}
                                                 </div>
                                             )}
                                         </td>
                                         <td>
-                                            <span className={`badge ${getCustomerTypeBadgeClass(customer.customer_type)}`}>
+                                            <span style={{
+                                                padding: '4px 10px',
+                                                borderRadius: '6px',
+                                                fontSize: '0.75rem',
+                                                fontWeight: '700',
+                                                backgroundColor:
+                                                    customer.customer_type === 'individual' ? '#eff6ff' :
+                                                        customer.customer_type === 'retailer' ? '#ecfdf5' :
+                                                            customer.customer_type === 'government' ? '#fffbeb' : '#f5f3ff',
+                                                color:
+                                                    customer.customer_type === 'individual' ? '#1d4ed8' :
+                                                        customer.customer_type === 'retailer' ? '#059669' :
+                                                            customer.customer_type === 'government' ? '#b45309' : '#6d28d9',
+                                            }}>
                                                 {getCustomerTypeLabel(customer.customer_type)}
                                             </span>
                                         </td>
                                         <td>
-                                            {customer.phone && (
-                                                <div style={{ fontSize: '0.875rem' }}>📞 {customer.phone}</div>
-                                            )}
-                                            {customer.email && (
-                                                <div style={{ fontSize: '0.875rem', color: '#666' }}>
-                                                    ✉️ {customer.email}
-                                                </div>
-                                            )}
-                                            {!customer.phone && !customer.email && '-'}
+                                            {customer.phone && <div style={{ fontSize: '0.85rem', fontWeight: '600' }}>📞 {customer.phone}</div>}
+                                            {customer.email && <div style={{ fontSize: '0.75rem', color: '#64748b' }}>✉️ {customer.email}</div>}
                                         </td>
                                         <td style={{ textAlign: 'right' }}>
-                                            {customer.credit_limit > 0
-                                                ? `Rs. ${parseFloat(customer.credit_limit).toLocaleString()}`
-                                                : '-'}
-                                        </td>
-                                        <td style={{ textAlign: 'center' }}>
-                                            {customer.credit_days > 0
-                                                ? `Net ${customer.credit_days} days`
-                                                : '-'}
+                                            {customer.credit_limit > 0 ? (
+                                                <div>
+                                                    <div style={{ fontWeight: '700' }}>Rs. {parseFloat(customer.credit_limit).toLocaleString()}</div>
+                                                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{customer.credit_days} Days limit</div>
+                                                </div>
+                                            ) : (
+                                                <span style={{ color: '#cbd5e1', fontSize: '0.85rem' }}>Full Advance</span>
+                                            )}
                                         </td>
                                         <td style={{ textAlign: 'right' }}>
                                             {customer.outstanding_balance > 0 ? (
-                                                <strong style={{ color: 'var(--danger-color)' }}>
+                                                <div style={{ fontWeight: '800', color: '#ef4444' }}>
                                                     Rs. {parseFloat(customer.outstanding_balance).toLocaleString()}
-                                                </strong>
+                                                </div>
                                             ) : (
-                                                <span style={{ color: '#999' }}>-</span>
+                                                <span style={{ color: '#10b981', fontWeight: '700' }}>CLEAR</span>
                                             )}
                                         </td>
                                         <td style={{ textAlign: 'center' }}>
                                             {customer.is_active ? (
-                                                <span className="badge badge-success">Active</span>
+                                                <span style={{ padding: '4px 12px', background: '#f0fdf4', color: '#16a34a', borderRadius: '20px', fontSize: '0.7rem', fontWeight: '800', border: '1px solid #dcfce7' }}>ACTIVE</span>
                                             ) : (
-                                                <span className="badge badge-secondary">Inactive</span>
+                                                <span style={{ padding: '4px 12px', background: '#f8fafc', color: '#94a3b8', borderRadius: '20px', fontSize: '0.7rem', fontWeight: '800', border: '1px solid #e2e8f0' }}>INACTIVE</span>
                                             )}
                                         </td>
                                         <td style={{ textAlign: 'right' }}>
-                                            <button
-                                                className="action-btn btn-edit"
-                                                onClick={() => handleOpenModal(customer)}
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                className="action-btn btn-delete"
-                                                onClick={() => handleDelete(customer.id)}
-                                            >
-                                                Delete
-                                            </button>
+                                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                                <button className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem' }} onClick={() => handleOpenModal(customer)}>Review</button>
+                                                <button className="btn-cancel" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', borderColor: '#fee2e2', color: '#ef4444' }} onClick={() => handleDelete(customer.id)}>Archive</button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -341,205 +403,83 @@ const Customers = () => {
             {/* Modal */}
             {isModalOpen && (
                 <div className="modal-overlay">
-                    <div className="modal-content" style={{ maxWidth: '600px' }}>
-                        <h2 style={{ marginTop: 0, marginBottom: '1.5rem' }}>
-                            {formData.id ? 'Edit Customer' : 'Add New Customer'}
-                        </h2>
+                    <div className="modal-content" style={{ maxWidth: '700px', borderRadius: '24px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                            <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800' }}>
+                                {formData.id ? 'Modify Entity Profile' : 'Register New Entity'}
+                            </h2>
+                            <button onClick={handleCloseModal} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8' }}>×</button>
+                        </div>
 
-                        {error && (
-                            <div style={{
-                                backgroundColor: '#fee2e2',
-                                color: '#991b1b',
-                                padding: '1rem',
-                                borderRadius: '0.5rem',
-                                marginBottom: '1rem'
-                            }}>
-                                {error}
-                            </div>
-                        )}
+                        {error && <div style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', fontWeight: '600' }}>{error}</div>}
 
                         <form onSubmit={handleSubmit}>
-                            {/* Basic Information */}
-                            <div style={{ marginBottom: '1.5rem' }}>
-                                <h3 style={{ fontSize: '1rem', marginBottom: '1rem', color: '#374151' }}>
-                                    Basic Information
-                                </h3>
-
+                            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
                                 <div className="form-group">
-                                    <label className="form-label">Customer Name *</label>
-                                    <input
-                                        type="text"
-                                        className="form-input"
-                                        name="name"
-                                        value={formData.name}
-                                        onChange={handleInputChange}
-                                        required
-                                        placeholder="e.g., John Doe, ABC Retailers, Ministry of Agriculture"
-                                    />
+                                    <label className="form-label">Full Legal Name / Business Name *</label>
+                                    <input type="text" className="form-control" name="name" value={formData.name} onChange={handleInputChange} required placeholder="NLDB Registered Entity Name" />
                                 </div>
-
                                 <div className="form-group">
-                                    <label className="form-label">Customer Type *</label>
-                                    <select
-                                        className="form-input"
-                                        name="customer_type"
-                                        value={formData.customer_type}
-                                        onChange={handleInputChange}
-                                        required
-                                    >
-                                        <option value="individual">Individual (Farmer/Consumer)</option>
-                                        <option value="retailer">Retailer (Shop/Business)</option>
-                                        <option value="government">Government (Ministry/Department)</option>
-                                        <option value="institution">Institution (School/Hospital)</option>
+                                    <label className="form-label">Classification *</label>
+                                    <select className="form-control" name="customer_type" value={formData.customer_type} onChange={handleInputChange} required>
+                                        <option value="individual">Individual Consumer</option>
+                                        <option value="retailer">Certified Retailer</option>
+                                        <option value="government">Government Agency</option>
+                                        <option value="institution">Private Institution</option>
                                     </select>
                                 </div>
+                            </div>
 
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
                                 <div className="form-group">
-                                    <label className="form-label">Contact Person</label>
-                                    <input
-                                        type="text"
-                                        className="form-input"
-                                        name="contact_person"
-                                        value={formData.contact_person}
-                                        onChange={handleInputChange}
-                                        placeholder="Name of contact person"
-                                    />
+                                    <label className="form-label">Primary Phone</label>
+                                    <input type="tel" className="form-control" name="phone" value={formData.phone} onChange={handleInputChange} placeholder="0XX-XXXXXXX" />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Email Identity</label>
+                                    <input type="email" className="form-control" name="email" value={formData.email} onChange={handleInputChange} placeholder="official@domain.com" />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Active City</label>
+                                    <input type="text" className="form-control" name="city" value={formData.city} onChange={handleInputChange} placeholder="Region" />
                                 </div>
                             </div>
 
-                            {/* Contact Information */}
-                            <div style={{ marginBottom: '1.5rem' }}>
-                                <h3 style={{ fontSize: '1rem', marginBottom: '1rem', color: '#374151' }}>
-                                    Contact Information
-                                </h3>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                    <div className="form-group">
-                                        <label className="form-label">Phone</label>
-                                        <input
-                                            type="tel"
-                                            className="form-input"
-                                            name="phone"
-                                            value={formData.phone}
-                                            onChange={handleInputChange}
-                                            placeholder="07X XXX XXXX"
-                                        />
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label className="form-label">Email</label>
-                                        <input
-                                            type="email"
-                                            className="form-input"
-                                            name="email"
-                                            value={formData.email}
-                                            onChange={handleInputChange}
-                                            placeholder="email@example.com"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="form-group">
-                                    <label className="form-label">Address</label>
-                                    <textarea
-                                        className="form-input"
-                                        name="address"
-                                        value={formData.address}
-                                        onChange={handleInputChange}
-                                        rows="2"
-                                        placeholder="Street address"
-                                    />
-                                </div>
-
-                                <div className="form-group">
-                                    <label className="form-label">City</label>
-                                    <input
-                                        type="text"
-                                        className="form-input"
-                                        name="city"
-                                        value={formData.city}
-                                        onChange={handleInputChange}
-                                        placeholder="e.g., Colombo, Kandy, Galle"
-                                    />
-                                </div>
+                            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                                <label className="form-label">Physical Registered Address</label>
+                                <textarea className="form-control" name="address" value={formData.address} onChange={handleInputChange} rows="2" placeholder="Complete mailing address" />
                             </div>
 
-                            {/* Credit Terms */}
-                            <div style={{ marginBottom: '1.5rem' }}>
-                                <h3 style={{ fontSize: '1rem', marginBottom: '1rem', color: '#374151' }}>
-                                    Credit Terms
-                                </h3>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', marginBottom: '1.5rem', border: '1px solid #e2e8f0' }}>
+                                <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Financial Governance</h4>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                                     <div className="form-group">
-                                        <label className="form-label">Credit Limit (Rs.)</label>
-                                        <input
-                                            type="number"
-                                            className="form-input"
-                                            name="credit_limit"
-                                            value={formData.credit_limit}
-                                            onChange={handleInputChange}
-                                            min="0"
-                                            step="100"
-                                            placeholder="0"
-                                        />
-                                        <small style={{ color: '#666', fontSize: '0.875rem' }}>
-                                            Maximum credit allowed
-                                        </small>
+                                        <label className="form-label">Credit Authorization (Rs.)</label>
+                                        <input type="number" className="form-control" name="credit_limit" value={formData.credit_limit} onChange={handleInputChange} min="0" step="1000" />
                                     </div>
-
                                     <div className="form-group">
-                                        <label className="form-label">Payment Terms (Days)</label>
-                                        <input
-                                            type="number"
-                                            className="form-input"
-                                            name="credit_days"
-                                            value={formData.credit_days}
-                                            onChange={handleInputChange}
-                                            min="0"
-                                            placeholder="0"
-                                        />
-                                        <small style={{ color: '#666', fontSize: '0.875rem' }}>
-                                            e.g., Net 30, Net 60
-                                        </small>
+                                        <label className="form-label">Settlement Period (Days)</label>
+                                        <input type="number" className="form-control" name="credit_days" value={formData.credit_days} onChange={handleInputChange} min="0" />
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Additional Info */}
-                            <div style={{ marginBottom: '1.5rem' }}>
-                                <div className="form-group">
-                                    <label className="form-label">Notes</label>
-                                    <textarea
-                                        className="form-input"
-                                        name="notes"
-                                        value={formData.notes}
-                                        onChange={handleInputChange}
-                                        rows="2"
-                                        placeholder="Additional notes about this customer"
-                                    />
-                                </div>
-
-                                <div className="form-group">
-                                    <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                                        <input
-                                            type="checkbox"
-                                            name="is_active"
-                                            checked={formData.is_active}
-                                            onChange={handleInputChange}
-                                            style={{ marginRight: '0.5rem', width: '18px', height: '18px' }}
-                                        />
-                                        <span>Active customer</span>
-                                    </label>
-                                </div>
+                            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                                <label className="form-label">Internal Audit Notes</label>
+                                <textarea className="form-control" name="notes" value={formData.notes} onChange={handleInputChange} rows="2" placeholder="Special arrangements or history..." />
                             </div>
 
-                            <div className="modal-actions">
-                                <button type="button" className="btn-cancel" onClick={handleCloseModal}>
-                                    Cancel
-                                </button>
-                                <button type="submit" className="btn-primary">
-                                    {formData.id ? 'Save Changes' : 'Create Customer'}
+                            <div className="form-group" style={{ marginBottom: '2rem' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontWeight: '700', color: formData.is_active ? '#10b981' : '#64748b' }}>
+                                    <input type="checkbox" name="is_active" checked={formData.is_active} onChange={handleInputChange} style={{ marginRight: '0.8rem', width: '20px', height: '20px' }} />
+                                    <span>AUTHORIZED STATUS (Enable for sales operations)</span>
+                                </label>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                <button type="button" className="btn-cancel" style={{ flex: 1 }} onClick={handleCloseModal}>Discard</button>
+                                <button type="submit" className="btn-primary" style={{ flex: 2 }}>
+                                    {formData.id ? 'Execute Profile Update' : 'Authorize Registration'}
                                 </button>
                             </div>
                         </form>

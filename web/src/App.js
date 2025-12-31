@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import SalesSidebar from './components/SalesSidebar';
 import StoreKeeperSidebar from './components/StoreKeeperSidebar';
@@ -18,6 +18,7 @@ import DailyIncome from './pages/DailyIncome';
 import RoutesPage from './pages/Routes';
 import StoreKeeperDashboard from './pages/StoreKeeperDashboard';
 import Login from './pages/Login';
+import Home from './pages/Home';
 import Settings from './pages/Settings';
 import './App.css';
 
@@ -29,8 +30,8 @@ function App() {
           {/* Login Route (No Navbar) */}
           <Route path="/login" element={<Login />} />
 
-          {/* Redirect root to login */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          {/* Public Home Page */}
+          <Route path="/" element={<Home />} />
 
           {/* Manager Dashboard Routes (With Sidebar) */}
           <Route path="/dashboard" element={
