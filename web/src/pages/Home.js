@@ -29,9 +29,13 @@ const Home = () => {
             { name: 'Pure Ghee', img: '/nldb_products/ghee.jpg', desc: 'Traditionally prepared ghee with a rich aroma.', tag: 'Premium' },
             { name: 'Drinking Yogurt', img: '/nldb_products/drinking_yogurt.jpg', desc: 'Healthy and refreshing flavored yogurt drinks.', tag: 'Popular' },
             { name: 'Table Butter', img: '/nldb_products/butter.jpg', desc: 'High-quality dairy butter made from fresh cream.', tag: 'Essential' },
-            { name: 'Ice Cream', img: '/nldb_products/ice_cream.jpg', desc: 'Delicious range of flavors including Vanilla & Chocolate.', tag: 'Sweet' },
+            { name: 'Vanilla Ice Cream', img: 'https://www.nldb.gov.lk/images/products/vanila%20ice%20creem%20new.jpg', desc: 'Premium vanilla flavored dairy ice cream.', tag: 'Dessert' },
+            { name: 'Chocolate Ice Cream', img: 'https://www.nldb.gov.lk/images/products/chocolate%20ice%20creem%20new.jpg', desc: 'Rich chocolate flavored dairy ice cream.', tag: 'Dessert' },
+            { name: 'Strawberry Ice Cream', img: 'https://www.nldb.gov.lk/images/products/strawberry%20ice%20creem%20new.jpg', desc: 'Fresh strawberry flavored dairy ice cream.', tag: 'Dessert' },
+            { name: 'Fruit & Nut Ice Cream', img: 'https://www.nldb.gov.lk/images/products/fruit%20and%20nut%20ice%20creem%20new.jpg', desc: 'Delicious fruit and nut loaded dairy ice cream.', tag: 'Special' },
             { name: 'Milk Toffee', img: '/nldb_products/milk_toffee.jpg', desc: 'A popular treat made with farm-fresh NLDB milk.', tag: 'Kids Choice' },
-            { name: 'Goat Milk', img: '/nldb_products/goat_milk.jpg', desc: 'Nutritional alternative to cow milk with health benefits.', tag: 'Healthy' }
+            { name: 'Goat Milk', img: '/nldb_products/goat_milk.jpg', desc: 'Nutritional alternative to cow milk with health benefits.', tag: 'Healthy' },
+            { name: 'Goat Milk Yogurt', img: 'https://www.nldb.gov.lk/images/products/goat%20milk%20yoghurt%20new.jpg', desc: 'Nutritional goat milk yogurt with probiotic benefits.', tag: 'Healthy' }
         ],
         meat: [
             { name: 'Boiler Chicken', img: '/nldb_products/boiler_chicken.jpg', desc: 'Fresh chicken processed under high quality standards.', tag: 'High Protein' },
@@ -45,7 +49,12 @@ const Home = () => {
         ],
         agro: [
             { name: 'Coconut Oil', img: '/nldb_products/coconut_oil.jpg', desc: 'Pure edible oil made from high-quality coconuts.', tag: 'Health' },
-            { name: 'Water Bottle', img: '/nldb_products/water_bottle.jpg', desc: 'Purified and refreshing bottled drinking water.', tag: 'Pure' }
+            { name: 'Fresh Coconuts', img: '/nldb_products/coconuts.jpg', desc: 'High grade fresh coconuts from NLDB plantations.', tag: 'Fresh' },
+            { name: 'Roasted Cashew', img: '/nldb_products/cashew.jpg', desc: 'Premium roasted and raw cashew nuts (Seasonal).', tag: 'Premium' },
+            { name: 'Coffee', img: '/nldb_products/coffee.jpg', desc: 'Unique Sri Lankan coffee varieties from NLDB estates.', tag: 'Export' },
+            { name: 'Drinking Water', img: '/nldb_products/water_bottle.jpg', desc: 'Purified and refreshing bottled drinking water.', tag: 'Pure' },
+            { name: 'Silage', img: '/nldb_products/silage.jpg', desc: 'High quality silage for dairy farmer livestock feed.', tag: 'Farming' },
+            { name: 'Compost', img: '/nldb_products/compost.jpg', desc: 'Organic compost manufactured at NLDB farms.', tag: 'Organic' }
         ]
     };
 
