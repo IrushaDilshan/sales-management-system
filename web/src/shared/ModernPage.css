@@ -202,21 +202,26 @@
 }
 
 .form-input,
-.form-select {
+.form-select,
+.form-control {
     width: 100%;
-    padding: 0.875rem 1rem;
-    border: 2px solid #e5e7eb;
+    padding: 0.875rem 1.25rem;
+    border: 2px solid #e2e8f0;
     border-radius: 12px;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    background: white;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: #ffffff;
+    color: #1e293b;
+    outline: none;
 }
 
 .form-input:focus,
-.form-select:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+.form-select:focus,
+.form-control:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.08);
+    background: white;
 }
 
 /* Modal */
@@ -409,56 +414,65 @@
     font-weight: 500;
 }
 
-/* Registry Filter Hub */
+/* Registry Filter Hub - Modernized */
 .registry-filter-hub {
-    background: white;
-    padding: 1.75rem;
-    border-radius: 24px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+    background: #ffffff;
+    padding: 1.25rem;
+    border-radius: 100px;
+    /* Pill style hub */
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.05);
     margin-bottom: 2.5rem;
     display: flex;
-    gap: 1.5rem;
+    gap: 1rem;
     align-items: center;
-    border: 1px solid rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(0, 0, 0, 0.03);
 }
 
 .search-field-modern {
     flex: 1;
     position: relative;
+    display: flex;
+    align-items: center;
 }
 
 .search-field-modern .icon {
     position: absolute;
-    left: 1.25rem;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 1.2rem;
+    left: 1.5rem;
+    font-size: 1.1rem;
     pointer-events: none;
-    opacity: 0.4;
+    z-index: 10;
+    filter: grayscale(1) brightness(0.5);
+    opacity: 0.5;
 }
 
 .search-field-modern .form-control {
     padding-left: 3.5rem !important;
-    background: #f8fafc;
+    background: #f1f5f9;
     border: 2px solid transparent;
-    transition: all 0.3s;
+    border-radius: 100px !important;
+    /* Full pill search */
+    height: 54px;
+    font-weight: 600;
 }
 
 .search-field-modern .form-control:focus {
-    background: white;
+    background: #ffffff;
     border-color: #6366f1;
-    box-shadow: 0 10px 20px rgba(99, 102, 241, 0.1);
+    box-shadow: 0 10px 25px rgba(99, 102, 241, 0.12);
 }
 
 .filter-group-modern {
-    width: 280px;
+    width: 240px;
 }
 
 .filter-group-modern select {
-    background: #f8fafc;
+    background: #f1f5f9;
     border: 2px solid transparent;
+    border-radius: 100px !important;
+    height: 54px;
+    padding: 0 1.5rem;
     font-weight: 700;
-    color: #1e293b;
+    color: #475569;
     cursor: pointer;
 }
 
@@ -471,20 +485,22 @@
     background: #f1f5f9;
     color: #64748b;
     border: none;
-    height: 52px;
-    padding: 0 1.5rem;
-    border-radius: 12px;
+    height: 54px;
+    padding: 0 2rem;
+    border-radius: 100px;
     font-size: 0.9rem;
-    font-weight: 700;
+    font-weight: 800;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
+    white-space: nowrap;
 }
 
 .btn-reset-modern:hover {
-    background: #e2e8f0;
-    color: #1e293b;
+    background: #fee2e2;
+    color: #ef4444;
     transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(239, 68, 68, 0.15);
 }

@@ -196,7 +196,7 @@ const Users = () => {
                     className="btn-reset-modern"
                     onClick={() => { setSearchQuery(''); setRoleFilter('all'); }}
                 >
-                    🔄 Reset Registry
+                    Reset
                 </button>
             </div>
 
