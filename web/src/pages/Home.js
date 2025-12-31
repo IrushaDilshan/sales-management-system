@@ -2,8 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import './Home.css';
 
-// Tech and Corporate assets
-import techFarming from '../assets/modern_tech_farming.png';
+// Premium Visual Assets
+import premiumHeroBg from '../assets/nldb_hero_premium.png';
+import labResearch from '../assets/nldb_lab.png';
+import logisticsImg from '../assets/nldb_logistics.png';
+import qualityBadge from '../assets/nldb_quality_badge.png';
 import organizationHq from '../assets/nldb_organization_hq.png';
 
 const Home = () => {
@@ -18,7 +21,7 @@ const Home = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    const categories = {
+    const productRegistry = {
         dairy: [
             { name: 'Fresh Milk', img: '/nldb_products/fresh_milk.jpg', desc: 'High-quality fresh milk processed under strict hygiene.', tag: 'Pure' },
             { name: 'Buffalo Curd', img: '/nldb_products/curd.jpg', desc: 'Rich, creamy texture traditional Buffalo curd.', tag: 'Organic' },
@@ -48,7 +51,7 @@ const Home = () => {
 
     return (
         <div className="home-white-modern">
-            {/* Premium Header */}
+            {/* Immersive Navigation */}
             <header className={`header-modern ${isScrolled ? 'scrolled' : ''}`}>
                 <div className="container nav-flex">
                     <div className="branding">
@@ -63,139 +66,164 @@ const Home = () => {
 
                     <nav className="main-nav">
                         <ul>
-                            <li><a href="#about">Organization</a></li>
-                            <li><a href="#solutions">Solutions</a></li>
-                            <li><a href="#products">Products</a></li>
-                            <li><Link to="/login" className="btn-portal">Staff Portal</Link></li>
+                            <li><a href="#about">The Authority</a></li>
+                            <li><a href="#ops">Operations</a></li>
+                            <li><a href="#products">Product Registry</a></li>
+                            <li><Link to="/login" className="btn-portal">Command Center</Link></li>
                         </ul>
                     </nav>
                 </div>
             </header>
 
-            {/* Immersive Hero - Light Version */}
-            <section className="hero-light">
-                <div className="container hero-grid">
-                    <div className="hero-text-side">
-                        <div className="hero-badge">Digital Agriculture Excellence</div>
-                        <h1>The New Era of <span className="text-green">Livestock Technology.</span></h1>
-                        <p>
-                            Empowering Sri Lanka through advanced genetic research,
-                            real-time data analytics, and a state-of-the-art national dairy supply chain.
-                        </p>
-                        <div className="hero-action-buttons">
-                            <a href="#about" className="btn-primary">Explore NLDB</a>
-                            <Link to="/login" className="btn-secondary">Management Login</Link>
+            {/* High-Impact Hero */}
+            <section className="hero-premium" style={{ backgroundImage: `url(${premiumHeroBg})` }}>
+                <div className="container">
+                    <div className="hero-content animate-fade">
+                        <div className="hero-badge-v2">
+                            <span className="dot"></span> Pioneering Sustainable Agriculture
                         </div>
-                    </div>
-                    <div className="hero-visual-side">
-                        <div className="visual-wrapper">
-                            <img src={techFarming} alt="Future Farming" className="hero-img-main" />
-                            <div className="floating-card c1">
-                                <span className="icon">📊</span>
-                                <div>
-                                    <strong>40+</strong>
-                                    <p>Smart Farms</p>
-                                </div>
-                            </div>
-                            <div className="floating-card c2">
-                                <span className="icon">🐄</span>
-                                <div>
-                                    <strong>Live</strong>
-                                    <p>IoT Tracking</p>
-                                </div>
-                            </div>
+                        <h1>Reshaping the National <br /><span className="text-green">Livestock Frontier.</span></h1>
+                        <p>
+                            Leading Sri Lanka through advanced genetic research,
+                            precision engineering, and a state-of-the-art biological
+                            infrastructure ensuring national food sovereignty.
+                        </p>
+                        <div className="hero-btns">
+                            <a href="#products" className="btn-gradient">Explore Products</a>
+                            <a href="#about" className="btn-glass">Corporate Overview</a>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* Organization / Mission - Clean White */}
-            <section id="about" className="section-padding bg-white">
-                <div className="container">
-                    <div className="about-modern-grid">
-                        <div className="about-img-box">
-                            <img src={organizationHq} alt="NLDB HQ" />
+            {/* Trust & Quality Bar */}
+            <section className="qa-banner">
+                <div className="container qa-grid">
+                    <div className="qa-item">
+                        <div className="icon">🛡️</div>
+                        <div>
+                            <strong>ISO Certified</strong>
+                            <p>Global standards in safety</p>
                         </div>
-                        <div className="about-info-box">
-                            <div className="section-tag">Established 1973</div>
-                            <h2 className="headline-h2">Leading through <span className="text-green">Innovation & Integrity.</span></h2>
+                    </div>
+                    <div className="qa-item">
+                        <div className="icon">🔬</div>
+                        <div>
+                            <strong>Genetic Excellence</strong>
+                            <p>Premium breeding protocols</p>
+                        </div>
+                    </div>
+                    <div className="qa-item">
+                        <div className="icon">♻️</div>
+                        <div>
+                            <strong>Eco-Focused</strong>
+                            <p>Sustainable farm management</p>
+                        </div>
+                    </div>
+                    <div className="qa-item">
+                        <div className="icon">🇱🇰</div>
+                        <div>
+                            <strong>Nation Building</strong>
+                            <p>Supporting local dairy farmers</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* The Authority - Corporate Mission */}
+            <section id="about" className="section-padding">
+                <div className="container">
+                    <div className="mission-v2">
+                        <div className="mission-text-side">
+                            <div className="section-tag">Governing Body since 1973</div>
+                            <h2 className="headline-h2">A Legacy of <span className="text-green">Integrity & Precision.</span></h2>
                             <p className="p-large">
-                                As the national authority in livestock development, we bridge the gap between
-                                traditional farming and digital precision to ensure national food security.
+                                As the national authority, NLDB bridges the gap between traditional
+                                Sri Lankan farming and high-tech digital precision. We operate 40+
+                                specialized farms focused on genetic optimization and production excellence.
                             </p>
                             <div className="stats-horizontal">
                                 <div className="stat-node">
-                                    <span className="sc-val">50+</span>
-                                    <span className="sc-lbl">Years of Excellence</span>
+                                    <span className="sc-val">40+</span>
+                                    <span className="sc-lbl">Regional Farms</span>
                                 </div>
                                 <div className="stat-node">
                                     <span className="sc-val">100+</span>
-                                    <span className="sc-lbl">Retail Outlets</span>
+                                    <span className="sc-lbl">Output Centers</span>
                                 </div>
                                 <div className="stat-node">
-                                    <span className="sc-val">5k+</span>
-                                    <span className="sc-lbl">Industry Staff</span>
+                                    <span className="sc-val">5K+</span>
+                                    <span className="sc-lbl">Technical Staff</span>
                                 </div>
+                            </div>
+                        </div>
+                        <div className="mission-visual-side">
+                            <img src={organizationHq} alt="NLDB HQ" />
+                            <img src={qualityBadge} alt="Quality Seal" className="badge-float" />
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Strategic Operations - The Future of Farming */}
+            <section id="ops" className="section-padding bg-light-surface">
+                <div className="container">
+                    <div className="section-title-box">
+                        <h2 className="headline-h2">Strategic <span className="text-green">Operations</span></h2>
+                        <p className="subtitle-p">Our biological and logistical infrastructure powers the nation's supply chain.</p>
+                    </div>
+
+                    <div className="ops-grid">
+                        <div className="ops-card">
+                            <img src={labResearch} alt="Genetic Research" />
+                            <div className="ops-overlay">
+                                <h3>Bio-Genetic Research</h3>
+                                <p>Optimizing high-yield breeds through advanced laboratory protocols and selective breeding.</p>
+                            </div>
+                        </div>
+                        <div className="ops-card">
+                            <img src={logisticsImg} alt="Logistics" />
+                            <div className="ops-overlay">
+                                <h3>Digital Logistics</h3>
+                                <p>Cold-chain precision ensuring farm-to-door freshness within 24 hours nationwide.</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* Products Section with Tabs */}
-            <section id="products" className="section-padding bg-light-surface">
+            {/* Product Registry - The High-Performance Grid */}
+            <section id="products" className="section-padding">
                 <div className="container">
-                    <div className="text-center mb-50">
-                        <h2 className="headline-h2">Our <span className="text-green">Premium Registry</span></h2>
-                        <p className="subtitle-p">Direct from our farms to your doorstep, powered by technology.</p>
-
-                        {/* Category Tabs */}
-                        <div className="category-tabs" style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '2rem' }}>
-                            {['dairy', 'meat', 'agro'].map(cat => (
-                                <button
-                                    key={cat}
-                                    onClick={() => setActiveCategory(cat)}
-                                    className={`tab-btn ${activeCategory === cat ? 'active' : ''}`}
-                                    style={{
-                                        padding: '0.75rem 2rem',
-                                        borderRadius: '30px',
-                                        border: 'none',
-                                        background: activeCategory === cat ? '#2ecc71' : 'white',
-                                        color: activeCategory === cat ? 'white' : '#7f8c8d',
-                                        fontWeight: '700',
-                                        cursor: 'pointer',
-                                        boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
-                                        transition: '0.3s',
-                                        textTransform: 'uppercase',
-                                        letterSpacing: '0.05em'
-                                    }}
-                                >
-                                    {cat === 'dairy' ? '🥛 Dairy' : cat === 'meat' ? '🥩 Meat' : '🥥 Agro'}
-                                </button>
-                            ))}
-                        </div>
+                    <div className="section-title-box">
+                        <h2 className="headline-h2">The Product <span className="text-green">Registry</span></h2>
+                        <p className="subtitle-p">A definitive collection of NLDB's premium output, refined for excellence.</p>
                     </div>
 
-                    {/* Dynamic Product Grid */}
-                    <div className="product-showcase-grid" style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                        gap: '2rem'
-                    }}>
-                        {categories[activeCategory].map((p, i) => (
-                            <div key={i} className="product-card-premium" style={{
-                                animation: 'fadeIn 0.5s ease-out forwards',
-                                animationDelay: `${i * 0.1}s`
-                            }}>
-                                <div className="p-card-img" style={{ height: '240px', overflow: 'hidden', background: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <img src={p.img} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <div className="category-tabs">
+                        {['dairy', 'meat', 'agro'].map(cat => (
+                            <button
+                                key={cat}
+                                onClick={() => setActiveCategory(cat)}
+                                className={`tab-btn ${activeCategory === cat ? 'active' : ''}`}
+                            >
+                                {cat === 'dairy' ? 'Milk & Dairy' : cat === 'meat' ? 'Poultry & Meat' : 'Agro Products'}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="product-showcase-grid">
+                        {productRegistry[activeCategory].map((p, i) => (
+                            <div key={i} className="product-card-premium animate-fade" style={{ animationDelay: `${i * 0.1}s` }}>
+                                <div className="p-card-img">
+                                    <img src={p.img} alt={p.name} />
                                 </div>
-                                <div className="p-card-info" style={{ padding: '1.5rem' }}>
-                                    <span className="p-category" style={{ fontSize: '0.7rem', fontWeight: '800', color: '#2ecc71', textTransform: 'uppercase' }}>{activeCategory}</span>
-                                    <h3 style={{ margin: '0.5rem 0', fontSize: '1.25rem' }}>{p.name}</h3>
-                                    <p style={{ fontSize: '0.85rem', color: '#636e72', lineHeight: '1.5', minHeight: '3rem' }}>{p.desc}</p>
-                                    <div className="p-card-footer" style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span className="p-tag" style={{ background: '#e8f8f0', color: '#27ae60', padding: '4px 12px', borderRadius: '15px', fontSize: '0.75rem', fontWeight: '700' }}>{p.tag}</span>
+                                <div className="p-card-info">
+                                    <span className="p-category">{activeCategory}</span>
+                                    <h3>{p.name}</h3>
+                                    <p>{p.desc}</p>
+                                    <div className="p-card-footer">
+                                        <span className="p-tag">{p.tag}</span>
                                     </div>
                                 </div>
                             </div>
@@ -204,60 +232,54 @@ const Home = () => {
                 </div>
             </section>
 
-            {/* Footer - Minimalist Modern */}
-            <footer className="footer-clean">
-                <div className="container footer-top">
-                    <div className="footer-brand-side">
-                        <div className="logo-main small">NLDB</div>
-                        <p>National Livestock Development Board</p>
-                        <p className="address">No.40 , Nawala road , Narahenpita , Colombo 05</p>
-                    </div>
-                    <div className="footer-nav-side">
-                        <div className="f-nav-col">
-                            <h4>Explore</h4>
-                            <a href="#about">About Us</a>
-                            <a href="#solutions">Technology</a>
-                            <a href="#products">Products</a>
-                        </div>
-                        <div className="f-nav-col">
-                            <h4>Support</h4>
-                            <a href="#products">Tenders</a>
-                            <a href="#products">Vacancies</a>
-                            <Link to="/login">Employee Access</Link>
-                        </div>
+            {/* Massive Call to Action */}
+            <section className="container">
+                <div className="cta-banner animate-fade">
+                    <h2>Join the <span className="text-green">Movement.</span></h2>
+                    <p>Securing the nutritional future of Sri Lanka through innovation, quality, and commitment.</p>
+                    <div className="hero-btns" style={{ justifyContent: 'center' }}>
+                        <Link to="/login" className="btn-gradient">Staff Access</Link>
+                        <a href="#about" className="btn-glass">Contact HQ</a>
                     </div>
                 </div>
-                <div className="footer-bottom-clean">
-                    <div className="container flex-sb">
-                        <span>© 2025 NLDB Sri Lanka. Progress through technology.</span>
+            </section>
+
+            {/* Official Footer v2 */}
+            <footer className="footer-modern-v2">
+                <div className="container">
+                    <div className="footer-top-grid">
+                        <div className="footer-brand">
+                            <h2>NLDB</h2>
+                            <p>The National Livestock Development Board of Sri Lanka. Empowering the nation since 1973.</p>
+                        </div>
+                        <div className="footer-links">
+                            <h4>The Registry</h4>
+                            <a href="#products">Dairy Catalog</a>
+                            <a href="#products">Meat Catalog</a>
+                            <a href="#ops">Agro Exports</a>
+                        </div>
+                        <div className="footer-links">
+                            <h4>Corporate</h4>
+                            <a href="#about">Our Mission</a>
+                            <a href="#ops">Operations</a>
+                            <a href="#">Official Tenders</a>
+                            <a href="#">Annual Reports</a>
+                        </div>
+                        <div className="footer-links">
+                            <h4>Portal</h4>
+                            <Link to="/login">Employee Login</Link>
+                            <Link to="/login">Manager Access</Link>
+                            <Link to="/login">Storekeeping</Link>
+                        </div>
+                    </div>
+                    <div className="footer-bottom-clean flex-sb" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                        <span>© 2025 National Livestock Development Board. All Rights Reserved.</span>
                         <div className="social-links-minimal">
-                            <span>FB</span> • <span>IN</span> • <span>YT</span>
+                            <span>FACEBOOK</span> • <span>INSTAGRAM</span> • <span>LINKEDIN</span>
                         </div>
                     </div>
                 </div>
             </footer>
-
-            <style>{`
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(20px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                .tab-btn:hover {
-                    box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
-                    transform: translateY(-2px);
-                }
-                .product-card-premium {
-                    background: white;
-                    border-radius: 20px;
-                    overflow: hidden;
-                    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-                    transition: 0.3s;
-                }
-                .product-card-premium:hover {
-                    transform: translateY(-10px);
-                    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-                }
-            `}</style>
         </div>
     );
 };
