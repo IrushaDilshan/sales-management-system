@@ -17,9 +17,23 @@ const Users = () => {
 
     const [searchQuery, setSearchQuery] = useState('');
     const [roleFilter, setRoleFilter] = useState('all');
+    const panelRef = React.useRef(null);
 
     useEffect(() => {
         fetchUsers();
+
+        const updatePanelHeight = () => {
+            if (panelRef.current) {
+                const height = panelRef.current.offsetHeight;
+                document.documentElement.style.setProperty('--governance-height', `${height - 40}px`);
+            }
+        };
+
+        const observer = new ResizeObserver(updatePanelHeight);
+        if (panelRef.current) observer.observe(panelRef.current);
+
+        updatePanelHeight();
+        return () => observer.disconnect();
     }, []);
 
     const fetchUsers = async () => {
@@ -150,7 +164,7 @@ const Users = () => {
 
     return (
         <div className="page-container">
-            <div className="sticky-governance-panel">
+            <div className="sticky-governance-panel" ref={panelRef}>
                 <div className="page-header">
                     <div>
                         <h1 className="page-title">Personnel Management</h1>
