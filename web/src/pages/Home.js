@@ -386,12 +386,17 @@ const Home = () => {
                         </div>
                     </div>
                     <div className="contact-action-panel">
-                        <div className="cta-banner animate-fade" style={{ margin: 0, borderRadius: '32px' }}>
-                            <h2>Join the <span className="text-green">Movement.</span></h2>
-                            <p>Securing the nutritional future of Sri Lanka through innovation and commitment.</p>
-                            <div className="hero-btns" style={{ justifyContent: 'center' }}>
-                                <Link to="/login" className="btn-gradient">Staff Access</Link>
-                                <a href="mailto:info@nldb.gov.lk" className="btn-glass">Send Inquiry</a>
+                        <div className="hq-map-card animate-fade">
+                            <div className="map-overlay-content">
+                                <div className="map-icon-circle">📍</div>
+                                <h3>Visit our Head Office</h3>
+                                <p>No. 40, Narahenpita Road, Colombo 05</p>
+                                <button
+                                    className="btn-map-hq"
+                                    onClick={() => window.open('https://www.google.com/maps/search/?api=1&query=NLDB+Head+Office+Narahenpita+Colombo', '_blank')}
+                                >
+                                    Open in Google Maps
+                                </button>
                             </div>
                         </div>
                     </div>
