@@ -317,21 +317,34 @@ const Home = () => {
                     <div className="outlet-grid-premium">
                         {filteredOutlets.length > 0 ? (
                             filteredOutlets.map((outlet, idx) => (
-                                <div key={idx} className="outlet-card-v2 animate-fade">
-                                    <div className="outlet-details">
-                                        <span className="outlet-category">{outlet.type}</span>
+                                <div key={idx} className="outlet-card-premium animate-fade">
+                                    <div className="outlet-accent-bar"></div>
+                                    <div className="outlet-content">
+                                        <div className="outlet-header">
+                                            <span className="outlet-badge">{outlet.type}</span>
+                                            <div className="outlet-status">
+                                                <span className="dot-online"></span> Official Store
+                                            </div>
+                                        </div>
                                         <h4>{outlet.name}</h4>
-                                        <p className="loc-text">{outlet.loc}</p>
-                                        <div className="outlet-contact">
-                                            <span>📞 {outlet.tel}</span>
+                                        <div className="outlet-info-row">
+                                            <span className="info-icon">📍</span>
+                                            <p className="loc-text">{outlet.loc}</p>
+                                        </div>
+                                        <div className="outlet-info-row">
+                                            <span className="info-icon">📞</span>
+                                            <p className="contact-text">{outlet.tel}</p>
+                                        </div>
+                                        <div className="outlet-actions-modern">
+                                            <button
+                                                className="btn-map-modern"
+                                                onClick={() => handleViewMap(outlet)}
+                                            >
+                                                <span>Show on Map</span>
+                                                <i className="arrow-icon">↗</i>
+                                            </button>
                                         </div>
                                     </div>
-                                    <button
-                                        className="btn-view-map"
-                                        onClick={() => handleViewMap(outlet)}
-                                    >
-                                        View Map
-                                    </button>
                                 </div>
                             ))
                         ) : (
