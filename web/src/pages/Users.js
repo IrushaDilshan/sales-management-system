@@ -167,23 +167,37 @@ const Users = () => {
             {error && <div style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', fontWeight: '600', border: '1px solid #fee2e2' }}>⚠️ {error}</div>}
             {success && <div style={{ background: '#f0fdf4', color: '#166534', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', fontWeight: '600', border: '1px solid #dcfce7' }}>✅ {success}</div>}
 
-            <div style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', marginBottom: '2rem', display: 'flex', gap: '1.5rem', alignItems: 'flex-end' }}>
-                <div style={{ flex: 1 }}>
-                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Identity Search</label>
-                    <input type="text" className="form-control" placeholder="Identify by name or operations role..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+            <div className="registry-filter-hub animate-fade">
+                <div className="search-field-modern">
+                    <span className="icon">🔍</span>
+                    <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Search by name, role or operation tag..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
                 </div>
-                <div style={{ width: '250px' }}>
-                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Role Classification</label>
-                    <select className="form-control" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
-                        <option value="all">All Classifications</option>
-                        <option value="admin">Administrator (Full Access)</option>
-                        <option value="storekeeper">Storekeeper (Inventory Control)</option>
-                        <option value="ma">Management Assistant</option>
-                        <option value="rep">Representative (Field Org)</option>
-                        <option value="salesman">Salesman (Direct Transactions)</option>
+                <div className="filter-group-modern">
+                    <select
+                        className="form-control"
+                        value={roleFilter}
+                        onChange={(e) => setRoleFilter(e.target.value)}
+                    >
+                        <option value="all">All Access Groups</option>
+                        <option value="admin">Administrators</option>
+                        <option value="storekeeper">Stock Control</option>
+                        <option value="ma">Management Assistance</option>
+                        <option value="rep">Field Operations</option>
+                        <option value="salesman">Sales Teams</option>
                     </select>
                 </div>
-                <button className="btn-secondary" style={{ width: 'auto', padding: '0.75rem 1.5rem' }} onClick={() => { setSearchQuery(''); setRoleFilter('all'); }}>Reset Registry</button>
+                <button
+                    className="btn-reset-modern"
+                    onClick={() => { setSearchQuery(''); setRoleFilter('all'); }}
+                >
+                    🔄 Reset Registry
+                </button>
             </div>
 
             {loading ? (

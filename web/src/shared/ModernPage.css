@@ -408,3 +408,83 @@
     line-height: 1.3;
     font-weight: 500;
 }
+
+/* Registry Filter Hub */
+.registry-filter-hub {
+    background: white;
+    padding: 1.75rem;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+    margin-bottom: 2.5rem;
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    border: 1px solid rgba(0, 0, 0, 0.02);
+}
+
+.search-field-modern {
+    flex: 1;
+    position: relative;
+}
+
+.search-field-modern .icon {
+    position: absolute;
+    left: 1.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.2rem;
+    pointer-events: none;
+    opacity: 0.4;
+}
+
+.search-field-modern .form-control {
+    padding-left: 3.5rem !important;
+    background: #f8fafc;
+    border: 2px solid transparent;
+    transition: all 0.3s;
+}
+
+.search-field-modern .form-control:focus {
+    background: white;
+    border-color: #6366f1;
+    box-shadow: 0 10px 20px rgba(99, 102, 241, 0.1);
+}
+
+.filter-group-modern {
+    width: 280px;
+}
+
+.filter-group-modern select {
+    background: #f8fafc;
+    border: 2px solid transparent;
+    font-weight: 700;
+    color: #1e293b;
+    cursor: pointer;
+}
+
+.filter-group-modern select:focus {
+    background: white;
+    border-color: #6366f1;
+}
+
+.btn-reset-modern {
+    background: #f1f5f9;
+    color: #64748b;
+    border: none;
+    height: 52px;
+    padding: 0 1.5rem;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-reset-modern:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+    transform: translateY(-2px);
+}
