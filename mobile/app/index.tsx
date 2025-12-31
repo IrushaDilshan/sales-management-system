@@ -16,12 +16,19 @@ export default function Index() {
             const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
             if (sessionError || !session) {
-                // No session, redirect to login
                 router.replace('/login');
                 return;
             }
 
-            // User is logged in, fetch role to determine where to go
+            // Optimization: Check metadata first (offline support)
+            const metadataRole = session.user.user_metadata?.role;
+            if (metadataRole) {
+                console.log('Role found in session metadata:', metadataRole);
+                handleRoleRedirect(metadataRole);
+                return;
+            }
+
+            // Fallback: Fetch role from database
             const { data: userData, error: userError } = await supabase
                 .from('users')
                 .select('role')
@@ -29,38 +36,16 @@ export default function Index() {
                 .single();
 
             if (userError || !userData?.role) {
-                console.error('Error fetching user role:', userError);
-                // Fallback to login if role is missing/error
+                console.log('Could not fetch user role (network issue?):', userError?.message);
                 router.replace('/login');
                 return;
             }
 
-            console.log('Auto-login for role:', userData.role);
-
-            // Redirect based on role (matching login.tsx logic)
-            switch (userData.role.toLowerCase()) {
-                case 'salesman':
-                case 'shop_owner':
-                    router.replace('/(tabs)/home');
-                    break;
-                case 'rep':
-                case 'representative':
-                    // Check if rep folder structure exists, otherwise fallback
-                    router.replace('/rep/(tabs)/home');
-                    break;
-                case 'storekeeper':
-                    router.replace('/storekeeper/(tabs)/home');
-                    break;
-                case 'admin':
-                    router.replace('/dashboard');
-                    break;
-                default:
-                    console.warn('Unknown role:', userData.role);
-                    router.replace('/(tabs)/home'); // Default fallback
-            }
+            console.log('Role fetched from DB:', userData.role);
+            handleRoleRedirect(userData.role);
 
         } catch (error: any) {
-            console.error('Auth check error:', error);
+            console.log('Auth check error:', error);
 
             // Handle invalid refresh token specifically
             if (error?.message?.includes('refresh token') ||
@@ -70,12 +55,32 @@ export default function Index() {
                 await supabase.auth.signOut().catch(() => { });
             }
 
-            // On error, default to login
             router.replace('/login');
         }
     };
 
-    // Show loading spinner while checking auth
+    const handleRoleRedirect = (role: string) => {
+        switch (role.toLowerCase()) {
+            case 'salesman':
+            case 'shop_owner':
+                router.replace('/(tabs)/home');
+                break;
+            case 'rep':
+            case 'representative':
+                router.replace('/rep/(tabs)/home');
+                break;
+            case 'storekeeper':
+                router.replace('/storekeeper/(tabs)/home');
+                break;
+            case 'admin':
+                router.replace('/dashboard');
+                break;
+            default:
+                console.warn('Unknown role:', role);
+                router.replace('/(tabs)/home');
+        }
+    };
+
     return (
         <View style={styles.container}>
             <ActivityIndicator size="large" color="#2196F3" />

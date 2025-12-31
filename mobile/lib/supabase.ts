@@ -19,28 +19,26 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
             'X-Client-Info': 'supabase-js-react-native',
         },
         fetch: async (url, options = {}) => {
-            // Create AbortController for timeout (React Native compatible)
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+            const MAX_RETRIES = 3;
+            let lastError;
 
-            try {
-                const response = await fetch(url, {
-                    ...options,
-                    signal: controller.signal,
-                });
-                clearTimeout(timeoutId);
-                return response;
-            } catch (error: any) {
-                clearTimeout(timeoutId);
-                // Log network errors but don't crash
-                if (error.name === 'AbortError') {
-                    console.warn('Supabase request timeout');
-                } else {
-                    console.warn('Supabase fetch error:', error.message);
+            for (let i = 0; i < MAX_RETRIES; i++) {
+                try {
+                    return await fetch(url, options);
+                } catch (error: any) {
+                    lastError = error;
+                    // Retry only on network errors (TypeError: Network request failed)
+                    if (error.name === 'TypeError' || error.message?.includes('Network request failed')) {
+                        const delay = 500 * Math.pow(2, i); // 500, 1000, 2000ms
+                        console.log(`Supabase request failed, retrying in ${delay}ms... (${i + 1}/${MAX_RETRIES})`);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        continue;
+                    }
+                    // For other errors, throw immediately
+                    throw error;
                 }
-                // Re-throw to let Supabase handle retries
-                throw error;
             }
+            throw lastError;
         },
     },
 })
