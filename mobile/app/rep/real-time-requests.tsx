@@ -10,6 +10,7 @@ type RealTimeRequest = {
     shopName: string;
     shopId: number;
     date: string;
+    created_at?: string;
     itemCount: number;
 };
 
@@ -22,13 +23,13 @@ type GroupedSection = {
 const groupByDate = (requests: RealTimeRequest[]): GroupedSection[] => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
 
     const groups = new Map<string, RealTimeRequest[]>();
 
     requests.forEach(request => {
-        const requestDate = new Date(request.date);
+        // Use created_at if available, otherwise date
+        const dateStr = request.created_at || request.date;
+        const requestDate = new Date(dateStr);
         const requestDay = new Date(requestDate.getFullYear(), requestDate.getMonth(), requestDate.getDate());
 
         const diffTime = today.getTime() - requestDay.getTime();
@@ -148,10 +149,10 @@ export default function RealTimeRequests() {
             // Fetch ALL pending requests (no date filter - real-time)
             const { data: requestsData } = await supabase
                 .from('requests')
-                .select('id, shop_id, date')
+                .select('id, shop_id, date, created_at')
                 .eq('status', 'pending')
                 .in('shop_id', shopIds)
-                .order('date', { ascending: false });
+                .order('created_at', { ascending: false });
 
             if (!requestsData || requestsData.length === 0) {
                 setRealTimeRequests([]);
@@ -179,6 +180,7 @@ export default function RealTimeRequests() {
                 shopName: shopNamesMap.get(req.shop_id) || 'Unknown Shop',
                 shopId: req.shop_id,
                 date: req.date,
+                created_at: req.created_at,
                 itemCount: itemCountMap.get(req.id) || 0
             }));
 
@@ -194,7 +196,7 @@ export default function RealTimeRequests() {
             ) {
                 return;
             }
-            console.error('Error fetching real-time requests:', err);
+            console.log('Error fetching real-time requests:', err);
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -207,20 +209,51 @@ export default function RealTimeRequests() {
     };
 
     const renderRequest = ({ item }: { item: RealTimeRequest }) => {
-        const requestDate = new Date(item.date);
-        const now = new Date();
-        const diffMs = now.getTime() - requestDate.getTime();
-        const diffMins = Math.floor(diffMs / 60000);
-        const diffHours = Math.floor(diffMins / 60);
-        const diffDays = Math.floor(diffHours / 24);
+        // Check if created_at exists AND has time component (length > 10 for ISO string)
+        const hasTime = item.created_at && item.created_at.length > 10;
 
         let timeAgo = '';
-        if (diffMins < 1) timeAgo = 'Just now';
-        else if (diffMins < 60) timeAgo = `${diffMins}m ago`;
-        else if (diffHours < 24) timeAgo = `${diffHours}h ago`;
-        else timeAgo = `${diffDays}d ago`;
+        if (hasTime) {
+            let dateStr = item.created_at!;
+            // Fix: If timestamp from DB lacks timezone (Supabase/Postgres specific), treat as UTC
+            // This fixes the "5h ago" issue where UTC time was parsed as Local time
+            if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
+                dateStr += 'Z';
+            }
 
-        const isNew = diffHours < 24;
+            const requestDate = new Date(dateStr);
+            const now = new Date();
+            const diffMs = now.getTime() - requestDate.getTime();
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+
+            if (diffMins < 1) timeAgo = 'Just now';
+            else if (diffMins < 60) timeAgo = `${diffMins}m ago`;
+            else if (diffHours < 24) timeAgo = `${diffHours}h ago`;
+            else timeAgo = `${diffDays}d ago`;
+        } else {
+            // Fallback for date-only values (prevents "19h ago" timezone confusion)
+            const date = new Date(item.date);
+            const now = new Date();
+            const isToday = date.getDate() === now.getDate() &&
+                date.getMonth() === now.getMonth() &&
+                date.getFullYear() === now.getFullYear();
+
+            if (isToday) timeAgo = 'Today';
+            else {
+                const yesterday = new Date(now);
+                yesterday.setDate(now.getDate() - 1);
+                const isYesterday = date.getDate() === yesterday.getDate() &&
+                    date.getMonth() === yesterday.getMonth() &&
+                    date.getFullYear() === yesterday.getFullYear();
+
+                if (isYesterday) timeAgo = 'Yesterday';
+                else timeAgo = date.toLocaleDateString();
+            }
+        }
+
+        const isNew = hasTime ? (Date.now() - new Date(item.created_at!).getTime()) < 24 * 60 * 60 * 1000 : true;
 
         return (
             <TouchableOpacity

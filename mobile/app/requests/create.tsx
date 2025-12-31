@@ -86,7 +86,8 @@ export default function CreateRequestScreen() {
                     shop_id: shop_id,
                     salesman_id: salesmanId,
                     status: 'pending',
-                    date: new Date().toISOString()
+                    date: new Date().toISOString(),
+                    created_at: new Date().toISOString()
                 }])
                 .select()
                 .single();
