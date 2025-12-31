@@ -9,6 +9,7 @@ import logisticsImg from '../assets/nldb_logistics.png';
 import qualityBadge from '../assets/nldb_quality_badge.png';
 import organizationHq from '../assets/nldb_organization_hq_v2.png';
 import nldbCorporateBanner from '../assets/nldb-corporate-banner.png';
+import naturalHeroBg from '../assets/nldb_hero_bg.png';
 
 const Home = () => {
     const [isScrolled, setIsScrolled] = useState(false);
@@ -297,7 +298,7 @@ const Home = () => {
             </section>
 
             {/* Outlet Locator Section */}
-            <section id="outlets" className="section-padding-fluid outlets-immersive-bg" style={{ backgroundImage: `url(${premiumHeroBg})` }}>
+            <section id="outlets" className="section-padding-fluid outlets-immersive-bg" style={{ backgroundImage: `url(${naturalHeroBg})` }}>
                 <div className="bg-overlay-dark"></div>
                 <div className="container-fluid relative-z">
                     <div className="section-title-box dark-text-fix">
