@@ -203,8 +203,8 @@ const Home = () => {
             </section>
 
             {/* Product Registry - The High-Performance Grid */}
-            <section id="products" className="section-padding">
-                <div className="container">
+            <section id="products" className="section-padding-fluid">
+                <div className="container-fluid">
                     <div className="section-title-box">
                         <h2 className="headline-h2">The Product <span className="text-green">Registry</span></h2>
                         <p className="subtitle-p">A definitive collection of NLDB's premium output, refined for excellence.</p>
@@ -237,16 +237,22 @@ const Home = () => {
                                     <div className="p-card-availability">
                                         <span className="dot-live"></span> Available in Outlets
                                     </div>
+                                    <div className="p-card-overlay-modern">
+                                        <button className="btn-quick-view">Quick View</button>
+                                    </div>
                                 </div>
                                 <div className="p-card-info">
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div className="p-card-header-flex">
                                         <span className="p-category">{activeCategory}</span>
                                         <span className="p-tag">{p.tag}</span>
                                     </div>
                                     <h3>{p.name}</h3>
                                     <p>{p.desc}</p>
-                                    <div className="p-card-footer" style={{ marginTop: 'auto', paddingTop: '20px' }}>
-                                        <button className="btn-outlet">View Outlets</button>
+                                    <div className="p-card-footer-modern">
+                                        <button className="btn-outlet-modern">
+                                            <span>Locate Outlet</span>
+                                            <i className="arrow-icon">→</i>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
