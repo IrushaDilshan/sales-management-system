@@ -82,6 +82,11 @@ const Home = () => {
         outlet.loc.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    const handleViewMap = (outlet) => {
+        const query = encodeURIComponent(`${outlet.name} ${outlet.loc} Sri Lanka`);
+        window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+    };
+
     return (
         <div className="home-white-modern">
             {/* Immersive Navigation */}
@@ -321,7 +326,12 @@ const Home = () => {
                                             <span>📞 {outlet.tel}</span>
                                         </div>
                                     </div>
-                                    <button className="btn-view-map">View Map</button>
+                                    <button
+                                        className="btn-view-map"
+                                        onClick={() => handleViewMap(outlet)}
+                                    >
+                                        View Map
+                                    </button>
                                 </div>
                             ))
                         ) : (
