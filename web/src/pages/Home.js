@@ -388,7 +388,7 @@ const Home = () => {
                     <div className="contact-action-panel">
                         <div className="map-embed-container animate-fade">
                             <iframe
-                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.9161245781373!2d79.88043637403328!3d6.890453318958257!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ae2596489436e9d%3A0x86bd6d33f28cf9ed!2sNational%20Livestock%20Development%20Board%20(NLDB)!5e0!3m2!1sen!2slk!4v1704041000000!5m2!1sen!2slk"
+                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.9960470593082!2d79.878808!3d6.891075!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ae25a30109230c7%3A0xfe80b3970bc8ed86!2sNational%20Livestock%20Development%20Board%20Head%20Office!5e0!3m2!1sen!2slk!4v1767198104940!5m2!1sen!2slk"
                                 width="100%"
                                 height="100%"
                                 style={{ border: 0, borderRadius: '32px' }}
