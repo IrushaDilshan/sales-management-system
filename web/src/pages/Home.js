@@ -105,9 +105,11 @@ const Home = () => {
 
                     <nav className="main-nav">
                         <ul>
-                            <li><a href="#about">The Authority</a></li>
+                            <li><a href="#about">About Us</a></li>
                             <li><a href="#ops">Operations</a></li>
-                            <li><a href="#products">Product Registry</a></li>
+                            <li><a href="#products">Products</a></li>
+                            <li><a href="#outlets">Our Shops</a></li>
+                            <li><a href="#contact">Contact Us</a></li>
                             <li><Link to="/login" className="btn-portal">Command Center</Link></li>
                         </ul>
                     </nav>
@@ -352,13 +354,46 @@ const Home = () => {
             </section>
 
             {/* Massive Call to Action */}
-            <section className="container">
-                <div className="cta-banner animate-fade">
-                    <h2>Join the <span className="text-green">Movement.</span></h2>
-                    <p>Securing the nutritional future of Sri Lanka through innovation, quality, and commitment.</p>
-                    <div className="hero-btns" style={{ justifyContent: 'center' }}>
-                        <Link to="/login" className="btn-gradient">Staff Access</Link>
-                        <a href="#about" className="btn-glass">Contact HQ</a>
+            <section id="contact" className="container section-padding">
+                <div className="contact-grid-modern">
+                    <div className="contact-info-panel">
+                        <div className="section-tag">National Headquarters</div>
+                        <h2 className="headline-h2">Get in <span className="text-green">Touch.</span></h2>
+                        <p className="p-large">Our team is available for corporate inquiries, farm visit requests, and official tenders.</p>
+
+                        <div className="contact-nodes">
+                            <div className="c-node">
+                                <span className="c-icon">🏢</span>
+                                <div>
+                                    <strong>Narahenpita HQ</strong>
+                                    <p>No. 40, Narahenpita Road, Colombo 05</p>
+                                </div>
+                            </div>
+                            <div className="c-node">
+                                <span className="c-icon">📞</span>
+                                <div>
+                                    <strong>Hotline</strong>
+                                    <p>+94 11 250 1701</p>
+                                </div>
+                            </div>
+                            <div className="c-node">
+                                <span className="c-icon">✉️</span>
+                                <div>
+                                    <strong>Email</strong>
+                                    <p>info@nldb.gov.lk</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="contact-action-panel">
+                        <div className="cta-banner animate-fade" style={{ margin: 0, borderRadius: '32px' }}>
+                            <h2>Join the <span className="text-green">Movement.</span></h2>
+                            <p>Securing the nutritional future of Sri Lanka through innovation and commitment.</p>
+                            <div className="hero-btns" style={{ justifyContent: 'center' }}>
+                                <Link to="/login" className="btn-gradient">Staff Access</Link>
+                                <a href="mailto:info@nldb.gov.lk" className="btn-glass">Send Inquiry</a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
