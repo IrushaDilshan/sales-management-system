@@ -91,7 +91,7 @@ const Home = () => {
         <div className="home-white-modern">
             {/* Immersive Navigation */}
             <header className={`header-modern ${isScrolled ? 'scrolled' : ''}`}>
-                <div className="container nav-flex">
+                <div className="container-fluid nav-flex">
                     <div className="branding">
                         <div className="logo-main">
                             <span className="n-accent">N</span>LDB

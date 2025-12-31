@@ -80,17 +80,10 @@
     align-items: center;
 }
 
-.logo-main {
-    font-family: 'Outfit', sans-serif;
-    font-size: 2rem;
-    font-weight: 800;
-    letter-spacing: -1.5px;
+.branding {
     display: flex;
     align-items: center;
-}
-
-.logo-main .n-accent {
-    color: var(--accent-green);
+    gap: 15px;
 }
 
 .trilingual-titles {
@@ -127,17 +120,12 @@
     font-weight: 900;
     letter-spacing: -2px;
     color: #cc6600;
-    /* Matching the orange in the image */
     line-height: 1;
+    white-space: nowrap;
 }
 
 .logo-main .n-accent {
     color: #cc6600;
-}
-
-.branding {
-    display: flex;
-    align-items: center;
 }
 
 .main-nav ul {
@@ -150,10 +138,11 @@
 .main-nav a {
     text-decoration: none;
     color: var(--text-dark);
-    font-weight: 600;
-    font-size: 0.95rem;
+    font-weight: 700;
+    font-size: 0.9rem;
     transition: all 0.3s;
     opacity: 0.8;
+    white-space: nowrap;
 }
 
 .main-nav a:hover {
@@ -162,13 +151,20 @@
 }
 
 .btn-portal {
-    background: var(--text-dark);
+    background: #0f172a;
     color: white !important;
-    padding: 12px 28px;
-    border-radius: 50px;
-    font-weight: 700;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    padding: 14px 24px;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
     opacity: 1 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 180px;
 }
 
 .btn-portal:hover {
