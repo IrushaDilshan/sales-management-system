@@ -160,11 +160,12 @@ const Users = () => {
                 </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
                 <StatCard icon="👥" label="Total Force" value={users.length} color="#6366f1" />
-                <StatCard icon="🛡️" label="Administrators" value={users.filter(u => u.role === 'admin').length} color="#ef4444" />
+                <StatCard icon="🛡️" label="Admins" value={users.filter(u => u.role === 'admin').length} color="#ef4444" />
+                <StatCard icon="📦" label="Storekeepers" value={users.filter(u => u.role === 'storekeeper').length} color="#f59e0b" />
+                <StatCard icon="💰" label="Sales Team" value={users.filter(u => u.role === 'salesman').length} color="#8b5cf6" />
                 <StatCard icon="🚚" label="Field Reps" value={users.filter(u => u.role === 'rep').length} color="#10b981" />
-                <StatCard icon="📦" label="Logistics Staff" value={users.filter(u => u.role === 'storekeeper').length} color="#f59e0b" />
             </div>
 
             {error && <div style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', fontWeight: '600', border: '1px solid #fee2e2' }}>⚠️ {error}</div>}
