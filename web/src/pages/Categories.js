@@ -192,14 +192,14 @@ const Categories = () => {
                     <div className="loading-spinner"></div>
                 </div>
             ) : (
-                <div className="table-container">
+                <div className="modern-table-container">
                     {categories.length === 0 ? (
                         <div className="empty-state">
                             <h3>No categories found</h3>
                             <p>Click "Add Category" to create your first product category.</p>
                         </div>
                     ) : (
-                        <table className="data-table">
+                        <table className="modern-table">
                             <thead>
                                 <tr>
                                     <th>Category Name</th>

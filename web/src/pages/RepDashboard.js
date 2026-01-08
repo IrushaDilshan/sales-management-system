@@ -130,7 +130,7 @@ const RepDashboard = () => {
 
             {error && <div style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', border: '1px solid #fee2e2' }}>⚠️ {error}</div>}
 
-            <div style={{ background: 'white', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', padding: '2rem' }}>
+            <div className="modern-table-container" style={{ padding: '2rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                     <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '900' }}>Live Fulfillment Summary</h2>
                     <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Consolidated requirement across all managed routes</div>
@@ -148,7 +148,7 @@ const RepDashboard = () => {
                         <p style={{ color: '#64748b' }}>All distribution requests in your sector have been satisfied.</p>
                     </div>
                 ) : (
-                    <table className="data-table">
+                    <table className="modern-table">
                         <thead>
                             <tr>
                                 <th>Biological / Product SKU</th>

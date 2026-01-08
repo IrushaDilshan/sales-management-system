@@ -14,6 +14,8 @@ import naturalHeroBg from '../assets/nldb_hero_bg.png';
 const Home = () => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [activeCategory, setActiveCategory] = useState('dairy');
+    const [selectedProduct, setSelectedProduct] = useState(null);
+
     const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
@@ -91,6 +93,51 @@ const Home = () => {
 
     return (
         <div className="home-white-modern">
+            {/* Modal Implementation */}
+            {selectedProduct && (
+                <div className="modal-overlay" onClick={() => setSelectedProduct(null)}>
+                    <div className="modal-content animate-fade" onClick={e => e.stopPropagation()}>
+                        <button className="modal-close" onClick={() => setSelectedProduct(null)}>&times;</button>
+                        <div className="modal-grid">
+                            <div className="modal-img-col">
+                                <img src={selectedProduct.img} alt={selectedProduct.name} />
+                            </div>
+                            <div className="modal-info-col">
+                                <div className="modal-header">
+                                    <span className="modal-tag">{selectedProduct.tag}</span>
+                                    <span className="modal-cat">{activeCategory}</span>
+                                </div>
+                                <h2>{selectedProduct.name}</h2>
+                                <p className="modal-desc">{selectedProduct.desc}</p>
+
+                                <div className="modal-specs">
+                                    <div className="spec-item">
+                                        <span className="spec-label">Quality</span>
+                                        <span className="spec-val">Export Grade</span>
+                                    </div>
+                                    <div className="spec-item">
+                                        <span className="spec-label">Origin</span>
+                                        <span className="spec-val">NLDB Farms</span>
+                                    </div>
+                                </div>
+
+                                <div className="modal-actions">
+                                    <button
+                                        className="btn-gradient"
+                                        onClick={() => {
+                                            setSelectedProduct(null);
+                                            document.getElementById('outlets').scrollIntoView({ behavior: 'smooth' });
+                                        }}
+                                    >
+                                        Locate in Store
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Immersive Navigation */}
             <header className={`header-modern ${isScrolled ? 'scrolled' : ''}`}>
                 <div className="container-fluid nav-flex">
@@ -271,7 +318,7 @@ const Home = () => {
                                         <span className="dot-live"></span> Available in Outlets
                                     </div>
                                     <div className="p-card-overlay-modern">
-                                        <button className="btn-quick-view">Quick View</button>
+                                        <button className="btn-quick-view" onClick={() => setSelectedProduct(p)}>Quick View</button>
                                     </div>
                                 </div>
                                 <div className="p-card-info">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../shared/supabaseClient';
 import { Link } from 'react-router-dom';
-import '../shared/ModernPage.css';
+import './SalesDashboard.css';
 
 const SalesDashboard = () => {
     const [stats, setStats] = useState({
@@ -77,7 +77,7 @@ const SalesDashboard = () => {
                     shops (name)
                 `)
                 .order('sale_date', { ascending: false })
-                .limit(5);
+                .limit(6);
 
             setStats({
                 total_products: productCount || 0,
@@ -99,308 +99,241 @@ const SalesDashboard = () => {
         }
     };
 
+    const StatCard = ({ icon, title, value, footer, color, link }) => (
+        <Link to={link || '#'} className="stat-card">
+            <div className="stat-icon" style={{ backgroundColor: `${color}15`, color }}>
+                {icon}
+            </div>
+            <div className="stat-info">
+                <div className="stat-title">{title}</div>
+                <div className="stat-value">{value}</div>
+                {footer && (
+                    <div className="stat-footer" style={{ color }}>
+                        {footer}
+                    </div>
+                )}
+            </div>
+        </Link>
+    );
+
+    const QuickActionCard = ({ icon, title, description, link, color }) => (
+        <Link to={link} className="quick-action-card">
+            <div className="action-icon" style={{ backgroundColor: `${color}15`, color }}>
+                {icon}
+            </div>
+            <div className="action-content">
+                <h3>{title}</h3>
+                <p>{description}</p>
+            </div>
+            <div className="action-arrow">→</div>
+        </Link>
+    );
+
     if (loading) {
         return (
-            <div className="page-container">
-                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '3rem' }}>
-                    <div className="loading-spinner"></div>
+            <div className="dashboard-container">
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+                    <div className="loading-spinner" style={{ width: '50px', height: '50px', border: '5px solid #f3f3f3', borderTop: '5px solid #10853e', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                    <p style={{ marginTop: '1rem', color: '#64748b', fontWeight: '500' }}>Preparing your dashboard...</p>
                 </div>
+                <style>{`
+                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                `}</style>
             </div>
         );
     }
 
     return (
-        <div className="page-container">
-            <div className="page-header">
-                <div>
-                    <h1 className="page-title">Sales Dashboard</h1>
-                    <p className="page-subtitle">Overview of products, inventory, and sales</p>
+        <div className="dashboard-container">
+            {/* Header */}
+            <header className="dashboard-header">
+                <div className="header-text">
+                    <h1 className="dashboard-title">Sales Dashboard</h1>
+                    <p className="dashboard-subtitle">Real-time performance and inventory metrics</p>
                 </div>
-            </div>
+                <div className="dashboard-date">
+                    <span style={{ marginRight: '8px' }}>📅</span>
+                    {new Date().toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                    })}
+                </div>
+            </header>
 
             {/* Stats Grid */}
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-                gap: '1.5rem',
-                marginBottom: '2rem'
-            }}>
-                {/* Products */}
-                <Link to="/items" style={{ textDecoration: 'none' }}>
-                    <div style={{
-                        backgroundColor: 'white',
-                        padding: '1.5rem',
-                        borderRadius: '0.5rem',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                        cursor: 'pointer',
-                        transition: 'transform 0.2s',
-                        ':hover': { transform: 'translateY(-2px)' }
-                    }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <div>
-                                <div style={{ fontSize: '0.875rem', color: '#666', marginBottom: '0.5rem' }}>
-                                    Total Products
-                                </div>
-                                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#3b82f6' }}>
-                                    {stats.total_products}
-                                </div>
-                            </div>
-                            <div style={{ fontSize: '3rem' }}>🏷️</div>
-                        </div>
-                    </div>
-                </Link>
-
-                {/* Customers */}
-                <Link to="/customers" style={{ textDecoration: 'none' }}>
-                    <div style={{
-                        backgroundColor: 'white',
-                        padding: '1.5rem',
-                        borderRadius: '0.5rem',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                        cursor: 'pointer'
-                    }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <div>
-                                <div style={{ fontSize: '0.875rem', color: '#666', marginBottom: '0.5rem' }}>
-                                    Total Customers
-                                </div>
-                                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#8b5cf6' }}>
-                                    {stats.total_customers}
-                                </div>
-                            </div>
-                            <div style={{ fontSize: '3rem' }}>👥</div>
-                        </div>
-                    </div>
-                </Link>
-
-                {/* Today Sales */}
-                <div style={{
-                    backgroundColor: 'white',
-                    padding: '1.5rem',
-                    borderRadius: '0.5rem',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div>
-                            <div style={{ fontSize: '0.875rem', color: '#666', marginBottom: '0.5rem' }}>
-                                Today's Sales
-                            </div>
-                            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#10b981' }}>
-                                {stats.today_sales}
-                            </div>
-                            <div style={{ fontSize: '0.875rem', color: '#059669', marginTop: '0.25rem' }}>
-                                Rs. {stats.today_revenue.toFixed(2)}
-                            </div>
-                        </div>
-                        <div style={{ fontSize: '3rem' }}>💵</div>
-                    </div>
-                </div>
-
-                {/* Outstanding */}
-                <Link to="/sales-history" style={{ textDecoration: 'none' }}>
-                    <div style={{
-                        backgroundColor: 'white',
-                        padding: '1.5rem',
-                        borderRadius: '0.5rem',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                        cursor: 'pointer'
-                    }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <div>
-                                <div style={{ fontSize: '0.875rem', color: '#666', marginBottom: '0.5rem' }}>
-                                    Pending Payments
-                                </div>
-                                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#dc2626' }}>
-                                    {stats.pending_payments}
-                                </div>
-                                <div style={{ fontSize: '0.875rem', color: '#dc2626', marginTop: '0.25rem' }}>
-                                    Rs. {stats.outstanding_amount.toFixed(2)}
-                                </div>
-                            </div>
-                            <div style={{ fontSize: '3rem' }}>⚠️</div>
-                        </div>
-                    </div>
-                </Link>
+            <div className="stats-grid">
+                <StatCard
+                    icon="🏷️"
+                    title="Total Products"
+                    value={stats.total_products}
+                    footer="Active SKUs"
+                    color="#3b82f6"
+                    link="/items"
+                />
+                <StatCard
+                    icon="👥"
+                    title="Total Customers"
+                    value={stats.total_customers}
+                    footer="Active in system"
+                    color="#8b5cf6"
+                    link="/customers"
+                />
+                <StatCard
+                    icon="💵"
+                    title="Today's Sales"
+                    value={stats.today_sales}
+                    footer={`Rs. ${stats.today_revenue.toLocaleString()}`}
+                    color="#10b981"
+                    link="/sales-history"
+                />
+                <StatCard
+                    icon="⚠️"
+                    title="Pending Payments"
+                    value={stats.pending_payments}
+                    footer={`Total: Rs. ${stats.outstanding_amount.toLocaleString()}`}
+                    color="#ef4444"
+                    link="/sales-history"
+                />
             </div>
 
-            {/* Alerts */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
-                {/* Low Stock Alert */}
-                <div style={{
-                    backgroundColor: 'white',
-                    padding: '1.5rem',
-                    borderRadius: '0.5rem',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                        <h3 style={{ margin: 0 }}>Low Stock Alerts</h3>
-                        <Link to="/stock" className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>
-                            View All
-                        </Link>
+            <div className="alerts-grid">
+                {/* Low Stock Panel */}
+                <div className="alert-panel">
+                    <div className="panel-header">
+                        <div className="panel-title">📉 Low Stock Alerts</div>
+                        <Link to="/stock" className="btn-secondary" style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }}>View All</Link>
                     </div>
                     {lowStockItems.length === 0 ? (
-                        <div style={{ color: '#999', textAlign: 'center', padding: '2rem' }}>
-                            No low stock items ✓
+                        <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>✅</div>
+                            <p>Inventory levels are healthy</p>
                         </div>
                     ) : (
-                        <div>
-                            {lowStockItems.map((item, idx) => (
-                                <div key={idx} style={{
-                                    padding: '0.75rem',
-                                    borderBottom: '1px solid #f3f4f6',
-                                    display: 'flex',
-                                    justifyContent: 'space-between'
-                                }}>
-                                    <div>
-                                        <strong>{item.product_name}</strong>
-                                        <div style={{ fontSize: '0.875rem', color: '#666' }}>
-                                            {item.outlet_name}
-                                        </div>
-                                    </div>
-                                    <div style={{ textAlign: 'right' }}>
-                                        <div style={{ color: '#dc2626', fontWeight: 'bold' }}>
-                                            {item.current_stock}
-                                        </div>
-                                        <div style={{ fontSize: '0.875rem', color: '#666' }}>
-                                            Min: {item.minimum_stock_level}
-                                        </div>
-                                    </div>
+                        lowStockItems.map((item, idx) => (
+                            <div key={idx} className="alert-item">
+                                <div className="alert-info">
+                                    <h4>{item.product_name}</h4>
+                                    <p>{item.outlet_name}</p>
                                 </div>
-                            ))}
-                        </div>
+                                <div className="alert-value">
+                                    <div className="alert-number" style={{ color: '#ef4444' }}>{item.current_stock}</div>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>Min: {item.minimum_stock_level}</p>
+                                </div>
+                            </div>
+                        ))
                     )}
                 </div>
 
-                {/* Expiring Soon */}
-                <div style={{
-                    backgroundColor: 'white',
-                    padding: '1.5rem',
-                    borderRadius: '0.5rem',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                        <h3 style={{ margin: 0 }}>Expiring Soon</h3>
-                        <Link to="/stock" className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>
-                            View All
-                        </Link>
+                {/* Expiry Panel */}
+                <div className="alert-panel">
+                    <div className="panel-header">
+                        <div className="panel-title">🗓️ Expiring Soon</div>
+                        <Link to="/stock" className="btn-secondary" style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }}>Manage Expiring</Link>
                     </div>
-                    <div style={{
-                        textAlign: 'center',
-                        padding: '2rem'
-                    }}>
+                    <div style={{ padding: '1rem', textAlign: 'center' }}>
                         {stats.expiring_soon > 0 ? (
-                            <>
-                                <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🟡</div>
-                                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b' }}>
-                                    {stats.expiring_soon} Items
-                                </div>
-                                <div style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.5rem' }}>
-                                    Expiring within 7 days
-                                </div>
-                            </>
+                            <div style={{ background: '#fffbeb', borderRadius: '16px', padding: '1.5rem', border: '1px solid #fef3c7' }}>
+                                <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>⚠️</div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#f59e0b' }}>{stats.expiring_soon} Items</div>
+                                <p style={{ color: '#92400e', fontWeight: '500', marginTop: '0.5rem' }}>Require immediate attention to avoid losses</p>
+                            </div>
                         ) : (
-                            <>
-                                <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>✓</div>
-                                <div style={{ color: '#059669' }}>No items expiring soon</div>
-                            </>
+                            <div style={{ padding: '1rem' }}>
+                                <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🛡️</div>
+                                <p style={{ color: '#10b981', fontWeight: '600' }}>No items expiring within 7 days</p>
+                            </div>
                         )}
                     </div>
                 </div>
             </div>
 
-            {/* Recent Sales */}
-            <div style={{
-                backgroundColor: 'white',
-                padding: '1.5rem',
-                borderRadius: '0.5rem',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                    <h3 style={{ margin: 0 }}>Recent Sales</h3>
-                    <Link to="/sales-history" className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>
-                        View All
-                    </Link>
+            {/* Recent Sales Section */}
+            <div className="history-section">
+                <div className="panel-header" style={{ borderBottom: 'none', marginBottom: '2rem' }}>
+                    <div className="panel-title">📄 Recent Transactions</div>
+                    <Link to="/sales-history" className="btn-secondary" style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }}>Full History</Link>
                 </div>
                 {recentSales.length === 0 ? (
-                    <div style={{ color: '#999', textAlign: 'center', padding: '2rem' }}>
-                        No sales yet. Start making sales!
+                    <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
+                        No transactions recorded yet.
                     </div>
                 ) : (
-                    <table className="data-table">
-                        <thead>
-                            <tr>
-                                <th>Invoice</th>
-                                <th>Date</th>
-                                <th>Customer</th>
-                                <th>Outlet</th>
-                                <th style={{ textAlign: 'right' }}>Amount</th>
-                                <th style={{ textAlign: 'center' }}>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {recentSales.map(sale => (
-                                <tr key={sale.id}>
-                                    <td><strong>{sale.invoice_number}</strong></td>
-                                    <td>
-                                        {new Date(sale.sale_date).toLocaleDateString()}
-                                    </td>
-                                    <td>{sale.customers?.name || 'Walk-in'}</td>
-                                    <td>{sale.shops?.name || '-'}</td>
-                                    <td style={{ textAlign: 'right' }}>
-                                        Rs. {parseFloat(sale.total_amount).toFixed(2)}
-                                    </td>
-                                    <td style={{ textAlign: 'center' }}>
-                                        <span className={`badge ${sale.payment_status === 'paid' ? 'badge-success' :
-                                                sale.payment_status === 'pending' ? 'badge-warning' : 'badge-info'
-                                            }`}>
-                                            {sale.payment_status}
-                                        </span>
-                                    </td>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table className="history-table">
+                            <thead>
+                                <tr>
+                                    <th>Invoice</th>
+                                    <th>Date</th>
+                                    <th>Customer</th>
+                                    <th>Outlet</th>
+                                    <th style={{ textAlign: 'right' }}>Amount</th>
+                                    <th style={{ textAlign: 'center' }}>Status</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {recentSales.map(sale => (
+                                    <tr key={sale.id}>
+                                        <td><span className="invoice-pill">{sale.invoice_number}</span></td>
+                                        <td>{new Date(sale.sale_date).toLocaleDateString()}</td>
+                                        <td style={{ fontWeight: '600' }}>{sale.customers?.name || 'Walk-in'}</td>
+                                        <td>{sale.shops?.name || '-'}</td>
+                                        <td style={{ textAlign: 'right', fontWeight: '700' }}>
+                                            Rs. {parseFloat(sale.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </td>
+                                        <td style={{ textAlign: 'center' }}>
+                                            <span style={{
+                                                padding: '4px 12px',
+                                                borderRadius: '20px',
+                                                fontSize: '0.75rem',
+                                                fontWeight: '700',
+                                                textTransform: 'uppercase',
+                                                backgroundColor: sale.payment_status === 'paid' ? '#ecfdf5' : sale.payment_status === 'pending' ? '#fffbeb' : '#eff6ff',
+                                                color: sale.payment_status === 'paid' ? '#059669' : sale.payment_status === 'pending' ? '#d97706' : '#2563eb'
+                                            }}>
+                                                {sale.payment_status}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
             </div>
 
             {/* Quick Actions */}
-            <div style={{
-                marginTop: '2rem',
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '1rem'
-            }}>
-                <Link to="/sales" className="btn-primary" style={{
-                    padding: '1rem',
-                    textAlign: 'center',
-                    fontSize: '1rem'
-                }}>
-                    💵 New Sale
-                </Link>
-                <Link to="/items" className="btn-primary" style={{
-                    padding: '1rem',
-                    textAlign: 'center',
-                    fontSize: '1rem',
-                    backgroundColor: '#8b5cf6'
-                }}>
-                    🏷️ Add Product
-                </Link>
-                <Link to="/customers" className="btn-primary" style={{
-                    padding: '1rem',
-                    textAlign: 'center',
-                    fontSize: '1rem',
-                    backgroundColor: '#10b981'
-                }}>
-                    👥 Add Customer
-                </Link>
-                <Link to="/stock" className="btn-primary" style={{
-                    padding: '1rem',
-                    textAlign: 'center',
-                    fontSize: '1rem',
-                    backgroundColor: '#f59e0b'
-                }}>
-                    📊 Manage Stock
-                </Link>
+            <h2 className="section-title">Operations</h2>
+            <div className="actions-grid">
+                <QuickActionCard
+                    icon="💵"
+                    title="New Sale"
+                    description="Create a new transaction"
+                    link="/sales"
+                    color="#10b981"
+                />
+                <QuickActionCard
+                    icon="📦"
+                    title="Add Stock"
+                    description="Update inventory levels"
+                    link="/items"
+                    color="#3b82f6"
+                />
+                <QuickActionCard
+                    icon="👥"
+                    title="New Customer"
+                    description="Register a new client"
+                    link="/customers"
+                    color="#8b5cf6"
+                />
+                <QuickActionCard
+                    icon="📉"
+                    title="Daily Reports"
+                    description="View income analytics"
+                    link="/daily-income"
+                    color="#f59e0b"
+                />
             </div>
         </div>
     );

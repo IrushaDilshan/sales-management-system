@@ -183,14 +183,14 @@ export default function DailyIncome() {
             </div>
 
             {/* Data Table */}
-            <div className="table-container">
+            <div className="modern-table-container">
                 {loading ? (
                     <div style={{ padding: '4rem', textAlign: 'center' }}>
                         <div className="loading-spinner" style={{ margin: '0 auto' }}></div>
                         <p style={{ marginTop: '1.5rem', color: '#64748b' }}>Generating financial insights...</p>
                     </div>
                 ) : (
-                    <table className="data-table">
+                    <table className="modern-table">
                         <thead>
                             <tr>
                                 <th>Billing Date</th>

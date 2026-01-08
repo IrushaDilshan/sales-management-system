@@ -27,11 +27,23 @@ const Stock = () => {
     const [showExpiring, setShowExpiring] = useState(false);
     const [showLowStock, setShowLowStock] = useState(false);
 
+    // Stats for the top of the page
+    const [stockStats, setStockStats] = useState({
+        totalItems: 0,
+        lowStockItems: 0,
+        expiringSoon: 0,
+        totalLocations: 0
+    });
+
     useEffect(() => {
         fetchData();
         fetchOutlets();
         fetchCategories();
     }, []);
+
+    useEffect(() => {
+        calculateStats();
+    }, [stocks]);
 
     const fetchOutlets = async () => {
         try {
@@ -96,6 +108,16 @@ const Stock = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const calculateStats = () => {
+        const stats = {
+            totalItems: stocks.reduce((sum, s) => sum + (parseInt(s.quantity) || 0), 0),
+            lowStockItems: stocks.filter(s => isLowStock(s.quantity, s.minimum_stock_level)).length,
+            expiringSoon: stocks.filter(s => isExpiringSoon(s.expiry_date)).length,
+            totalLocations: new Set(stocks.map(s => s.outlet_id).filter(Boolean)).size
+        };
+        setStockStats(stats);
     };
 
     const handleOpenModal = (type, stock = null) => {
@@ -306,7 +328,6 @@ const Stock = () => {
         }
     };
 
-    // Check if product is expiring soon (within 7 days)
     const isExpiringSoon = (expiryDate) => {
         if (!expiryDate) return false;
         const today = new Date();
@@ -315,18 +336,15 @@ const Stock = () => {
         return daysUntilExpiry >= 0 && daysUntilExpiry <= 7;
     };
 
-    // Check if expired
     const isExpired = (expiryDate) => {
         if (!expiryDate) return false;
         return new Date(expiryDate) < new Date();
     };
 
-    // Check if low stock
     const isLowStock = (quantity, minLevel) => {
         return minLevel > 0 && quantity < minLevel;
     };
 
-    // Filter stocks
     const filteredStocks = stocks.filter(stock => {
         if (!stock.items) return false;
 
@@ -341,99 +359,156 @@ const Stock = () => {
         return matchesOutlet && matchesCategory && matchesSearch && matchesExpiring && matchesLowStock;
     });
 
+    const StatCard = ({ icon, label, value, color }) => (
+        <div style={{
+            background: 'white',
+            padding: '1.5rem',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1.25rem',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+            borderLeft: `6px solid ${color}`
+        }}>
+            <div style={{
+                fontSize: '2rem',
+                background: `${color}10`,
+                width: '50px',
+                height: '50px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '12px'
+            }}>{icon}</div>
+            <div>
+                <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>{label}</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>{value}</div>
+            </div>
+        </div>
+    );
+
     return (
         <div className="page-container">
             <div className="page-header">
                 <div>
-                    <h1 className="page-title">Multi-Location Inventory</h1>
-                    <p className="page-subtitle">Track stock across all NLDB outlets and farms</p>
+                    <h1 className="page-title">Inventory Control</h1>
+                    <p className="page-subtitle">National Livestock Development Board - Centralized Stock Tracking</p>
                 </div>
-                <button className="btn-primary" onClick={() => handleOpenModal('add')}>
-                    <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>+</span> Add Stock
-                </button>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button className="btn-secondary" onClick={() => fetchData()}>
+                        <span>🔄</span> Refresh
+                    </button>
+                    <button className="btn-primary" onClick={() => handleOpenModal('add')}>
+                        <span>+</span> Add Stock Reference
+                    </button>
+                </div>
             </div>
 
-            {/* Filters and Quick Toggles */}
-            <div style={{ marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-                    <input
-                        type="text"
-                        className="form-input"
-                        placeholder="Search by product name or batch number..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        style={{ flex: '1', minWidth: '200px' }}
-                    />
-                    <select
-                        className="form-input"
-                        value={filterOutlet}
-                        onChange={(e) => setFilterOutlet(e.target.value)}
-                        style={{ minWidth: '150px' }}
-                    >
-                        <option value="all">All Outlets</option>
-                        {outlets.map(outlet => (
-                            <option key={outlet.id} value={outlet.id}>{outlet.name}</option>
-                        ))}
-                    </select>
-                    <select
-                        className="form-input"
-                        value={filterCategory}
-                        onChange={(e) => setFilterCategory(e.target.value)}
-                        style={{ minWidth: '150px' }}
-                    >
-                        <option value="all">All Categories</option>
-                        {categories.map(cat => (
-                            <option key={cat.id} value={cat.id}>{cat.name}</option>
-                        ))}
-                    </select>
+            {/* Stats Dashboard */}
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gap: '1.5rem',
+                marginBottom: '2rem'
+            }}>
+                <StatCard icon="📦" label="Total Units" value={stockStats.totalItems.toLocaleString()} color="#6366f1" />
+                <StatCard icon="📉" label="Low Stock Alerts" value={stockStats.lowStockItems} color="#ef4444" />
+                <StatCard icon="⚠️" label="Expiring Soon" value={stockStats.expiringSoon} color="#f59e0b" />
+                <StatCard icon="🏢" label="Active Locations" value={stockStats.totalLocations} color="#10b981" />
+            </div>
+
+            {/* Advanced Filters */}
+            <div style={{
+                backgroundColor: 'white',
+                padding: '1.5rem',
+                borderRadius: '16px',
+                marginBottom: '2rem',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
+            }}>
+                <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                    <div style={{ flex: '1', minWidth: '300px' }}>
+                        <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Search Inventory</label>
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Find by product name, SKU, or batch..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <div style={{ width: '200px' }}>
+                        <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Retail Center</label>
+                        <select
+                            className="form-control"
+                            value={filterOutlet}
+                            onChange={(e) => setFilterOutlet(e.target.value)}
+                        >
+                            <option value="all">Everywhere</option>
+                            {outlets.map(outlet => (
+                                <option key={outlet.id} value={outlet.id}>{outlet.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div style={{ width: '200px' }}>
+                        <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Project Category</label>
+                        <select
+                            className="form-control"
+                            value={filterCategory}
+                            onChange={(e) => setFilterCategory(e.target.value)}
+                        >
+                            <option value="all">All Divisions</option>
+                            {categories.map(cat => (
+                                <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                <div style={{ display: 'flex', gap: '2rem', marginTop: '1.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '1.5rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontWeight: '600', color: showExpiring ? '#f59e0b' : '#64748b' }}>
                         <input
                             type="checkbox"
                             checked={showExpiring}
                             onChange={(e) => setShowExpiring(e.target.checked)}
-                            style={{ marginRight: '0.5rem' }}
+                            style={{ marginRight: '0.8rem', width: '20px', height: '20px' }}
                         />
-                        <span>🟡 Expiring Soon (7 days)</span>
+                        <span>Show Only Expiring items (7 days)</span>
                     </label>
-                    <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontWeight: '600', color: showLowStock ? '#ef4444' : '#64748b' }}>
                         <input
                             type="checkbox"
                             checked={showLowStock}
                             onChange={(e) => setShowLowStock(e.target.checked)}
-                            style={{ marginRight: '0.5rem' }}
+                            style={{ marginRight: '0.8rem', width: '20px', height: '20px' }}
                         />
-                        <span>🔴 Low Stock Alerts</span>
+                        <span>Critical Stock Levels Only</span>
                     </label>
                 </div>
             </div>
 
             {loading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '3rem' }}>
-                    <div className="loading-spinner"></div>
+                <div style={{ textAlign: 'center', padding: '4rem' }}>
+                    <div className="loading-spinner" style={{ margin: '0 auto' }}></div>
+                    <p style={{ marginTop: '1.5rem', color: '#64748b' }}>Awaiting cloud synchronization...</p>
                 </div>
             ) : (
-                <div className="table-container">
+                <div className="modern-table-container">
                     {filteredStocks.length === 0 ? (
-                        <div className="empty-state">
-                            <h3>No stock entries found</h3>
-                            <p>{searchTerm || filterOutlet !== 'all' || filterCategory !== 'all'
-                                ? 'Try adjusting your filters'
-                                : 'Click "Add Stock" to create your first stock entry.'}</p>
+                        <div style={{ padding: '5rem', textAlign: 'center' }}>
+                            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔍</div>
+                            <h3 style={{ color: '#1e293b' }}>No matching inventory records</h3>
+                            <p style={{ color: '#64748b' }}>Refine your search parameters or add new stock entry.</p>
                         </div>
                     ) : (
-                        <table className="data-table">
+                        <table className="modern-table">
                             <thead>
                                 <tr>
-                                    <th>Product</th>
-                                    <th>Outlet</th>
-                                    <th>Batch</th>
-                                    <th style={{ textAlign: 'right' }}>Quantity</th>
-                                    <th style={{ textAlign: 'center' }}>Min Level</th>
-                                    <th style={{ textAlign: 'center' }}>Expiry</th>
-                                    <th style={{ textAlign: 'center' }}>Status</th>
+                                    <th>Product Identity</th>
+                                    <th>Service Center</th>
+                                    <th>Batch Ref</th>
+                                    <th style={{ textAlign: 'right' }}>Stock Level</th>
+                                    <th style={{ textAlign: 'center' }}>Trigger Limit</th>
+                                    <th style={{ textAlign: 'center' }}>Safety Audit</th>
                                     <th className="text-right">Actions</th>
                                 </tr>
                             </thead>
@@ -441,99 +516,52 @@ const Stock = () => {
                                 {filteredStocks.map((stock) => (
                                     <tr key={stock.id}>
                                         <td>
-                                            <strong>{stock.items?.name}</strong>
+                                            <div style={{ fontWeight: '700', color: '#1e293b' }}>{stock.items?.name}</div>
                                             {stock.items?.product_categories && (
-                                                <div style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.25rem' }}>
+                                                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                                     {stock.items.product_categories.name}
                                                 </div>
                                             )}
                                         </td>
                                         <td>
                                             {stock.shops ? (
-                                                <span className="badge badge-info">{stock.shops.name}</span>
+                                                <span style={{ padding: '4px 10px', background: '#eff6ff', color: '#1d4ed8', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '700' }}>
+                                                    {stock.shops.name}
+                                                </span>
                                             ) : (
-                                                <span style={{ color: '#999' }}>Central</span>
+                                                <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Central Depot</span>
                                             )}
                                         </td>
                                         <td>
                                             {stock.batch_number ? (
-                                                <code style={{
-                                                    backgroundColor: '#f3f4f6',
-                                                    padding: '0.25rem 0.5rem',
-                                                    borderRadius: '0.25rem',
-                                                    fontSize: '0.875rem'
-                                                }}>
+                                                <code style={{ background: '#f8fafc', padding: '4px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#475569' }}>
                                                     {stock.batch_number}
                                                 </code>
                                             ) : '-'}
                                         </td>
                                         <td style={{ textAlign: 'right' }}>
-                                            <strong style={{
-                                                color: isLowStock(stock.quantity, stock.minimum_stock_level)
-                                                    ? 'var(--danger-color)'
-                                                    : 'var(--success-color)'
-                                            }}>
+                                            <div style={{ fontWeight: '800', fontSize: '1.1rem', color: isLowStock(stock.quantity, stock.minimum_stock_level) ? '#ef4444' : '#10b981' }}>
                                                 {stock.quantity}
-                                            </strong>
-                                            <span style={{ marginLeft: '0.5rem', color: '#666', fontSize: '0.875rem' }}>
-                                                {stock.items?.unit_of_measure || 'units'}
-                                            </span>
+                                                <span style={{ fontSize: '0.75rem', marginLeft: '4px', fontWeight: '600', color: '#94a3b8' }}>{stock.items?.unit_of_measure}</span>
+                                            </div>
                                         </td>
-                                        <td style={{ textAlign: 'center' }}>
+                                        <td style={{ textAlign: 'center', fontWeight: '600' }}>
                                             {stock.minimum_stock_level || '-'}
                                         </td>
                                         <td style={{ textAlign: 'center' }}>
-                                            {stock.expiry_date ? (
-                                                <div>
-                                                    <div style={{ fontSize: '0.875rem' }}>
-                                                        {new Date(stock.expiry_date).toLocaleDateString()}
-                                                    </div>
-                                                    {isExpired(stock.expiry_date) && (
-                                                        <span className="badge badge-danger">Expired</span>
-                                                    )}
-                                                    {!isExpired(stock.expiry_date) && isExpiringSoon(stock.expiry_date) && (
-                                                        <span className="badge badge-warning">
-                                                            {Math.ceil((new Date(stock.expiry_date) - new Date()) / (1000 * 60 * 60 * 24))} days
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            ) : '-'}
-                                        </td>
-                                        <td style={{ textAlign: 'center' }}>
-                                            {isExpired(stock.expiry_date) && (
-                                                <span className="badge badge-danger">⚠️ Expired</span>
-                                            )}
-                                            {!isExpired(stock.expiry_date) && isExpiringSoon(stock.expiry_date) && (
-                                                <span className="badge badge-warning">🟡 Expiring</span>
-                                            )}
-                                            {isLowStock(stock.quantity, stock.minimum_stock_level) && (
-                                                <span className="badge badge-danger">📉 Low</span>
-                                            )}
-                                            {!isExpired(stock.expiry_date) && !isExpiringSoon(stock.expiry_date) && !isLowStock(stock.quantity, stock.minimum_stock_level) && (
-                                                <span className="badge badge-success">✓ OK</span>
-                                            )}
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+                                                {isExpired(stock.expiry_date) && <span style={{ padding: '2px 8px', background: '#fef2f2', color: '#991b1b', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '800' }}>⚠️ EXPIRED</span>}
+                                                {!isExpired(stock.expiry_date) && isExpiringSoon(stock.expiry_date) && <span style={{ padding: '2px 8px', background: '#fffbeb', color: '#92400e', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '800' }}>⌛ EXPIRING</span>}
+                                                {isLowStock(stock.quantity, stock.minimum_stock_level) && <span style={{ padding: '2px 8px', background: '#fff1f2', color: '#be123c', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '800' }}>📉 LOW STOCK</span>}
+                                                {!isExpired(stock.expiry_date) && !isExpiringSoon(stock.expiry_date) && !isLowStock(stock.quantity, stock.minimum_stock_level) && <span style={{ padding: '2px 8px', background: '#f0fdf4', color: '#15803d', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '800' }}>✅ SECURE</span>}
+                                            </div>
                                         </td>
                                         <td style={{ textAlign: 'right' }}>
-                                            <button
-                                                className="action-btn btn-edit"
-                                                onClick={() => handleOpenModal('adjust', stock)}
-                                                style={{ marginRight: '0.5rem' }}
-                                            >
-                                                Adjust
-                                            </button>
-                                            <button
-                                                className="action-btn btn-secondary"
-                                                onClick={() => handleOpenModal('transfer', stock)}
-                                                style={{ marginRight: '0.5rem' }}
-                                            >
-                                                Transfer
-                                            </button>
-                                            <button
-                                                className="action-btn btn-delete"
-                                                onClick={() => handleDelete(stock.id)}
-                                            >
-                                                Delete
-                                            </button>
+                                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                                <button className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem' }} onClick={() => handleOpenModal('adjust', stock)}>Adjust</button>
+                                                <button className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem' }} onClick={() => handleOpenModal('transfer', stock)}>Transfer</button>
+                                                <button className="btn-cancel" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', borderColor: '#fee2e2', color: '#ef4444' }} onClick={() => handleDelete(stock.id)}>Delete</button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -543,170 +571,95 @@ const Stock = () => {
                 </div>
             )}
 
-            {/* Modal for Add/Adjust/Transfer */}
+            {/* Modal Handling */}
             {isModalOpen && (
                 <div className="modal-overlay">
-                    <div className="modal-content" style={{ maxWidth: '600px' }}>
-                        <h2 style={{ marginTop: 0, marginBottom: '1.5rem' }}>
-                            {modalType === 'add' && 'Add New Stock'}
-                            {modalType === 'adjust' && 'Adjust Stock Levels'}
-                            {modalType === 'transfer' && 'Transfer Stock Between Outlets'}
-                        </h2>
+                    <div className="modal-content" style={{ maxWidth: '600px', borderRadius: '24px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                            <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800' }}>
+                                {modalType === 'add' && 'Register New Inventory Record'}
+                                {modalType === 'adjust' && 'Inventory Correction'}
+                                {modalType === 'transfer' && 'Inter-Branch Transfer'}
+                            </h2>
+                            <button onClick={handleCloseModal} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8' }}>×</button>
+                        </div>
 
-                        {error && (
-                            <div style={{
-                                backgroundColor: '#fee2e2',
-                                color: '#991b1b',
-                                padding: '1rem',
-                                borderRadius: '0.5rem',
-                                marginBottom: '1rem'
-                            }}>
-                                {error}
-                            </div>
-                        )}
+                        {error && <div style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', fontWeight: '600' }}>{error}</div>}
 
                         <form onSubmit={handleSubmit}>
                             {modalType === 'add' && (
-                                <>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
                                     <div className="form-group">
-                                        <label className="form-label">Product *</label>
-                                        <select
-                                            className="form-input"
-                                            name="item_id"
-                                            value={formData.item_id}
-                                            onChange={handleInputChange}
-                                            required
-                                        >
-                                            <option value="">Select a product</option>
-                                            {stocks.map(s => s.items && (
-                                                <option key={s.items.id} value={s.items.id}>
-                                                    {s.items.name}
-                                                </option>
-                                            )).filter((v, i, a) => a.findIndex(t => t.key === v.key) === i)}
+                                        <label className="form-label">Product Portfolio</label>
+                                        <select className="form-control" name="item_id" value={formData.item_id} onChange={handleInputChange} required>
+                                            <option value="">Select Item</option>
+                                            {stocks.map(s => s.items && <option key={s.items.id} value={s.items.id}>{s.items.name}</option>).filter((v, i, a) => a.findIndex(t => t.key === v.key) === i)}
                                         </select>
                                     </div>
-
                                     <div className="form-group">
-                                        <label className="form-label">Outlet</label>
-                                        <select
-                                            className="form-input"
-                                            name="outlet_id"
-                                            value={formData.outlet_id}
-                                            onChange={handleInputChange}
-                                        >
+                                        <label className="form-label">Deployment Center</label>
+                                        <select className="form-control" name="outlet_id" value={formData.outlet_id} onChange={handleInputChange}>
                                             <option value="">Central Warehouse</option>
-                                            {outlets.map(outlet => (
-                                                <option key={outlet.id} value={outlet.id}>{outlet.name}</option>
-                                            ))}
+                                            {outlets.map(outlet => <option key={outlet.id} value={outlet.id}>{outlet.name}</option>)}
                                         </select>
                                     </div>
-                                </>
+                                </div>
                             )}
 
                             {modalType === 'transfer' && (
-                                <div className="form-group">
-                                    <label className="form-label">Transfer To *</label>
-                                    <select
-                                        className="form-input"
-                                        name="to_outlet_id"
-                                        value={formData.to_outlet_id}
-                                        onChange={handleInputChange}
-                                        required
-                                    >
-                                        <option value="">Select destination outlet</option
-                                        >
-                                        {outlets.filter(o => o.id !== formData.outlet_id).map(outlet => (
-                                            <option key={outlet.id} value={outlet.id}>{outlet.name}</option>
-                                        ))}
+                                <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                                    <label className="form-label">Target Destination Center</label>
+                                    <select className="form-control" name="to_outlet_id" value={formData.to_outlet_id} onChange={handleInputChange} required>
+                                        <option value="">Select Target Depot</option>
+                                        {outlets.filter(o => o.id !== formData.outlet_id).map(outlet => <option key={outlet.id} value={outlet.id}>{outlet.name}</option>)}
                                     </select>
                                 </div>
                             )}
 
-                            <div className="form-group">
-                                <label className="form-label">Quantity *</label>
-                                <input
-                                    type="number"
-                                    className="form-input"
-                                    name="quantity"
-                                    value={formData.quantity}
-                                    onChange={handleInputChange}
-                                    required
-                                    min="0"
-                                />
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                                <div className="form-group">
+                                    <label className="form-label">Quantum (Quantity)</label>
+                                    <input type="number" className="form-control" name="quantity" value={formData.quantity} onChange={handleInputChange} required min="0" />
+                                </div>
+                                {modalType !== 'transfer' && (
+                                    <div className="form-group">
+                                        <label className="form-label">Batch Identifier</label>
+                                        <input type="text" className="form-control" name="batch_number" value={formData.batch_number} onChange={handleInputChange} placeholder="BN-XXXX-XXXX" />
+                                    </div>
+                                )}
                             </div>
 
                             {modalType !== 'transfer' && (
-                                <>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
                                     <div className="form-group">
-                                        <label className="form-label">Batch Number</label>
-                                        <input
-                                            type="text"
-                                            className="form-input"
-                                            name="batch_number"
-                                            value={formData.batch_number}
-                                            onChange={handleInputChange}
-                                            placeholder="e.g., BATCH-2025-001"
-                                        />
+                                        <label className="form-label">Production Date</label>
+                                        <input type="date" className="form-control" name="manufacture_date" value={formData.manufacture_date} onChange={handleInputChange} />
                                     </div>
-
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                        <div className="form-group">
-                                            <label className="form-label">Manufacture Date</label>
-                                            <input
-                                                type="date"
-                                                className="form-input"
-                                                name="manufacture_date"
-                                                value={formData.manufacture_date}
-                                                onChange={handleInputChange}
-                                            />
-                                        </div>
-
-                                        <div className="form-group">
-                                            <label className="form-label">Expiry Date</label>
-                                            <input
-                                                type="date"
-                                                className="form-input"
-                                                name="expiry_date"
-                                                value={formData.expiry_date}
-                                                onChange={handleInputChange}
-                                            />
-                                        </div>
-                                    </div>
-
                                     <div className="form-group">
-                                        <label className="form-label">Minimum Stock Level</label>
-                                        <input
-                                            type="number"
-                                            className="form-input"
-                                            name="minimum_stock_level"
-                                            value={formData.minimum_stock_level}
-                                            onChange={handleInputChange}
-                                            min="0"
-                                        />
+                                        <label className="form-label">Expiry Deadline</label>
+                                        <input type="date" className="form-control" name="expiry_date" value={formData.expiry_date} onChange={handleInputChange} />
                                     </div>
-                                </>
+                                </div>
                             )}
 
-                            <div className="form-group">
-                                <label className="form-label">Notes</label>
-                                <textarea
-                                    className="form-input"
-                                    name="notes"
-                                    value={formData.notes}
-                                    onChange={handleInputChange}
-                                    rows="2"
-                                    placeholder="Optional notes about this transaction"
-                                />
+                            {modalType !== 'transfer' && (
+                                <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                                    <label className="form-label">Safety Stock Trigger (Min level)</label>
+                                    <input type="number" className="form-control" name="minimum_stock_level" value={formData.minimum_stock_level} onChange={handleInputChange} min="0" />
+                                </div>
+                            )}
+
+                            <div className="form-group" style={{ marginBottom: '2rem' }}>
+                                <label className="form-label">Official Audit Remarks</label>
+                                <textarea className="form-control" name="notes" value={formData.notes} onChange={handleInputChange} rows="3" placeholder="Additional operational notes..." />
                             </div>
 
-                            <div className="modal-actions">
-                                <button type="button" className="btn-cancel" onClick={handleCloseModal}>
-                                    Cancel
-                                </button>
-                                <button type="submit" className="btn-primary">
-                                    {modalType === 'add' && 'Add Stock'}
-                                    {modalType === 'adjust' && 'Save Changes'}
-                                    {modalType === 'transfer' && 'Transfer Stock'}
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                <button type="button" className="btn-cancel" style={{ flex: 1 }} onClick={handleCloseModal}>Discard</button>
+                                <button type="submit" className="btn-primary" style={{ flex: 2 }}>
+                                    {modalType === 'add' && 'Initialize Stock Entry'}
+                                    {modalType === 'adjust' && 'Commence Adjustment'}
+                                    {modalType === 'transfer' && 'Execute Distribution'}
                                 </button>
                             </div>
                         </form>

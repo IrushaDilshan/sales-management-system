@@ -1,8 +1,15 @@
 /* Modern Page Container */
 .page-container {
     padding: 2.5rem;
+    padding-bottom: 0;
+    /* Remove bottom padding to allow table to sit flush */
     background: #f5f7fa;
-    min-height: 100vh;
+    height: 100vh;
+    /* Fix height to viewport */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* Prevent body scroll */
 }
 
 /* Page Header */
@@ -10,9 +17,11 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 2.5rem;
+    margin-bottom: 2rem;
     padding-bottom: 1.5rem;
     border-bottom: 2px solid #e5e7eb;
+    flex-shrink: 0;
+    /* Prevent shrinking */
 }
 
 .page-title {
@@ -120,65 +129,84 @@
 }
 
 /* Modern Table */
-.table-container {
+/* Modern Table Container */
+.modern-table-container {
     background: white;
-    border-radius: 20px;
+    border-radius: 24px 24px 0 0;
+    /* Round top corners, flat bottom */
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
-    overflow: visible;
-    /* Required for sticky header on page scroll */
-    margin-top: 1rem;
+    margin-top: 1.5rem;
+    border: 1px solid #f1f5f9;
+
+    /* Flex Scroll Magic */
+    flex: 1;
+    overflow-y: auto;
+    /* Internal scroll */
+    overflow-x: hidden;
+    min-height: 0;
+    /* Important for flex scrolling */
 }
 
-.data-table {
+.modern-table {
     width: 100%;
     border-collapse: collapse;
+    /* Essential for clean borders */
+    border-spacing: 0;
 }
 
-.data-table thead th {
-    position: sticky;
-    top: 104px;
-    /* Dock right under the sticky hub */
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    z-index: 1001;
-    padding: 1.25rem 1.75rem;
+.modern-table thead {
+    background: #f8fafc;
+}
+
+.modern-table thead th {
+    padding: 1.5rem;
     text-align: left;
     font-size: 0.85rem;
     font-weight: 800;
-    color: white;
-    /* Changed to white for better contrast on purple */
+    color: #475569;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
-    border: none;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid #e2e8f0;
+    white-space: nowrap;
+    /* Keep headers clean and single line */
+
+    /* Sticky Headers */
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: #f8fafc;
+    /* Ensure opacity over scrolling content */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
-.data-table thead th:first-child {
-    border-top-left-radius: 12px;
-}
-
-.data-table thead th:last-child {
-    border-top-right-radius: 12px;
-}
-
-.data-table tbody tr {
-    border-bottom: 1px solid #f3f4f6;
+.modern-table tbody tr {
     transition: all 0.2s ease;
+    border-bottom: 1px solid #f1f5f9;
 }
 
-.data-table tbody tr:hover {
-    background: linear-gradient(90deg, rgba(102, 126, 234, 0.05), transparent);
-    transform: scale(1.005);
-}
-
-.data-table tbody tr:last-child {
+.modern-table tbody tr:last-child {
     border-bottom: none;
 }
 
-.data-table td {
-    padding: 1.5rem 1.75rem;
-    font-size: 1rem;
-    color: #374151;
-    border: none;
+.modern-table tbody tr:hover {
+    background: #f8fafc;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+    position: relative;
+    z-index: 10;
+}
+
+.modern-table td {
+    padding: 1.25rem 1.5rem;
+    vertical-align: middle;
+    color: #334155;
+    font-size: 0.95rem;
+}
+
+/* Specific alignments */
+.modern-table th.text-right,
+.modern-table td.text-right {
+    text-align: right;
 }
 
 /* Empty State */
@@ -572,7 +600,8 @@
     top: 0;
     z-index: 1002;
     background: #f5f7fa;
-    padding: 1.5rem 0;
+    padding: 1rem 0;
+    /* Reduced padding for more compact header */
     margin-bottom: 0 !important;
     border-bottom: 2px solid #e2e8f0;
 }

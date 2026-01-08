@@ -307,7 +307,7 @@ const Customers = () => {
                     <p style={{ marginTop: '1.5rem', color: '#64748b' }}>Pulling latest directory data...</p>
                 </div>
             ) : (
-                <div className="table-container">
+                <div className="modern-table-container">
                     {filteredCustomers.length === 0 ? (
                         <div style={{ padding: '5rem', textAlign: 'center' }}>
                             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔎</div>
@@ -315,7 +315,7 @@ const Customers = () => {
                             <p style={{ color: '#64748b' }}>Try different search terms or register a new entity.</p>
                         </div>
                     ) : (
-                        <table className="data-table">
+                        <table className="modern-table">
                             <thead>
                                 <tr>
                                     <th>Customer Identity</th>

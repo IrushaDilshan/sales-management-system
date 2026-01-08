@@ -201,7 +201,7 @@ const Shops = () => {
                     <p style={{ marginTop: '1rem', color: '#64748b' }}>Pulling network data...</p>
                 </div>
             ) : (
-                <div className="table-container">
+                <div className="modern-table-container">
                     {filteredShops.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '5rem' }}>
                             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔦</div>
@@ -209,7 +209,7 @@ const Shops = () => {
                             <p style={{ color: '#64748b' }}>Try broadening your search or adjusting the route filter.</p>
                         </div>
                     ) : (
-                        <table className="data-table">
+                        <table className="modern-table">
                             <thead>
                                 <tr>
                                     <th>Outlet Identity</th>

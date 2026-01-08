@@ -1,81 +1,63 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { View, Platform } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, TouchableOpacity, Platform, StyleSheet, Dimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const { width } = Dimensions.get('window');
+
+const CustomCenterButton = ({ children, onPress }: any) => (
+    <View style={{
+        width: 70,
+        height: 70,
+        marginTop: -35, // Push it up by half its height to float
+        alignItems: 'center',
+        justifyContent: 'center',
+    }}>
+        <TouchableOpacity
+            style={styles.centerButton}
+            onPress={onPress}
+            activeOpacity={0.9}
+        >
+            {children}
+        </TouchableOpacity>
+    </View>
+);
 
 export default function TabLayout() {
+    const router = useRouter();
+    const insets = useSafeAreaInsets();
+
+    // Responsive height calculation
+    const tabBarHeight = Platform.OS === 'ios' ? 60 + insets.bottom : 60 + insets.bottom + 10;
+
     return (
         <Tabs
             screenOptions={{
                 headerShown: false,
-                tabBarActiveTintColor: '#2196F3',
-                tabBarInactiveTintColor: '#9CA3AF',
-                tabBarStyle: {
-                    backgroundColor: 'transparent',
-                    borderTopWidth: 0,
-                    height: Platform.OS === 'ios' ? 88 : 68,
-                    paddingBottom: Platform.OS === 'ios' ? 28 : 8,
-                    paddingTop: 0,
-                    paddingHorizontal: 16,
-                    elevation: 0,
-                    position: 'absolute',
-                },
-                tabBarBackground: () => (
-                    <View style={{
-                        flex: 1,
-                        overflow: 'hidden',
-                    }}>
-                        {/* Glass Effect Container */}
-                        <View style={{
-                            position: 'absolute',
-                            bottom: 12,
-                            left: 20,
-                            right: 20,
-                            height: Platform.OS === 'ios' ? 64 : 56,
-                            backgroundColor: '#FFFFFF',
-                            borderRadius: 32,
-                            shadowColor: '#2196F3',
-                            shadowOffset: { width: 0, height: 8 },
-                            shadowOpacity: 0.15,
-                            shadowRadius: 20,
-                            elevation: 12,
-                            borderWidth: 1,
-                            borderColor: 'rgba(255, 255, 255, 0.8)',
-                        }}>
-                            {/* Subtle top gradient shine */}
-                            <LinearGradient
-                                colors={['rgba(255, 255, 255, 0.9)', 'rgba(255, 255, 255, 0)']}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 0, y: 0.3 }}
-                                style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    right: 0,
-                                    height: '50%',
-                                    borderTopLeftRadius: 32,
-                                    borderTopRightRadius: 32,
-                                }}
-                            />
-                        </View>
-                    </View>
-                ),
                 tabBarShowLabel: true,
+                tabBarActiveTintColor: '#2563EB',
+                tabBarInactiveTintColor: '#64748B',
+                tabBarStyle: {
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    backgroundColor: '#FFFFFF',
+                    height: tabBarHeight,
+                    borderTopWidth: 0,
+                    elevation: 10,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: -2 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 6,
+                    paddingTop: 8,
+                    paddingBottom: insets.bottom > 0 ? insets.bottom - 4 : 8,
+                },
                 tabBarLabelStyle: {
-                    fontSize: 12,
-                    fontWeight: '700',
-                    marginTop: 6,
-                    marginBottom: 2,
-                    letterSpacing: 0.5,
-                },
-                tabBarIconStyle: {
-                    marginTop: 8,
-                    marginBottom: 2,
-                },
-                tabBarItemStyle: {
-                    paddingVertical: 6,
-                    gap: 4,
-                },
+                    fontSize: 10,
+                    fontWeight: '600',
+                    marginTop: 2
+                }
             }}
         >
             <Tabs.Screen
@@ -83,143 +65,83 @@ export default function TabLayout() {
                 options={{
                     title: 'Home',
                     tabBarIcon: ({ color, focused }) => (
-                        <View style={{
-                            position: 'relative',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                        }}>
-                            {focused && (
-                                // Animated Indicator at Top
-                                <View style={{
-                                    position: 'absolute',
-                                    top: -8,
-                                    width: 40,
-                                    height: 4,
-                                    borderRadius: 2,
-                                    overflow: 'hidden',
-                                }}>
-                                    <LinearGradient
-                                        colors={['#2196F3', '#1976D2']}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 0 }}
-                                        style={{
-                                            width: '100%',
-                                            height: '100%',
-                                        }}
-                                    />
-                                </View>
-                            )}
+                        <Ionicons name={focused ? "home" : "home-outline"} size={22} color={color} />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="accounts"
+                options={{
+                    title: 'Accounts',
+                    tabBarIcon: ({ color, focused }) => (
+                        <Ionicons name={focused ? "wallet" : "wallet-outline"} size={22} color={color} />
+                    ),
+                }}
+            />
 
-                            <View style={{
-                                width: 50,
-                                height: 50,
-                                borderRadius: 25,
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                backgroundColor: focused ? 'rgba(33, 150, 243, 0.12)' : 'transparent',
-                            }}>
-                                {focused ? (
-                                    <LinearGradient
-                                        colors={['#2196F3', '#1976D2']}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 1 }}
-                                        style={{
-                                            width: 46,
-                                            height: 46,
-                                            borderRadius: 23,
-                                            justifyContent: 'center',
-                                            alignItems: 'center',
-                                        }}
-                                    >
-                                        <Ionicons
-                                            name="home"
-                                            size={24}
-                                            color="#FFFFFF"
-                                        />
-                                    </LinearGradient>
-                                ) : (
-                                    <Ionicons
-                                        name="home-outline"
-                                        size={24}
-                                        color={color}
-                                    />
-                                )}
-                            </View>
-                        </View>
+            {/* Center Action Button */}
+            <Tabs.Screen
+                name="scan"
+                options={{
+                    title: '',
+                    tabBarIcon: ({ focused }) => (
+                        <Ionicons name="qr-code-outline" size={26} color="#FFFFFF" />
+                    ),
+                    tabBarButton: (props) => (
+                        <CustomCenterButton {...props} onPress={() => router.push('/salesman/submit-sale')}>
+                            <Ionicons name="qr-code-outline" size={26} color="#FFFFFF" />
+                        </CustomCenterButton>
+                    ),
+                    tabBarLabelStyle: { display: 'none' } // Hide label for center button
+                }}
+                listeners={() => ({
+                    tabPress: (e) => {
+                        e.preventDefault();
+                        router.push('/salesman/submit-sale');
+                    },
+                })}
+            />
+
+            <Tabs.Screen
+                name="history"
+                options={{
+                    title: 'History',
+                    tabBarIcon: ({ color, focused }) => (
+                        <Ionicons name={focused ? "time" : "time-outline"} size={22} color={color} />
                     ),
                 }}
             />
             <Tabs.Screen
                 name="settings"
                 options={{
-                    title: 'Settings',
+                    title: 'More',
                     tabBarIcon: ({ color, focused }) => (
-                        <View style={{
-                            position: 'relative',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                        }}>
-                            {focused && (
-                                // Animated Indicator at Top
-                                <View style={{
-                                    position: 'absolute',
-                                    top: -8,
-                                    width: 40,
-                                    height: 4,
-                                    borderRadius: 2,
-                                    overflow: 'hidden',
-                                }}>
-                                    <LinearGradient
-                                        colors={['#2196F3', '#1976D2']}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 0 }}
-                                        style={{
-                                            width: '100%',
-                                            height: '100%',
-                                        }}
-                                    />
-                                </View>
-                            )}
-
-                            <View style={{
-                                width: 50,
-                                height: 50,
-                                borderRadius: 25,
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                backgroundColor: focused ? 'rgba(33, 150, 243, 0.12)' : 'transparent',
-                            }}>
-                                {focused ? (
-                                    <LinearGradient
-                                        colors={['#2196F3', '#1976D2']}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 1 }}
-                                        style={{
-                                            width: 46,
-                                            height: 46,
-                                            borderRadius: 23,
-                                            justifyContent: 'center',
-                                            alignItems: 'center',
-                                        }}
-                                    >
-                                        <Ionicons
-                                            name="settings"
-                                            size={24}
-                                            color="#FFFFFF"
-                                        />
-                                    </LinearGradient>
-                                ) : (
-                                    <Ionicons
-                                        name="settings-outline"
-                                        size={24}
-                                        color={color}
-                                    />
-                                )}
-                            </View>
-                        </View>
+                        <Ionicons name={focused ? "grid" : "grid-outline"} size={22} color={color} />
                     ),
                 }}
             />
         </Tabs>
     );
 }
+
+const styles = StyleSheet.create({
+    centerButton: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: '#2563EB', // Blue
+        justifyContent: 'center',
+        alignItems: 'center',
+        // White border to separate from bar background
+        borderWidth: 4,
+        borderColor: '#F3F4F6', // Match app background or white
+        shadowColor: '#2563EB',
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.3,
+        shadowRadius: 4.65,
+        elevation: 8,
+    }
+});

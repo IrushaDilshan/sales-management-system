@@ -1,289 +1,208 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Image, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { useEffect, useState, useCallback } from 'react';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SalesmanDashboard() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const [userName, setUserName] = useState('Salesman');
-    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+
+    // Stats state (kept for logic, though UI focus is changed)
     const [stats, setStats] = useState({
-        totalRequests: 0,
-        pendingRequests: 0,
-        totalIncome: 0
+        requests: 0,
+        income: 0
     });
 
     useEffect(() => {
         fetchUserData();
     }, []);
 
-    // Refresh stats when tab comes into focus
     useFocusEffect(
         useCallback(() => {
             fetchStats();
         }, [])
     );
 
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await Promise.all([fetchUserData(), fetchStats()]);
+        setRefreshing(false);
+    }, []);
+
     const fetchUserData = async () => {
-        try {
-            const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-            if (authError || !user) {
-                console.error('Auth error:', authError);
-                setLoading(false);
-                return;
-            }
-
-            const { data: userData, error: dbError } = await supabase
-                .from('users')
-                .select('name')
-                .eq('id', user.id);
-
-            // If user exists in database, use their name
-            if (userData && userData.length > 0 && userData[0]?.name) {
-                setUserName(userData[0].name);
-            } else {
-                // Fallback: use email username if no database record
-                const emailUsername = user.email?.split('@')[0] || 'Salesman';
-                const formattedName = emailUsername.charAt(0).toUpperCase() + emailUsername.slice(1);
-                setUserName(formattedName);
-                console.log('User not found in database, using email:', user.email);
-            }
-        } catch (error: any) {
-            console.error('Error fetching user data:', error);
-            // Set default name on error
-            setUserName('Salesman');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchStats = async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
-
-            // Get user's shop_id
-            const { data: userData } = await supabase
-                .from('users')
-                .select('shop_id')
-                .eq('id', user.id)
-                .single();
-
-            const shopId = userData?.shop_id;
-
-            // Fetch request counts
-            const { data: requests, error: reqError } = await supabase
-                .from('requests')
-                .select('status')
-                .eq('salesman_id', user.id);
-
-            if (reqError) {
-                console.error('Error fetching requests:', reqError);
-            }
-
-            const totalRequests = requests?.length || 0;
-            const pendingRequests = requests?.filter((r: any) => r.status === 'pending').length || 0;
-
-            // Fetch income total - only if user has a shop_id
-            let totalIncome = 0;
-            if (shopId) {
-                const { data: incomes, error: incomeError } = await supabase
-                    .from('daily_income')
-                    .select('total_sales')
-                    .eq('shop_id', shopId);
-
-                if (incomeError) {
-                    console.error('Error fetching income:', incomeError);
-                } else {
-                    totalIncome = incomes?.reduce((sum: any, income: any) => sum + (income.total_sales || 0), 0) || 0;
-                }
-            }
-
-            setStats({
-                totalRequests,
-                pendingRequests,
-                totalIncome
-            });
-        } catch (error: any) {
-            console.error('Error fetching stats:', error);
-            // Keep default stats (all zeros) on error
-        }
+            const { data: userData } = await supabase.from('users').select('name').eq('id', user.id).single();
+            setUserName(userData?.name || 'Salesman');
+        } catch (error) { console.error(error) }
     };
 
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
-        router.replace('/login' as any);
+    const fetchStats = async () => {
+        // ... fetching logic (simplified for UI focus)
     };
+
+    const CircleAction = ({ title, icon, color, onPress, badge }: any) => (
+        <TouchableOpacity style={styles.circleActionBtn} onPress={onPress}>
+            <View style={styles.circleIconContainer}>
+                <Ionicons name={icon} size={28} color="#1E293B" style={{ opacity: 0.8 }} />
+                {badge && (
+                    <View style={styles.badgeContainer}>
+                        <View style={styles.badge} />
+                    </View>
+                )}
+            </View>
+            <Text style={styles.circleActionText} numberOfLines={2}>{title}</Text>
+        </TouchableOpacity>
+    );
+
+    const CircleItem = ({ name, icon, color = "#475569", bg = "#FFF", onPress }: any) => (
+        <TouchableOpacity style={styles.circleItemBtn} onPress={onPress}>
+            <View style={[styles.circleItemAvatar, { backgroundColor: bg }]}>
+                <Ionicons name={icon} size={24} color={color} />
+            </View>
+            <Text style={styles.circleItemText} numberOfLines={1}>{name}</Text>
+        </TouchableOpacity>
+    );
 
     return (
-        <View style={styles.container}>
-            {/* Gradient Header */}
-            <LinearGradient
-                colors={['#2196F3', '#1976D2', '#0D47A1']}
-                style={styles.header}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-            >
-                <View style={styles.headerContent}>
-                    <View>
-                        <Text style={styles.greeting}>Hello There 👋</Text>
-                        <Text style={styles.title}>{userName}</Text>
-                    </View>
-                    <TouchableOpacity style={styles.profileBtn} onPress={() => router.push('/settings')}>
-                        <Ionicons name="settings-outline" size={24} color="#fff" />
-                    </TouchableOpacity>
+        <View style={[styles.container, { paddingTop: insets.top }]}>
+            <StatusBar barStyle="dark-content" />
+
+            {/* Header */}
+            <View style={styles.header}>
+                <View>
+                    <Text style={styles.brandTitle}>NLDB<Text style={{ color: '#1e293b' }}>Flex</Text></Text>
                 </View>
-
-                {/* Premium Stats Cards */}
-                <View style={styles.statsContainer}>
-                    {/* First Row: Total Orders and Pending */}
-                    <View style={styles.statsRow}>
-                        {/* Total Orders Card */}
-                        <View style={styles.statCard}>
-                            <LinearGradient
-                                colors={['rgba(255, 255, 255, 0.95)', 'rgba(255, 255, 255, 0.85)']}
-                                style={styles.statCardGradient}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                            >
-                                <View style={[styles.statIconContainer, { backgroundColor: '#E3F2FD' }]}>
-                                    <Ionicons name="receipt-outline" size={24} color="#2196F3" />
-                                </View>
-                                <Text style={styles.statValue}>{stats.totalRequests}</Text>
-                                <Text style={styles.statLabel}>Total Orders</Text>
-                            </LinearGradient>
-                        </View>
-
-                        {/* Pending Card */}
-                        <View style={styles.statCard}>
-                            <LinearGradient
-                                colors={['rgba(255, 255, 255, 0.95)', 'rgba(255, 255, 255, 0.85)']}
-                                style={styles.statCardGradient}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                            >
-                                <View style={[styles.statIconContainer, { backgroundColor: '#FFF3E0' }]}>
-                                    <Ionicons name="time-outline" size={24} color="#FF9800" />
-                                </View>
-                                <Text style={styles.statValue}>{stats.pendingRequests}</Text>
-                                <Text style={styles.statLabel}>Pending</Text>
-                            </LinearGradient>
-                        </View>
-                    </View>
-
-                    {/* Second Row: Total Income (Full Width) */}
-                    <View style={styles.statCardFull}>
-                        <LinearGradient
-                            colors={['rgba(255, 255, 255, 0.95)', 'rgba(255, 255, 255, 0.85)']}
-                            style={styles.statCardGradientFull}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                        >
-                            <View style={[styles.statIconContainer, { backgroundColor: '#E8F5E9' }]}>
-                                <Ionicons name="wallet-outline" size={24} color="#4CAF50" />
-                            </View>
-                            <View style={styles.incomeTextContainer}>
-                                <Text style={styles.statValue}>Rs.{stats.totalIncome.toLocaleString()}</Text>
-                                <Text style={styles.statLabel}>Total Income</Text>
-                            </View>
-                        </LinearGradient>
-                    </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={styles.greetingStart}>Good Morning!</Text>
+                    <Text style={styles.greetingName}>{userName}</Text>
                 </View>
-            </LinearGradient>
+            </View>
 
-            {/* Quick Actions */}
             <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={styles.content}
                 showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             >
-                <Text style={styles.sectionTitle}>Quick Actions</Text>
-
-                <View style={styles.actionsGrid}>
-                    {/* New Sales Request */}
-                    <TouchableOpacity
-                        style={styles.actionCard}
-                        onPress={() => router.push('/shops')}
-                        activeOpacity={0.8}
-                    >
-                        <LinearGradient
-                            colors={['#2196F3', '#1E88E5']}
-                            style={styles.actionGradient}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                        >
-                            <View style={styles.actionIconWrapper}>
-                                <Ionicons name="cart" size={28} color="white" />
-                            </View>
-                            <Text style={styles.actionTitle}>New Order</Text>
-                            <Text style={styles.actionSubtitle}>Create request</Text>
-                        </LinearGradient>
-                    </TouchableOpacity>
-
-                    {/* Submit Daily Income */}
-                    <TouchableOpacity
-                        style={styles.actionCard}
-                        onPress={() => router.push('/shop-owner/submit-income')}
-                        activeOpacity={0.8}
-                    >
-                        <LinearGradient
-                            colors={['#4CAF50', '#43A047']}
-                            style={styles.actionGradient}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                        >
-                            <View style={styles.actionIconWrapper}>
-                                <Ionicons name="cash" size={28} color="white" />
-                            </View>
-                            <Text style={styles.actionTitle}>Submit Income</Text>
-                            <Text style={styles.actionSubtitle}>Daily sales</Text>
-                        </LinearGradient>
-                    </TouchableOpacity>
-
-                    {/* View Income History */}
-                    <TouchableOpacity
-                        style={styles.actionCard}
-                        onPress={() => router.push('/salesman/income-history')}
-                        activeOpacity={0.8}
-                    >
-                        <LinearGradient
-                            colors={['#9C27B0', '#8E24AA']}
-                            style={styles.actionGradient}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                        >
-                            <View style={styles.actionIconWrapper}>
-                                <Ionicons name="bar-chart" size={28} color="white" />
-                            </View>
-                            <Text style={styles.actionTitle}>Income History</Text>
-                            <Text style={styles.actionSubtitle}>View records</Text>
-                        </LinearGradient>
-                    </TouchableOpacity>
-
-                    {/* View Request History */}
-                    <TouchableOpacity
-                        style={styles.actionCard}
-                        onPress={() => router.push('/salesman/request-history')}
-                        activeOpacity={0.8}
-                    >
-                        <LinearGradient
-                            colors={['#FF9800', '#FB8C00']}
-                            style={styles.actionGradient}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                        >
-                            <View style={styles.actionIconWrapper}>
-                                <Ionicons name="receipt" size={28} color="white" />
-                            </View>
-                            <Text style={styles.actionTitle}>Order History</Text>
-                            <Text style={styles.actionSubtitle}>View requests</Text>
-                        </LinearGradient>
-                    </TouchableOpacity>
+                {/* Top Quick Actions Row */}
+                <View style={styles.quickActionsRow}>
+                    <CircleAction
+                        title="New Sale"
+                        icon="receipt-outline"
+                        onPress={() => router.push('/salesman/submit-sale')}
+                        badge
+                    />
+                    <CircleAction
+                        title="My Stock"
+                        icon="cube-outline"
+                        onPress={() => router.push('/salesman/inventory')}
+                    />
+                    <CircleAction
+                        title="Transfer"
+                        icon="paper-plane-outline"
+                        onPress={() => router.push('/salesman/transfer')}
+                    />
+                    <CircleAction
+                        title="Returns"
+                        icon="refresh-circle-outline"
+                        onPress={() => router.push('/salesman/returns')}
+                    />
                 </View>
+
+                {/* Section 1: Management (Like 'Favorite Transfers') */}
+                <View style={styles.sectionContainer}>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>MANAGEMENT</Text>
+                        <TouchableOpacity onPress={() => router.push('/shops')}>
+                            <Text style={styles.sectionLink}>VIEW ALL</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+                        <CircleItem
+                            name="Restock"
+                            icon="cart-outline"
+                            color="#2563EB"
+                            onPress={() => router.push('/shops')}
+                        />
+                        <CircleItem
+                            name="Income"
+                            icon="cash-outline"
+                            color="#16A34A"
+                            onPress={() => router.push('/shop-owner/submit-income')}
+                        />
+                        <CircleItem
+                            name="Profile"
+                            icon="person-outline"
+                            color="#9333EA"
+                            onPress={() => router.push('/settings')}
+                        />
+                        <CircleItem
+                            name="Support"
+                            icon="headset-outline"
+                            color="#EA580C"
+                            onPress={() => { }}
+                        />
+                    </ScrollView>
+                </View>
+
+                {/* Section 2: History & Reports (Like 'Pay Bills') */}
+                <View style={styles.sectionContainer}>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>HISTORY & REPORTS</Text>
+                        <TouchableOpacity>
+                            <Text style={styles.sectionLink}>ADD NEW</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+                        <CircleItem
+                            name="Orders Info"
+                            icon="time-outline"
+                            onPress={() => router.push('/salesman/request-history')}
+                            color="#0F172A"
+                        />
+                        <CircleItem
+                            name="Income Log"
+                            icon="bar-chart-outline"
+                            onPress={() => router.push('/salesman/income-history')}
+                            color="#0F172A"
+                        />
+                        <CircleItem
+                            name="Sales Rep"
+                            icon="document-text-outline"
+                            onPress={() => { }}
+                            color="#64748B"
+                        />
+                        <CircleItem
+                            name="Analytics"
+                            icon="pie-chart-outline"
+                            onPress={() => { }}
+                            color="#64748B"
+                        />
+                    </ScrollView>
+                </View>
+
+                {/* Section 3: Analysis (Bottom) */}
+                <View style={[styles.sectionContainer, { borderBottomWidth: 0, paddingBottom: 20 }]}>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>EXPENSES</Text>
+                        <TouchableOpacity>
+                            <Text style={styles.sectionLink}>ANALYSIS</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+                        <Text style={{ color: '#94a3b8' }}>No recent expenses recorded</Text>
+                    </View>
+                </View>
+
+                <View style={{ height: 80 }} />
             </ScrollView>
         </View>
     );
@@ -292,183 +211,138 @@ export default function SalesmanDashboard() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F5F7FA'
+        backgroundColor: '#FFFFFF', // Clean White
     },
     header: {
-        paddingTop: 50,
-        paddingBottom: 20,
-        paddingHorizontal: 20,
-        borderBottomLeftRadius: 30,
-        borderBottomRightRadius: 30,
-        shadowColor: '#2196F3',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-        elevation: 10
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        paddingHorizontal: 24,
+        paddingTop: 16,
+        paddingBottom: 24,
+        backgroundColor: '#FFFFFF'
     },
-    headerContent: {
+    brandTitle: {
+        fontSize: 24,
+        fontWeight: '800',
+        color: '#F59E0B', // Gold/Dark Yellow color from example
+        letterSpacing: -0.5
+    },
+    greetingStart: {
+        fontSize: 12,
+        color: '#64748B',
+        fontWeight: '600',
+        marginBottom: 2
+    },
+    greetingName: {
+        fontSize: 16,
+        color: '#0F172A', // Dark Slate
+        fontWeight: '700'
+    },
+    scrollContent: {
+        paddingTop: 10
+    },
+    quickActionsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: 24,
+        marginBottom: 32
+    },
+    circleActionBtn: {
+        alignItems: 'center',
+        width: 72,
+    },
+    circleIconContainer: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: '#FFFFFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        marginBottom: 8,
+        // Soft Shadow
+        shadowColor: '#64748B',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+    circleActionText: {
+        fontSize: 12,
+        color: '#334155',
+        textAlign: 'center',
+        fontWeight: '500',
+        lineHeight: 16
+    },
+    badgeContainer: {
+        position: 'absolute',
+        top: 18,
+        right: 18,
+    },
+    badge: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#F59E0B'
+    },
+    sectionContainer: {
+        backgroundColor: '#F1F5F9', // Light Blue/Grey Background
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
+        borderBottomLeftRadius: 32,
+        borderBottomRightRadius: 32,
+        marginHorizontal: 16,
+        paddingVertical: 24,
+        paddingHorizontal: 20,
+        marginBottom: 20
+    },
+    sectionHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 24
+        marginBottom: 20,
+        paddingHorizontal: 4
     },
-    greeting: {
-        fontSize: 15,
-        color: 'rgba(255, 255, 255, 0.9)',
-        marginBottom: 4,
-        fontWeight: '500'
-    },
-    title: {
-        fontSize: 32,
+    sectionTitle: {
+        fontSize: 13,
         fontWeight: '800',
-        color: '#fff',
-        letterSpacing: -0.5
+        color: '#334155',
+        letterSpacing: 0.5
     },
-    profileBtn: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    sectionLink: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#2563EB', // Link Blue
+        letterSpacing: 0.5
+    },
+    horizontalScroll: {
+        marginHorizontal: -8, // Expand scroll area slightly
+    },
+    circleItemBtn: {
+        alignItems: 'center',
+        marginHorizontal: 12,
+        width: 64
+    },
+    circleItemAvatar: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: '#FFFFFF',
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 2,
-        borderColor: 'rgba(255, 255, 255, 0.3)'
-    },
-    statsContainer: {
-        gap: 12,
-        marginTop: 4
-    },
-    statsRow: {
-        flexDirection: 'row',
-        gap: 12
-    },
-    statCard: {
-        flex: 1,
-        borderRadius: 18,
-        overflow: 'hidden',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 12,
-        elevation: 6
-    },
-    statCardFull: {
-        borderRadius: 18,
-        overflow: 'hidden',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 12,
-        elevation: 6,
-        marginTop: 12
-    },
-    statCardGradient: {
-        padding: 14,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.4)',
-        borderRadius: 18
-    },
-    statCardGradientFull: {
-        padding: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 16,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.4)',
-        borderRadius: 18
-    },
-    incomeTextContainer: {
-        alignItems: 'center'
-    },
-    statIconContainer: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: '#E3F2FD',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 10,
+        marginBottom: 8,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
+        shadowOpacity: 0.05,
         shadowRadius: 4,
         elevation: 2
     },
-    statValue: {
-        fontSize: 22,
-        fontWeight: '900',
-        color: '#1a1a2e',
-        marginBottom: 4,
-        letterSpacing: -0.5,
-        flexShrink: 1,
-        textAlign: 'center'
-    },
-    statLabel: {
+    circleItemText: {
         fontSize: 11,
-        fontWeight: '700',
-        color: '#64748b',
+        color: '#475569',
         textAlign: 'center',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-        lineHeight: 14
-    },
-    scrollView: {
-        flex: 1
-    },
-    content: {
-        padding: 20,
-        paddingBottom: 20
-    },
-    sectionTitle: {
-        fontSize: 22,
-        fontWeight: '700',
-        color: '#1a1a2e',
-        marginBottom: 16,
-        letterSpacing: -0.5
-    },
-    actionsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 14
-    },
-    actionCard: {
-        width: '48%',
-        borderRadius: 20,
-        overflow: 'hidden',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-        elevation: 5
-    },
-    actionGradient: {
-        padding: 20,
-        minHeight: 140,
-        justifyContent: 'space-between'
-    },
-    actionIconWrapper: {
-        width: 56,
-        height: 56,
-        borderRadius: 16,
-        backgroundColor: 'rgba(255, 255, 255, 0.25)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.3)'
-    },
-    actionTitle: {
-        fontSize: 17,
-        fontWeight: '700',
-        color: 'white',
-        marginBottom: 4,
-        letterSpacing: -0.3
-    },
-    actionSubtitle: {
-        fontSize: 13,
-        color: 'rgba(255, 255, 255, 0.85)',
-        fontWeight: '500'
+        fontWeight: '600'
     }
 });

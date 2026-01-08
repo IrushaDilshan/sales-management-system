@@ -1,92 +1,126 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { supabase } from '../shared/supabaseClient';
 import './Sidebar.css';
 
 const Sidebar = () => {
     const location = useLocation();
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [userData, setUserData] = useState({ name: 'Admin', role: 'Administrator' });
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data } = await supabase
+                    .from('users')
+                    .select('name, role')
+                    .eq('id', user.id)
+                    .single();
+
+                if (data) {
+                    setUserData({
+                        name: data.name,
+                        role: data.role.charAt(0).toUpperCase() + data.role.slice(1)
+                    });
+                }
+            }
+        };
+        fetchUser();
+    }, []);
 
     const isActive = (path) => {
         return location.pathname === path ? 'sidebar-link active' : 'sidebar-link';
     };
 
-    const toggleSidebar = () => {
-        setIsCollapsed(!isCollapsed);
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        window.location.href = '/login';
     };
 
     return (
-        <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
-            {/* Toggle Button */}
-            <button className="sidebar-toggle" onClick={toggleSidebar}>
-                <span className="toggle-icon">{isCollapsed ? '→' : '←'}</span>
-            </button>
-
-            {/* Logo/Brand */}
-            <div className="sidebar-brand">
-                <div className="brand-icon">🐄</div>
-                {!isCollapsed && (
-                    <div className="brand-text">
-                        <div className="brand-title">NLDB</div>
-                        <div className="brand-subtitle">Manager</div>
+        <aside className={`modern-sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+            {/* Branding Section */}
+            <div className="sidebar-header">
+                <div className="brand-wrapper">
+                    <div className="brand-logo">
+                        <span className="logo-icon">🌿</span>
                     </div>
-                )}
-            </div>
-
-            {/* Navigation Links */}
-            <nav className="sidebar-nav">
-                <Link to="/dashboard" className={isActive('/dashboard')} title="Dashboard">
-                    <span className="nav-icon">📊</span>
-                    {!isCollapsed && <span className="nav-text">Dashboard</span>}
-                </Link>
-
-                <Link to="/users" className={isActive('/users')} title="Users">
-                    <span className="nav-icon">👥</span>
-                    {!isCollapsed && <span className="nav-text">Users</span>}
-                </Link>
-
-                <Link to="/shops" className={isActive('/shops')} title="Shops">
-                    <span className="nav-icon">🏪</span>
-                    {!isCollapsed && <span className="nav-text">Shops</span>}
-                </Link>
-
-                <div style={{ height: '1px', backgroundColor: '#e5e7eb', margin: '1rem 0' }}></div>
-
-                <Link to="/sales-dashboard" className={isActive('/sales-dashboard')} title="Sales Portal" style={{ backgroundColor: '#f3f4f6' }}>
-                    <span className="nav-icon">🛒</span>
-                    {!isCollapsed && <span className="nav-text" style={{ fontWeight: 'bold' }}>Sales Portal</span>}
-                </Link>
-
-                <div style={{ height: '1px', backgroundColor: '#e5e7eb', margin: '1rem 0' }}></div>
-
-                <Link to="/routes" className={isActive('/routes')} title="Routes">
-                    <span className="nav-icon">🗺️</span>
-                    {!isCollapsed && <span className="nav-text">Routes</span>}
-                </Link>
-
-                <Link to="/daily-income" className={isActive('/daily-income')} title="Daily Income">
-                    <span className="nav-icon">💰</span>
-                    {!isCollapsed && <span className="nav-text">Daily Income</span>}
-                </Link>
-
-                <Link to="/settings" className={isActive('/settings')} title="Settings">
-                    <span className="nav-icon">⚙️</span>
-                    {!isCollapsed && <span className="nav-text">Settings</span>}
-                </Link>
-            </nav>
-
-            {/* Footer */}
-            <div className="sidebar-footer">
-                <div className="user-profile">
-                    <div className="user-avatar">A</div>
                     {!isCollapsed && (
-                        <div className="user-info">
-                            <div className="user-name">Admin</div>
-                            <div className="user-role">Manager</div>
+                        <div className="brand-info">
+                            <h2 className="brand-name">NLDB</h2>
+                            <span className="brand-tagline">Manager Pro</span>
                         </div>
                     )}
                 </div>
+                <button className="toggle-trigger" onClick={() => setIsCollapsed(!isCollapsed)}>
+                    {isCollapsed ? '→' : '←'}
+                </button>
             </div>
-        </div>
+
+            {/* Navigation Menu */}
+            <nav className="sidebar-menu">
+                <div className="menu-group">
+                    {!isCollapsed && <span className="group-label">General</span>}
+                    <Link to="/dashboard" className={isActive('/dashboard')}>
+                        <div className="link-icon">📊</div>
+                        {!isCollapsed && <span className="link-text">Control Center</span>}
+                    </Link>
+                </div>
+
+                <div className="menu-group">
+                    {!isCollapsed && <span className="group-label">Administration</span>}
+                    <Link to="/users" className={isActive('/users')}>
+                        <div className="link-icon">👥</div>
+                        {!isCollapsed && <span className="link-text">Force Management</span>}
+                    </Link>
+                    <Link to="/shops" className={isActive('/shops')}>
+                        <div className="link-icon">🏢</div>
+                        {!isCollapsed && <span className="link-text">Retail Outlets</span>}
+                    </Link>
+                    <Link to="/routes" className={isActive('/routes')}>
+                        <div className="link-icon">🗺️</div>
+                        {!isCollapsed && <span className="link-text">Map & Routes</span>}
+                    </Link>
+                </div>
+
+                <div className="menu-group">
+                    {!isCollapsed && <span className="group-label">Reports</span>}
+                    <Link to="/daily-income" className={isActive('/daily-income')}>
+                        <div className="link-icon">💰</div>
+                        {!isCollapsed && <span className="link-text">Revenue Stream</span>}
+                    </Link>
+                </div>
+
+                <div className="menu-group settings-group">
+                    <Link to="/settings" className={isActive('/settings')}>
+                        <div className="link-icon">⚙️</div>
+                        {!isCollapsed && <span className="link-text">System Config</span>}
+                    </Link>
+                </div>
+            </nav>
+
+            {/* User Account / Footer */}
+            <div className="sidebar-footer">
+                <div className="user-card">
+                    <div className="user-avatar-modern">
+                        {userData.name.charAt(0)}
+                    </div>
+                    {!isCollapsed && (
+                        <div className="user-details">
+                            <span className="u-name">{userData.name}</span>
+                            <span className="u-role">{userData.role}</span>
+                        </div>
+                    )}
+                </div>
+                {!isCollapsed && (
+                    <button className="logout-pill" onClick={handleLogout}>
+                        <span className="logout-icon">🚪</span>
+                        <span>Sign Out</span>
+                    </button>
+                )}
+            </div>
+        </aside>
     );
 };
 

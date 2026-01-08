@@ -213,7 +213,7 @@ const SalesHistory = () => {
                     <p style={{ marginTop: '1rem', color: '#64748b' }}>Reconstructing transaction history...</p>
                 </div>
             ) : (
-                <div className="table-container">
+                <div className="modern-table-container">
                     {sales.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '5rem' }}>
                             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🧾</div>
@@ -221,7 +221,7 @@ const SalesHistory = () => {
                             <p style={{ color: '#64748b' }}>Adjust filters or verify the selected date range.</p>
                         </div>
                     ) : (
-                        <table className="data-table">
+                        <table className="modern-table">
                             <thead>
                                 <tr>
                                     <th>Ref ID</th>
@@ -304,7 +304,7 @@ const SalesHistory = () => {
                                 </div>
                             </div>
 
-                            <table className="data-table" style={{ border: 'none' }}>
+                            <table className="modern-table" style={{ border: 'none' }}>
                                 <thead style={{ background: '#f8fafc' }}>
                                     <tr>
                                         <th style={{ background: 'none' }}>Product Specifications</th>

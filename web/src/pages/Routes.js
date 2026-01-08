@@ -165,35 +165,139 @@ export default function Routes() {
                         </div>
                     ) : (
                         routes.map(route => (
-                            <div key={route.id} style={{ background: 'white', borderRadius: '24px', padding: '1.5rem', boxShadow: '0 4px 20px rgba(0,0,0,0.04)', border: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                            <div key={route.id}
+                                style={{
+                                    background: 'white',
+                                    borderRadius: '24px',
+                                    padding: '0',
+                                    boxShadow: '0 10px 30px rgba(0,0,0,0.05)',
+                                    border: '1px solid #f1f5f9',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    overflow: 'hidden',
+                                    transition: 'all 0.3s ease',
+                                    cursor: 'default',
+                                    position: 'relative'
+                                }}
+                                onMouseEnter={e => {
+                                    e.currentTarget.style.transform = 'translateY(-5px)';
+                                    e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.1)';
+                                }}
+                                onMouseLeave={e => {
+                                    e.currentTarget.style.transform = 'none';
+                                    e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,0.05)';
+                                }}
+                            >
+                                {/* Header */}
+                                <div style={{
+                                    background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                                    padding: '1.5rem',
+                                    borderBottom: '1px solid #e2e8f0',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                }}>
                                     <div>
-                                        <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '900', color: '#1e293b' }}>{route.name}</h3>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
-                                            <span style={{ padding: '2px 8px', background: '#e0f2fe', color: '#0369a1', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800' }}>#{route.id}</span>
-                                            <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>{route.shopCount} DEPOTS</span>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: '800', color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.25rem' }}>
+                                            LOGISTICS ROUTE
                                         </div>
+                                        <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: '900', color: '#1e293b' }}>{route.name}</h3>
                                     </div>
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        <button onClick={() => handleOpenModal(route)} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', width: '36px', height: '36px', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✏️</button>
-                                        <button onClick={() => handleDelete(route.id)} style={{ background: '#fff1f2', border: '1px solid #ffe4e6', width: '36px', height: '36px', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🗑️</button>
+                                        <button
+                                            onClick={() => handleOpenModal(route)}
+                                            style={{
+                                                background: 'white', border: '1px solid #e2e8f0', width: '36px', height: '36px',
+                                                borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center',
+                                                justifyContent: 'center', transition: '0.2s', fontSize: '1rem',
+                                                boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
+                                            }}
+                                            title="Edit Route"
+                                        >
+                                            ✏️
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(route.id)}
+                                            style={{
+                                                background: '#fff1f2', border: '1px solid #ffe4e6', width: '36px', height: '36px',
+                                                borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center',
+                                                justifyContent: 'center', transition: '0.2s', fontSize: '1rem',
+                                                boxShadow: '0 2px 5px rgba(244, 63, 94, 0.1)'
+                                            }}
+                                            title="Delete Route"
+                                        >
+                                            🗑️
+                                        </button>
                                     </div>
                                 </div>
 
-                                <div style={{ background: '#f8fafc', borderRadius: '16px', padding: '1rem', marginBottom: '1.5rem' }}>
-                                    <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Field Representative</div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#10b98120', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '0.8rem' }}>{route.repName?.charAt(0)}</div>
-                                        <div style={{ fontWeight: '700', color: '#1e293b' }}>{route.repName}</div>
-                                    </div>
-                                </div>
+                                <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', flex: 1, gap: '1.5rem' }}>
 
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.75rem' }}>Allocated Outlets</div>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                        {route.shops.length > 0 ? route.shops.map(shop => (
-                                            <span key={shop.id} style={{ padding: '4px 10px', background: '#f1f5f9', color: '#475569', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '600' }}>🏪 {shop.name}</span>
-                                        )) : <span style={{ color: '#cbd5e1', fontStyle: 'italic', fontSize: '0.85rem' }}>No outlets mapped to this vector.</span>}
+                                    {/* Stats Grid */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                        {/* Rep Info */}
+                                        <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
+                                            <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Field Agent</div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                <div style={{
+                                                    width: '36px', height: '36px', borderRadius: '12px',
+                                                    background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                                                    color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    fontWeight: '800', fontSize: '0.9rem', boxShadow: '0 4px 12px rgba(99, 102, 241, 0.2)'
+                                                }}>
+                                                    {route.repName?.charAt(0)}
+                                                </div>
+                                                <div style={{ fontWeight: '700', color: '#334155', fontSize: '0.95rem' }}>{route.repName}</div>
+                                            </div>
+                                        </div>
+
+                                        {/* Depot Count */}
+                                        <div style={{ background: '#f0fdf4', padding: '1rem', borderRadius: '16px', border: '1px solid #dcfce7' }}>
+                                            <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#166534', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Active Depots</div>
+                                            <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#15803d' }}>
+                                                {route.shopCount}
+                                                <span style={{ fontSize: '0.8rem', marginLeft: '4px', opacity: 0.7, fontWeight: '700' }}>UNITS</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Outlets List */}
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <span>Mapped Network Coverage</span>
+                                            {route.shops.length > 0 && <span style={{ fontSize: '0.7rem', background: '#f1f5f9', padding: '2px 8px', borderRadius: '10px', fontWeight: '700', color: '#64748b' }}>{route.shops.length} Total</span>}
+                                        </div>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                            {route.shops.length > 0 ? (
+                                                <>
+                                                    {route.shops.slice(0, 6).map(shop => (
+                                                        <span key={shop.id} style={{
+                                                            padding: '6px 10px', background: 'white', border: '1px solid #e2e8f0',
+                                                            color: '#475569', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '600',
+                                                            boxShadow: '0 2px 4px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', gap: '6px'
+                                                        }}>
+                                                            <span style={{ color: '#10b981', fontSize: '0.6rem' }}>●</span> {shop.name}
+                                                        </span>
+                                                    ))}
+                                                    {route.shops.length > 6 && (
+                                                        <span style={{
+                                                            padding: '6px 10px', background: '#f8fafc', border: '1px solid #e2e8f0',
+                                                            color: '#64748b', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700',
+                                                            cursor: 'help'
+                                                        }} title={`+ ${route.shops.slice(6).map(s => s.name).join(', ')}`}>
+                                                            +{route.shops.length - 6} More
+                                                        </span>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <div style={{
+                                                    width: '100%', padding: '1rem', border: '2px dashed #e2e8f0', borderRadius: '12px',
+                                                    textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem', background: '#f8fafc'
+                                                }}>
+                                                    No outlets mapped to this vector
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

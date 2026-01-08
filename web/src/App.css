@@ -35,13 +35,13 @@
   margin-left: 280px;
   background: #f5f7fa;
   min-height: 100vh;
-  transition: margin-left 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* When sidebar is collapsed */
-.sidebar.collapsed~.main-content,
-.app-layout:has(.sidebar.collapsed) .main-content {
-  margin-left: 80px;
+/* When modern sidebar is collapsed */
+.modern-sidebar.collapsed+.main-content,
+.app-layout:has(.modern-sidebar.collapsed) .main-content {
+  margin-left: 88px;
 }
 
 /* Responsive */

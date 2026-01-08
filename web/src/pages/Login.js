@@ -49,6 +49,9 @@ const Login = () => {
                 case 'storekeeper':
                     navigate('/storekeeper/dashboard');
                     break;
+                case 'ma':
+                    navigate('/sales-dashboard');
+                    break;
                 case 'rep':
                 case 'salesman':
                     // Web dashboard is for admin and storekeeper only

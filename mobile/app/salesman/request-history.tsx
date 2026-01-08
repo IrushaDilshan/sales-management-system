@@ -7,16 +7,18 @@ import {
     StyleSheet,
     ActivityIndicator,
     RefreshControl,
-    Alert,
     Modal,
-    ScrollView
+    ScrollView,
+    StatusBar
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function RequestHistoryScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -31,62 +33,45 @@ export default function RequestHistoryScreen() {
     const fetchRequestHistory = async () => {
         try {
             setLoading(true);
-
-            // Get current user's ID directly from auth (same as when creating requests)
             const { data: { user }, error: authError } = await supabase.auth.getUser();
 
             if (authError || !user) {
-                console.error('Auth error:', authError);
                 setRequests([]);
                 setLoading(false);
                 setRefreshing(false);
                 return;
             }
 
-            const userId = user.id;
-            console.log('Fetching requests for user ID:', userId);
-
-            // Fetch all requests for this user - use created_at for ordering
             const { data: requestsData, error } = await supabase
                 .from('requests')
                 .select('*')
-                .eq('salesman_id', userId)
+                .eq('salesman_id', user.id)
                 .order('created_at', { ascending: false });
 
-            console.log('Fetched requests count:', requestsData?.length);
-
             if (error) {
-                console.error('Error fetching requests:', error);
                 setRequests([]);
             } else {
-                // Handle case when no requests found
                 if (!requestsData || requestsData.length === 0) {
                     setRequests([]);
                 } else {
-                    // Optimize: Batch fetch shop names
                     const shopIds = [...new Set(requestsData.map(r => r.shop_id).filter(Boolean))];
                     const shopsMap: Record<string, string> = {};
 
                     if (shopIds.length > 0) {
                         try {
-                            const { data: shops, error: shopsError } = await supabase
+                            const { data: shops } = await supabase
                                 .from('shops')
                                 .select('id, name')
                                 .in('id', shopIds);
 
-                            if (shopsError) {
-                                console.error('Error fetching shops batch:', shopsError);
-                            } else if (shops) {
+                            if (shops) {
                                 shops.forEach(shop => {
                                     shopsMap[shop.id] = shop.name;
                                 });
                             }
-                        } catch (err) {
-                            console.error('Exception fetching shops batch:', err);
-                        }
+                        } catch (err) { }
                     }
 
-                    // Map shops to requests
                     const requestsWithShops = requestsData.map(req => ({
                         ...req,
                         shopName: shopsMap[req.shop_id] || 'Unknown Shop'
@@ -96,7 +81,6 @@ export default function RequestHistoryScreen() {
                 }
             }
         } catch (error: any) {
-            console.error('Exception in fetchRequestHistory:', error);
             setRequests([]);
         } finally {
             setLoading(false);
@@ -114,42 +98,27 @@ export default function RequestHistoryScreen() {
         setModalVisible(true);
 
         try {
-            // Fetch request items
-            const { data: requestItems, error: itemsError } = await supabase
+            const { data: requestItems } = await supabase
                 .from('request_items')
                 .select('*')
                 .eq('request_id', request.id);
 
-            if (itemsError) {
-                console.error('Error fetching request items:', itemsError);
-                setSelectedRequest({ ...request, items: [] });
-                return;
-            }
-
-            // Optimize: Batch fetch items
             const itemIds = [...new Set((requestItems || []).map(i => i.item_id).filter(Boolean))];
             const itemsMap: Record<string, string> = {};
 
             if (itemIds.length > 0) {
-                try {
-                    const { data: items, error: itemsFetchError } = await supabase
-                        .from('items')
-                        .select('id, name')
-                        .in('id', itemIds);
+                const { data: items } = await supabase
+                    .from('items')
+                    .select('id, name')
+                    .in('id', itemIds);
 
-                    if (itemsFetchError) {
-                        console.error('Error fetching items batch:', itemsFetchError);
-                    } else if (items) {
-                        items.forEach(item => {
-                            itemsMap[item.id] = item.name;
-                        });
-                    }
-                } catch (err) {
-                    console.error('Exception fetching items batch:', err);
+                if (items) {
+                    items.forEach(item => {
+                        itemsMap[item.id] = item.name;
+                    });
                 }
             }
 
-            // Map items to request items
             const itemsWithDetails = (requestItems || []).map(reqItem => ({
                 ...reqItem,
                 itemName: itemsMap[reqItem.item_id] || 'Unknown Item'
@@ -160,7 +129,6 @@ export default function RequestHistoryScreen() {
                 items: itemsWithDetails
             });
         } catch (error) {
-            console.error('Error in fetchRequestDetails:', error);
             setSelectedRequest({ ...request, items: [] });
         } finally {
             setLoadingDetails(false);
@@ -169,72 +137,73 @@ export default function RequestHistoryScreen() {
 
     const getStatusColor = (status: string) => {
         switch (status?.toLowerCase()) {
-            case 'pending': return '#FF9800';
-            case 'approved': return '#2196F3';
-            case 'delivered': return '#4CAF50';
-            case 'rejected': return '#f44336';
-            default: return '#6b7280';
+            case 'pending': return { bg: '#FFFBEB', text: '#F59E0B' }; // Orange
+            case 'approved': return { bg: '#EFF6FF', text: '#2563EB' }; // Blue
+            case 'delivered': return { bg: '#DCFCE7', text: '#16A34A' }; // Green
+            case 'rejected': return { bg: '#FEF2F2', text: '#DC2626' }; // Red
+            default: return { bg: '#F1F5F9', text: '#64748B' }; // Grey
         }
     };
 
     const formatDate = (dateString: string) => {
         if (!dateString) return 'No date';
-
-        try {
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) return 'Invalid date';
-
-            return date.toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric'
-            });
-        } catch (error) {
-            return 'Invalid date';
-        }
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
     };
 
-    const renderRequestItem = ({ item }: { item: any }) => (
-        <TouchableOpacity
-            style={styles.requestCard}
-            onPress={() => fetchRequestDetails(item)}
-        >
-            <View style={styles.requestHeader}>
-                <View style={styles.shopInfo}>
-                    <Ionicons name="storefront" size={20} color="#2196F3" />
-                    <Text style={styles.shopName}>{item.shopName}</Text>
+    const renderRequestItem = ({ item }: { item: any }) => {
+        const style = getStatusColor(item.status);
+        return (
+            <TouchableOpacity
+                style={styles.requestCard}
+                onPress={() => fetchRequestDetails(item)}
+                activeOpacity={0.7}
+            >
+                <View style={styles.cardHeader}>
+                    <View style={styles.shopInfo}>
+                        <View style={styles.iconContainer}>
+                            <Ionicons name="storefront" size={18} color="#2563EB" />
+                        </View>
+                        <Text style={styles.shopName}>{item.shopName}</Text>
+                    </View>
+                    <View style={[styles.statusBadge, { backgroundColor: style.bg }]}>
+                        <Text style={[styles.statusText, { color: style.text }]}>{item.status || 'Unknown'}</Text>
+                    </View>
                 </View>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-                    <Text style={styles.statusText}>{item.status || 'Unknown'}</Text>
-                </View>
-            </View>
 
-            <View style={styles.requestFooter}>
-                <View style={styles.dateInfo}>
-                    <Ionicons name="calendar-outline" size={14} color="#6b7280" />
-                    <Text style={styles.dateText}>{formatDate(item.date || item.created_at)}</Text>
+                <View style={styles.cardFooter}>
+                    <View style={styles.dateContainer}>
+                        <Ionicons name="calendar-outline" size={14} color="#94A3B8" />
+                        <Text style={styles.dateText}>{formatDate(item.date || item.created_at)}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
                 </View>
-                <Ionicons name="information-circle-outline" size={20} color="#2196F3" />
-            </View>
-        </TouchableOpacity>
-    );
+            </TouchableOpacity>
+        );
+    };
 
     if (loading) {
         return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#2196F3" />
-                <Text style={styles.loadingText}>Loading requests...</Text>
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color="#2563EB" />
             </View>
         );
     }
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { paddingTop: insets.top }]}>
+            <StatusBar barStyle="dark-content" />
+
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={24} color="#fff" />
+                    <Ionicons name="arrow-back" size={24} color="#0F172A" />
                 </TouchableOpacity>
-                <Text style={styles.title}>My Requests</Text>
+                <Text style={styles.headerTitle}>My Requests</Text>
+                <View style={{ width: 40 }} />
             </View>
 
             <FlatList
@@ -243,11 +212,13 @@ export default function RequestHistoryScreen() {
                 keyExtractor={(item) => item.id.toString()}
                 contentContainerStyle={styles.listContent}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#2563EB"]} />
                 }
                 ListEmptyComponent={
                     <View style={styles.emptyState}>
-                        <Ionicons name="receipt-outline" size={64} color="#ccc" />
+                        <View style={styles.emptyIcon}>
+                            <Ionicons name="receipt-outline" size={48} color="#CBD5E1" />
+                        </View>
                         <Text style={styles.emptyText}>No requests yet</Text>
                         <Text style={styles.emptySubtext}>
                             Create a sales request to see it here
@@ -264,109 +235,47 @@ export default function RequestHistoryScreen() {
                 onRequestClose={() => setModalVisible(false)}
             >
                 <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
+                    <View style={[styles.modalContent, { paddingBottom: insets.bottom + 20 }]}>
                         {/* Modal Header */}
                         <View style={styles.modalHeader}>
+                            <View />
                             <Text style={styles.modalTitle}>Request Details</Text>
                             <TouchableOpacity
                                 onPress={() => setModalVisible(false)}
                                 style={styles.closeButton}
                             >
-                                <Ionicons name="close" size={28} color="#666" />
+                                <Ionicons name="close-circle" size={30} color="#CBD5E1" />
                             </TouchableOpacity>
                         </View>
 
                         {loadingDetails ? (
                             <View style={styles.modalLoading}>
-                                <ActivityIndicator size="large" color="#2196F3" />
-                                <Text style={styles.loadingText}>Loading details...</Text>
+                                <ActivityIndicator size="large" color="#2563EB" />
                             </View>
                         ) : selectedRequest ? (
                             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
                                 {/* Shop Info */}
-                                <View style={styles.modalSection}>
-                                    <View style={styles.modalSectionHeader}>
-                                        <Ionicons name="storefront" size={24} color="#2196F3" />
-                                        <Text style={styles.modalSectionTitle}>Shop Information</Text>
-                                    </View>
-                                    <View style={styles.infoCard}>
-                                        <Text style={styles.infoLabel}>Shop Name</Text>
-                                        <Text style={styles.infoValue}>{selectedRequest.shopName}</Text>
-                                    </View>
-                                </View>
-
-                                {/* Status & Date */}
-                                <View style={styles.modalSection}>
-                                    <View style={styles.modalSectionHeader}>
-                                        <Ionicons name="information-circle" size={24} color="#2196F3" />
-                                        <Text style={styles.modalSectionTitle}>Status & Date</Text>
-                                    </View>
-                                    <View style={styles.infoRow}>
-                                        <View style={styles.infoCard}>
-                                            <Text style={styles.infoLabel}>Status</Text>
-                                            <View style={[styles.statusBadgeLarge, { backgroundColor: getStatusColor(selectedRequest.status) }]}>
-                                                <Text style={styles.statusTextLarge}>{selectedRequest.status || 'Unknown'}</Text>
-                                            </View>
-                                        </View>
-                                        <View style={styles.infoCard}>
-                                            <Text style={styles.infoLabel}>Date</Text>
-                                            <Text style={styles.infoValue}>{formatDate(selectedRequest.date || selectedRequest.created_at)}</Text>
-                                        </View>
-                                    </View>
+                                <View style={styles.detailCard}>
+                                    <Text style={styles.detailLabel}>SHOP</Text>
+                                    <Text style={styles.detailValue}>{selectedRequest.shopName}</Text>
                                 </View>
 
                                 {/* Items List */}
-                                <View style={styles.modalSection}>
-                                    <View style={styles.modalSectionHeader}>
-                                        <Ionicons name="cube" size={24} color="#2196F3" />
-                                        <Text style={styles.modalSectionTitle}>Ordered Items</Text>
-                                    </View>
-                                    {selectedRequest.items && selectedRequest.items.length > 0 ? (
-                                        selectedRequest.items.map((item: any, index: number) => (
-                                            <View key={index} style={styles.itemRow}>
-                                                <View style={styles.itemLeft}>
-                                                    <View style={styles.itemNumber}>
-                                                        <Text style={styles.itemNumberText}>{index + 1}</Text>
-                                                    </View>
-                                                    <Text style={styles.itemNameModal}>{item.itemName}</Text>
-                                                </View>
-                                                <View style={styles.itemRight}>
-                                                    <View style={styles.quantityBadge}>
-                                                        <Text style={styles.quantityLabel}>Requested</Text>
-                                                        <Text style={styles.quantityValue}>{item.qty}</Text>
-                                                    </View>
-                                                    {selectedRequest.status !== 'pending' && (
-                                                        <View style={[styles.quantityBadge, { backgroundColor: '#e8f5e9' }]}>
-                                                            <Text style={[styles.quantityLabel, { color: '#2e7d32' }]}>Delivered</Text>
-                                                            <Text style={[styles.quantityValue, { color: '#2e7d32' }]}>{item.delivered_qty || 0}</Text>
-                                                        </View>
-                                                    )}
-                                                </View>
-                                            </View>
-                                        ))
-                                    ) : (
-                                        <View style={styles.emptyItems}>
-                                            <Ionicons name="cube-outline" size={48} color="#ccc" />
-                                            <Text style={styles.emptyItemsText}>No items in this request</Text>
-                                        </View>
-                                    )}
-                                </View>
+                                <Text style={styles.sectionTitle}>Items ({selectedRequest.items.length})</Text>
 
-                                {/* Summary */}
-                                {selectedRequest.items && selectedRequest.items.length > 0 && (
-                                    <View style={styles.summarySection}>
-                                        <View style={styles.summaryRow}>
-                                            <Text style={styles.summaryLabel}>Total Items:</Text>
-                                            <Text style={styles.summaryValue}>{selectedRequest.items.length}</Text>
+                                {selectedRequest.items.map((item: any, index: number) => (
+                                    <View key={index} style={styles.itemRow}>
+                                        <View style={styles.itemInfo}>
+                                            <Text style={styles.itemName}>{item.itemName}</Text>
+                                            <Text style={styles.itemSubtext}>Requested</Text>
                                         </View>
-                                        <View style={styles.summaryRow}>
-                                            <Text style={styles.summaryLabel}>Total Quantity:</Text>
-                                            <Text style={styles.summaryValue}>
-                                                {selectedRequest.items.reduce((sum: number, item: any) => sum + item.qty, 0)}
-                                            </Text>
+                                        <View style={styles.qtyBox}>
+                                            <Text style={styles.qtyText}>{item.qty}</Text>
                                         </View>
                                     </View>
-                                )}
+                                ))}
+
+                                <View style={{ height: 40 }} />
                             </ScrollView>
                         ) : null}
                     </View>
@@ -379,294 +288,216 @@ export default function RequestHistoryScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f5f5'
+        backgroundColor: '#FFFFFF',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#2196F3',
-        padding: 20,
-        paddingTop: 50,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+        backgroundColor: '#FFFFFF',
     },
     backBtn: {
-        marginRight: 16,
-        padding: 8
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#fff'
-    },
-    loadingContainer: {
-        flex: 1,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#F8FAFC',
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#f5f5f5'
+        borderWidth: 1,
+        borderColor: '#E2E8F0'
     },
-    loadingText: {
-        marginTop: 10,
-        color: '#666',
-        fontSize: 16
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#0F172A',
+        textAlign: 'center'
     },
     listContent: {
         padding: 20,
-        paddingBottom: 40
+        paddingBottom: 100
     },
     requestCard: {
-        backgroundColor: 'white',
-        borderRadius: 12,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
         padding: 16,
-        marginBottom: 15,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#F1F5F9',
+        shadowColor: '#64748B',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
     },
-    requestHeader: {
+    cardHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 12
+        marginBottom: 16
     },
     shopInfo: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
-        flex: 1
+        gap: 12
+    },
+    iconContainer: {
+        width: 32,
+        height: 32,
+        borderRadius: 10,
+        backgroundColor: '#EFF6FF',
+        justifyContent: 'center',
+        alignItems: 'center'
     },
     shopName: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#111',
-        flex: 1
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#1E293B'
     },
     statusBadge: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 12
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
     },
     statusText: {
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: '700',
-        color: 'white',
         textTransform: 'capitalize'
     },
-    requestFooter: {
+    cardFooter: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingTop: 12,
         borderTopWidth: 1,
-        borderTopColor: '#f0f0f0'
+        borderTopColor: '#F8FAFC',
+        paddingTop: 12
     },
-    dateInfo: {
+    dateContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6
     },
     dateText: {
-        fontSize: 14,
-        color: '#666'
+        fontSize: 13,
+        color: '#94A3B8',
+        fontWeight: '500'
     },
+    // Empty State
     emptyState: {
         alignItems: 'center',
         justifyContent: 'center',
-        paddingTop: 80,
-        paddingHorizontal: 40
+        paddingTop: 80
+    },
+    emptyIcon: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: '#F8FAFC',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16
     },
     emptyText: {
-        fontSize: 20,
-        fontWeight: '600',
-        color: '#666',
-        marginTop: 20,
-        textAlign: 'center'
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#1E293B',
+        marginBottom: 8
     },
     emptySubtext: {
         fontSize: 14,
-        color: '#999',
-        marginTop: 8,
-        textAlign: 'center'
+        color: '#94A3B8'
     },
-    // Modal Styles
+    // Modal
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'flex-end'
+        backgroundColor: 'rgba(15, 23, 42, 0.4)',
+        justifyContent: 'flex-end',
     },
     modalContent: {
-        backgroundColor: 'white',
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        maxHeight: '90%',
-        paddingBottom: 20
+        backgroundColor: '#FFFFFF',
+        borderTopLeftRadius: 30,
+        borderTopRightRadius: 30,
+        maxHeight: '85%',
+        padding: 24,
     },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 20,
-        borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0'
-    },
-    modalTitle: {
-        fontSize: 22,
-        fontWeight: '700',
-        color: '#111'
-    },
-    closeButton: {
-        padding: 8
-    },
-    modalLoading: {
-        padding: 60,
-        alignItems: 'center',
-        justifyContent: 'center'
-    },
-    modalBody: {
-        padding: 20
-    },
-    modalSection: {
         marginBottom: 24
     },
-    modalSectionHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        marginBottom: 12
-    },
-    modalSectionTitle: {
+    modalTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#111'
+        color: '#0F172A'
     },
-    infoCard: {
-        backgroundColor: '#f8f9fa',
-        padding: 14,
-        borderRadius: 12,
-        marginBottom: 8
+    closeButton: {
+        padding: 4
     },
-    infoRow: {
-        flexDirection: 'row',
-        gap: 12
+    modalLoading: {
+        padding: 40,
+        alignItems: 'center'
     },
-    infoLabel: {
-        fontSize: 12,
-        color: '#666',
+    modalBody: {
+        width: '100%'
+    },
+    detailCard: {
+        backgroundColor: '#F8FAFC',
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 24
+    },
+    detailLabel: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#94A3B8',
+        marginBottom: 4
+    },
+    detailValue: {
+        fontSize: 16,
         fontWeight: '600',
-        marginBottom: 6,
+        color: '#0F172A'
+    },
+    sectionTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#94A3B8',
+        marginBottom: 12,
         textTransform: 'uppercase'
     },
-    infoValue: {
-        fontSize: 16,
-        color: '#111',
-        fontWeight: '600'
-    },
-    statusBadgeLarge: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 12,
-        alignSelf: 'flex-start'
-    },
-    statusTextLarge: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: 'white',
-        textTransform: 'capitalize'
-    },
     itemRow: {
-        backgroundColor: '#f8f9fa',
-        padding: 14,
-        borderRadius: 12,
-        marginBottom: 10,
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center'
-    },
-    itemLeft: {
-        flexDirection: 'row',
         alignItems: 'center',
-        flex: 1,
-        gap: 12
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9'
     },
-    itemNumber: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: '#2196F3',
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    itemNumberText: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: 'white'
-    },
-    itemNameModal: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: '#111',
+    itemInfo: {
         flex: 1
     },
-    itemRight: {
-        flexDirection: 'row',
-        gap: 8,
-        alignItems: 'center'
-    },
-    quantityBadge: {
-        backgroundColor: '#e3f2fd',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 8,
-        alignItems: 'center'
-    },
-    quantityLabel: {
-        fontSize: 10,
-        color: '#2196F3',
-        fontWeight: '600',
-        textTransform: 'uppercase',
-        marginBottom: 2
-    },
-    quantityValue: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#2196F3'
-    },
-    emptyItems: {
-        padding: 40,
-        alignItems: 'center',
-        justifyContent: 'center'
-    },
-    emptyItemsText: {
-        fontSize: 16,
-        color: '#999',
-        marginTop: 12,
-        fontWeight: '600'
-    },
-    summarySection: {
-        backgroundColor: '#2196F3',
-        padding: 16,
-        borderRadius: 12,
-        marginTop: 10
-    },
-    summaryRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: 6
-    },
-    summaryLabel: {
+    itemName: {
         fontSize: 15,
         fontWeight: '600',
-        color: 'rgba(255, 255, 255, 0.9)'
+        color: '#1E293B',
+        marginBottom: 2
     },
-    summaryValue: {
-        fontSize: 18,
+    itemSubtext: {
+        fontSize: 12,
+        color: '#94A3B8'
+    },
+    qtyBox: {
+        backgroundColor: '#EFF6FF',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+        minWidth: 40,
+        alignItems: 'center'
+    },
+    qtyText: {
+        color: '#2563EB',
         fontWeight: '700',
-        color: 'white'
+        fontSize: 14
     }
 });

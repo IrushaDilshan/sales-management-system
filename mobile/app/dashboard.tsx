@@ -166,7 +166,27 @@ export default function SalesmanDashboard() {
                 <Text style={styles.sectionTitle}>Quick Actions</Text>
 
                 <View style={styles.actionsGrid}>
-                    {/* New Sales Request */}
+                    {/* New Customer Sale */}
+                    <TouchableOpacity
+                        style={styles.actionCard}
+                        onPress={() => router.push('/salesman/submit-sale')}
+                        activeOpacity={0.8}
+                    >
+                        <LinearGradient
+                            colors={['#FF4081', '#F50057']}
+                            style={styles.actionGradient}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <View style={styles.actionIconWrapper}>
+                                <Ionicons name="pricetag" size={28} color="white" />
+                            </View>
+                            <Text style={styles.actionTitle}>New Sale</Text>
+                            <Text style={styles.actionSubtitle}>Sell items</Text>
+                        </LinearGradient>
+                    </TouchableOpacity>
+
+                    {/* Request Stock */}
                     <TouchableOpacity
                         style={styles.actionCard}
                         onPress={() => router.push('/shops')}
@@ -179,10 +199,10 @@ export default function SalesmanDashboard() {
                             end={{ x: 1, y: 1 }}
                         >
                             <View style={styles.actionIconWrapper}>
-                                <Ionicons name="cart" size={28} color="white" />
+                                <Ionicons name="cube" size={28} color="white" />
                             </View>
-                            <Text style={styles.actionTitle}>New Order</Text>
-                            <Text style={styles.actionSubtitle}>Create request</Text>
+                            <Text style={styles.actionTitle}>Restock</Text>
+                            <Text style={styles.actionSubtitle}>Request stock</Text>
                         </LinearGradient>
                     </TouchableOpacity>
 

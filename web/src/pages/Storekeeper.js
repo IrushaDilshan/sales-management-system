@@ -301,9 +301,9 @@ const Storekeeper = () => {
                     </div>
 
                     {/* STOCK LIST */}
-                    <div className="table-container header-margin">
+                    <div className="modern-table-container header-margin">
                         <h2 className="section-title">Inventory Status</h2>
-                        <table className="data-table">
+                        <table className="modern-table">
                             <thead>
                                 <tr>
                                     <th>Item Name</th>
@@ -460,7 +460,7 @@ const Storekeeper = () => {
                             </div>
                             <button className="close-btn" onClick={handleCloseModal}>&times;</button>
                         </div>
-                        <div className="table-container" style={{ maxHeight: '500px', overflowY: 'auto' }}>
+                        <div className="modern-table-container" style={{ maxHeight: '500px', overflowY: 'auto' }}>
                             {getItemHistory().length === 0 ? (
                                 <div style={{
                                     textAlign: 'center',
@@ -474,7 +474,7 @@ const Storekeeper = () => {
                                     </p>
                                 </div>
                             ) : (
-                                <table className="data-table small-table">
+                                <table className="modern-table small-table">
                                     <thead>
                                         <tr>
                                             <th style={{ width: '140px' }}>Date & Time</th>

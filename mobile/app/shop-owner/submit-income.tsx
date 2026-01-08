@@ -7,15 +7,18 @@ import {
     StyleSheet,
     ScrollView,
     Alert,
-    ActivityIndicator
+    ActivityIndicator,
+    StatusBar
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SubmitIncomeScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const params = useLocalSearchParams();
     const { shop_id: paramShopId, shop_name: paramShopName } = params;
 
@@ -32,12 +35,10 @@ export default function SubmitIncomeScreen() {
 
     useEffect(() => {
         if (paramShopId && paramShopName) {
-            // If called from shop-owner dashboard with params
             setShopId(Array.isArray(paramShopId) ? paramShopId[0] : paramShopId);
             setShopName(Array.isArray(paramShopName) ? paramShopName[0] : paramShopName);
             setLoadingShop(false);
         } else {
-            // If called from salesman dashboard, get user's shop
             fetchUserShop();
         }
     }, []);
@@ -47,32 +48,16 @@ export default function SubmitIncomeScreen() {
             const { data: userData } = await supabase.auth.getUser();
             const userEmail = userData?.user?.email;
 
-            console.log('Fetching shop for user:', userEmail || 'No user');
-
             if (!userEmail) {
-                console.warn('No authenticated user - fetching first shop');
-                // For testing without auth: Get first shop
                 const { data: allShops, error: shopsError } = await supabase
                     .from('shops')
                     .select('id, name')
                     .limit(1);
 
-                console.log('Shops query result:', allShops, 'Error:', shopsError);
-
-                if (shopsError) {
-                    console.error('Error fetching shops:', shopsError);
-                    Alert.alert('Database Error', `Could not fetch shops: ${shopsError.message}`);
-                    router.back();
-                    setLoadingShop(false);
-                    return;
-                }
-
                 if (allShops && allShops.length > 0) {
                     setShopId(allShops[0].id);
                     setShopName(allShops[0].name);
-                    console.log('Using first shop for testing:', allShops[0].name);
                 } else {
-                    console.error('No shops found in database');
                     Alert.alert('No Shops Available', 'No shops found in the database. Please add shops first.');
                     router.back();
                 }
@@ -80,42 +65,30 @@ export default function SubmitIncomeScreen() {
                 return;
             }
 
-            // Try to get user's assigned shop
             const { data: userRecord, error: userError } = await supabase
                 .from('users')
                 .select('shop_id, shops!inner(id, name)')
                 .eq('email', userEmail)
                 .limit(1);
 
-            console.log('User record:', userRecord, 'Error:', userError);
-
             if (userRecord && userRecord.length > 0 && userRecord[0].shop_id && userRecord[0].shops) {
                 setShopId(userRecord[0].shop_id);
                 setShopName((userRecord[0].shops as any).name);
-                console.log('Using assigned shop:', (userRecord[0].shops as any).name);
             } else {
-                console.warn('No shop assigned to user, fetching first available shop');
-                // Fallback to first shop
-                const { data: firstShop, error: shopError } = await supabase
+                const { data: firstShop } = await supabase
                     .from('shops')
                     .select('id, name')
                     .limit(1);
 
-                if (shopError) {
-                    console.error('Error fetching fallback shop:', shopError);
-                }
-
                 if (firstShop && firstShop.length > 0) {
                     setShopId(firstShop[0].id);
                     setShopName(firstShop[0].name);
-                    console.log('Using fallback shop:', firstShop[0].name);
                 } else {
                     Alert.alert('No Shops', 'No shops available in the system');
                     router.back();
                 }
             }
         } catch (error) {
-            console.error('Exception in fetchUserShop:', error);
             Alert.alert('Error', 'An unexpected error occurred while loading shop information');
             router.back();
         } finally {
@@ -124,7 +97,6 @@ export default function SubmitIncomeScreen() {
     };
 
     const handleSubmit = async () => {
-        // Validation
         const total = parseFloat(totalSales);
         const cash = parseFloat(cashSales) || 0;
         const credit = parseFloat(creditSales) || 0;
@@ -134,7 +106,7 @@ export default function SubmitIncomeScreen() {
             return;
         }
 
-        if (cash + credit !== total) {
+        if (cash + credit !== total && (cash > 0 || credit > 0)) {
             Alert.alert(
                 'Warning',
                 `Cash (${cash}) + Credit (${credit}) should equal Total Sales (${total})`,
@@ -154,7 +126,7 @@ export default function SubmitIncomeScreen() {
         try {
             const incomeRecord = {
                 shop_id: shopId,
-                date: date.toISOString().split('T')[0], // YYYY-MM-DD format
+                date: date.toISOString().split('T')[0],
                 total_sales: parseFloat(totalSales),
                 cash_sales: parseFloat(cashSales) || 0,
                 credit_sales: parseFloat(creditSales) || 0,
@@ -162,18 +134,11 @@ export default function SubmitIncomeScreen() {
                 created_at: new Date().toISOString()
             };
 
-            console.log('Submitting income record:', incomeRecord);
-
             const { error } = await supabase
                 .from('daily_income')
                 .insert([incomeRecord]);
 
-            if (error) {
-                console.error('Supabase error:', error);
-                throw error;
-            }
-
-            console.log('Income submitted successfully');
+            if (error) throw error;
 
             Alert.alert(
                 'Success',
@@ -181,13 +146,11 @@ export default function SubmitIncomeScreen() {
                 [{ text: 'OK', onPress: () => router.back() }]
             );
 
-            // Reset form
             setTotalSales('');
             setCashSales('');
             setCreditSales('');
             setNotes('');
         } catch (error: any) {
-            console.error('Error submitting income:', error);
             Alert.alert('Error', error.message || 'Failed to submit income');
         } finally {
             setLoading(false);
@@ -205,34 +168,40 @@ export default function SubmitIncomeScreen() {
         return (
             <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
                 <ActivityIndicator size="large" color="#4CAF50" />
-                <Text style={{ marginTop: 10, color: '#6b7280' }}>Loading shop information...</Text>
             </View>
         );
     }
 
     return (
-        <ScrollView style={styles.container}>
+        <View style={[styles.container, { paddingTop: insets.top }]}>
+            <StatusBar barStyle="dark-content" />
+
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={24} color="#333" />
+                    <Ionicons name="arrow-back" size={24} color="#0F172A" />
                 </TouchableOpacity>
-                <Text style={styles.title}>Submit Daily Income</Text>
+                <Text style={styles.headerTitle}>Daily Income</Text>
+                <View style={{ width: 40 }} />
             </View>
 
-            <View style={styles.shopCard}>
-                <Ionicons name="storefront" size={20} color="#FF9800" />
-                <Text style={styles.shopName}>{shopName}</Text>
-            </View>
+            <ScrollView contentContainerStyle={styles.scrollContent}>
 
-            <View style={styles.form}>
-                {/* Date Picker */}
+                {/* Shop Banner */}
+                <View style={styles.shopCard}>
+                    <View style={styles.shopIconContainer}>
+                        <Ionicons name="storefront" size={20} color="#F59E0B" />
+                    </View>
+                    <Text style={styles.shopName}>{shopName}</Text>
+                </View>
+
+                {/* Date Selection */}
                 <View style={styles.formGroup}>
                     <Text style={styles.label}>Date *</Text>
                     <TouchableOpacity
                         style={styles.dateButton}
                         onPress={() => setShowDatePicker(true)}
                     >
-                        <Ionicons name="calendar-outline" size={20} color="#6b7280" />
+                        <Ionicons name="calendar-outline" size={20} color="#64748B" />
                         <Text style={styles.dateText}>
                             {date.toLocaleDateString()}
                         </Text>
@@ -257,6 +226,7 @@ export default function SubmitIncomeScreen() {
                         <TextInput
                             style={styles.input}
                             placeholder="0.00"
+                            placeholderTextColor="#94A3B8"
                             keyboardType="decimal-pad"
                             value={totalSales}
                             onChangeText={setTotalSales}
@@ -264,33 +234,37 @@ export default function SubmitIncomeScreen() {
                     </View>
                 </View>
 
-                {/* Cash Sales */}
-                <View style={styles.formGroup}>
-                    <Text style={styles.label}>Cash Sales</Text>
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.currency}>Rs.</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="0.00"
-                            keyboardType="decimal-pad"
-                            value={cashSales}
-                            onChangeText={setCashSales}
-                        />
+                <View style={styles.row}>
+                    {/* Cash Sales */}
+                    <View style={[styles.formGroup, { flex: 1, marginRight: 8 }]}>
+                        <Text style={styles.label}>Cash Sales</Text>
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.currency}>Rs.</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="0.00"
+                                placeholderTextColor="#94A3B8"
+                                keyboardType="decimal-pad"
+                                value={cashSales}
+                                onChangeText={setCashSales}
+                            />
+                        </View>
                     </View>
-                </View>
 
-                {/* Credit Sales */}
-                <View style={styles.formGroup}>
-                    <Text style={styles.label}>Credit Sales</Text>
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.currency}>Rs.</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="0.00"
-                            keyboardType="decimal-pad"
-                            value={creditSales}
-                            onChangeText={setCreditSales}
-                        />
+                    {/* Credit Sales */}
+                    <View style={[styles.formGroup, { flex: 1, marginLeft: 8 }]}>
+                        <Text style={styles.label}>Credit Sales</Text>
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.currency}>Rs.</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="0.00"
+                                placeholderTextColor="#94A3B8"
+                                keyboardType="decimal-pad"
+                                value={creditSales}
+                                onChangeText={setCreditSales}
+                            />
+                        </View>
                     </View>
                 </View>
 
@@ -298,16 +272,18 @@ export default function SubmitIncomeScreen() {
                 <View style={styles.formGroup}>
                     <Text style={styles.label}>Notes (Optional)</Text>
                     <TextInput
-                        style={[styles.input, styles.textArea]}
+                        style={[styles.inputContainer, styles.textArea]}
                         placeholder="Any additional notes..."
+                        placeholderTextColor="#94A3B8"
                         multiline
                         numberOfLines={4}
                         value={notes}
                         onChangeText={setNotes}
                     />
                 </View>
+            </ScrollView>
 
-                {/* Submit Button */}
+            <View style={styles.footer}>
                 <TouchableOpacity
                     style={[styles.submitBtn, loading && styles.disabledBtn]}
                     onPress={handleSubmit}
@@ -323,129 +299,156 @@ export default function SubmitIncomeScreen() {
                     )}
                 </TouchableOpacity>
             </View>
-        </ScrollView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8f9fa'
+        backgroundColor: '#FFFFFF'
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 20,
-        paddingTop: 50,
-        backgroundColor: 'white',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        elevation: 3
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+        backgroundColor: '#FFFFFF',
     },
     backBtn: {
-        marginRight: 16,
-        padding: 8
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#F8FAFC',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#E2E8F0'
     },
-    title: {
-        fontSize: 24,
-        fontWeight: '800',
-        color: '#1a1a2e'
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#0F172A',
+        textAlign: 'center'
+    },
+    scrollContent: {
+        padding: 20,
+        paddingBottom: 100
     },
     shopCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#fff3e0',
+        backgroundColor: '#FFFBEB',
         padding: 16,
-        margin: 20,
-        borderRadius: 12,
-        gap: 10
+        borderRadius: 16,
+        marginBottom: 24,
+        gap: 12,
+        borderWidth: 1,
+        borderColor: '#FEF3C7'
+    },
+    shopIconContainer: {
+        width: 32,
+        height: 32,
+        borderRadius: 10,
+        backgroundColor: '#FFFFFF',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     shopName: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#1a1a2e'
-    },
-    form: {
-        padding: 20
+        color: '#B45309'
     },
     formGroup: {
         marginBottom: 20
     },
-    label: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#1a1a2e',
+    row: {
+        flexDirection: 'row',
         marginBottom: 8
+    },
+    label: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#64748B',
+        marginBottom: 8,
+        textTransform: 'uppercase'
     },
     dateButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'white',
+        backgroundColor: '#F8FAFC',
         padding: 16,
         borderRadius: 12,
-        borderWidth: 2,
-        borderColor: '#e5e7eb',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
         gap: 12
     },
     dateText: {
-        fontSize: 16,
-        color: '#1a1a2e',
+        fontSize: 15,
+        color: '#0F172A',
         fontWeight: '500'
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'white',
+        backgroundColor: '#F8FAFC',
         borderRadius: 12,
-        borderWidth: 2,
-        borderColor: '#e5e7eb',
-        paddingLeft: 16
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        paddingHorizontal: 16,
+        height: 52
     },
     currency: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#6b7280',
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#64748B',
         marginRight: 8
     },
     input: {
         flex: 1,
-        padding: 16,
         fontSize: 16,
-        color: '#1a1a2e',
+        color: '#0F172A',
         fontWeight: '600'
     },
     textArea: {
-        backgroundColor: 'white',
-        borderRadius: 12,
-        borderWidth: 2,
-        borderColor: '#e5e7eb',
-        padding: 16,
+        height: 120,
         textAlignVertical: 'top',
-        minHeight: 100
+        paddingTop: 16,
+        paddingBottom: 16
+    },
+    footer: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: '#FFFFFF',
+        padding: 20,
+        paddingBottom: 32,
+        borderTopWidth: 1,
+        borderTopColor: '#F1F5F9',
     },
     submitBtn: {
-        backgroundColor: '#4CAF50',
+        backgroundColor: '#4CAF50', // Green
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
         padding: 18,
-        borderRadius: 14,
-        marginTop: 10,
+        borderRadius: 16,
         gap: 10,
         shadowColor: '#4CAF50',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
-        elevation: 4
+        elevation: 6
     },
     disabledBtn: {
-        opacity: 0.6
+        backgroundColor: '#94A3B8',
+        shadowOpacity: 0
     },
     submitBtnText: {
         color: 'white',
         fontSize: 18,
-        fontWeight: '800'
+        fontWeight: '700'
     }
 });
