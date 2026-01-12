@@ -77,7 +77,7 @@ export default function SalesmanDashboard() {
             {/* Header */}
             <View style={styles.header}>
                 <View>
-                    <Text style={styles.brandTitle}>NLDB<Text style={{ color: '#1e293b' }}>Flex</Text></Text>
+                    <Text style={styles.brandTitle}>NLDB<Text style={{ color: '#1e293b' }}>sales</Text></Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
                     <Text style={styles.greetingStart}>Good Morning!</Text>
@@ -177,7 +177,7 @@ export default function SalesmanDashboard() {
                         <CircleItem
                             name="Sales Rep"
                             icon="document-text-outline"
-                            onPress={() => { }}
+                            onPress={() => router.push('/salesman/assigned-reps')}
                             color="#64748B"
                         />
                         <CircleItem
