@@ -9,7 +9,7 @@ const Shops = () => {
     const [salesmen, setSalesmen] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [formData, setFormData] = useState({ id: null, name: '', rep_id: '', route_id: '', salesman_id: '' });
+    const [formData, setFormData] = useState({ id: null, name: '', rep_id: '', route_id: '', salesman_id: '', is_owner: false });
     const [error, setError] = useState(null);
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -33,21 +33,39 @@ const Shops = () => {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [{ data: shopsData }, { data: repsData }, { data: routesData }, { data: salesmenData }] = await Promise.all([
+            // 1. Fetch ALL users first (mimic Users.js which works)
+            const { data: allUsers, error: usersError } = await supabase
+                .from('users')
+                .select('*')
+                .order('name');
+
+            if (usersError) throw usersError;
+
+            // 2. Filter in memory to ensure we catch everyone
+            // Normalize role to lowercase to handle potential DB inconsistencies
+            const relevantUsers = (allUsers || []).filter(u => {
+                const r = (u.role || '').toLowerCase();
+                return r === 'salesman' || r === 'shop_owner' || r === 'pending';
+            });
+            console.log('Fetched Users (Raw):', allUsers?.length);
+            console.log('Filtered Salesmen Candidates:', relevantUsers.length);
+            setSalesmen(relevantUsers);
+
+            const [{ data: shopsData }, { data: repsData }, { data: routesData }] = await Promise.all([
                 supabase.from('shops').select('*').order('name'),
                 supabase.from('users').select('id, name').eq('role', 'rep'),
-                supabase.from('routes').select('id, name').order('name'),
-                supabase.from('users').select('id, name, shop_id').eq('role', 'salesman').order('name')
+                supabase.from('routes').select('id, name').order('name')
             ]);
 
             setReps(repsData || []);
             setRoutes(routesData || []);
-            setSalesmen(salesmenData || []);
 
             const formattedShops = (shopsData || []).map(shop => {
                 const assignedRep = repsData?.find(r => r.id === shop.rep_id);
                 const assignedRoute = routesData?.find(r => r.id === shop.route_id);
-                const assignedSalesman = salesmenData?.find(s => s.shop_id === shop.id);
+                // Use loose equality (==) as shop_id might be string vs number
+                // Search in ALL users to ensure we find them even if role changed
+                const assignedSalesman = allUsers?.find(s => s.shop_id == shop.id);
 
                 return {
                     ...shop,
@@ -59,6 +77,7 @@ const Shops = () => {
             setShops(formattedShops);
         } catch (err) {
             console.error('Error fetching data:', err);
+            setError(`Failed to load data: ${err.message}. Please check your database migrations.`);
         } finally {
             setLoading(false);
         }
@@ -80,10 +99,11 @@ const Shops = () => {
                 name: shop.name || '',
                 rep_id: shop.rep_id || '',
                 route_id: shop.route_id || '',
-                salesman_id: shop.salesman?.id || ''
+                salesman_id: shop.salesman?.id || '',
+                is_owner: shop.salesman?.role === 'shop_owner'
             });
         } else {
-            setFormData({ id: null, name: '', rep_id: '', route_id: '', salesman_id: '' });
+            setFormData({ id: null, name: '', rep_id: '', route_id: '', salesman_id: '', is_owner: false });
         }
         setIsModalOpen(true);
         setError(null);
@@ -91,12 +111,27 @@ const Shops = () => {
 
     const handleCloseModal = () => {
         setIsModalOpen(false);
-        setFormData({ id: null, name: '', rep_id: '', route_id: '', salesman_id: '' });
+        setFormData({ id: null, name: '', rep_id: '', route_id: '', salesman_id: '', is_owner: false });
     };
 
     const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        const { name, value, type, checked } = e.target;
+        const finalValue = type === 'checkbox' ? checked : value;
+
+        setFormData(prev => {
+            const newData = { ...prev, [name]: finalValue };
+
+            // Auto-set checkbox based on selected user's current role if dropdown changes
+            if (name === 'salesman_id') {
+                const selectedUser = salesmen.find(s => s.id === value);
+                if (selectedUser) {
+                    newData.is_owner = selectedUser.role === 'shop_owner';
+                } else {
+                    newData.is_owner = false;
+                }
+            }
+            return newData;
+        });
     };
 
     const handleSubmit = async (e) => {
@@ -118,8 +153,15 @@ const Shops = () => {
             }
 
             if (formData.salesman_id) {
+                // Remove previous assignments for this shop
                 await supabase.from('users').update({ shop_id: null }).eq('shop_id', shopId).neq('id', formData.salesman_id);
-                await supabase.from('users').update({ shop_id: shopId }).eq('id', formData.salesman_id);
+
+                // Update selected user: Assign shop AND update Role
+                const newRole = formData.is_owner ? 'shop_owner' : 'salesman';
+                await supabase.from('users').update({
+                    shop_id: shopId,
+                    role: newRole
+                }).eq('id', formData.salesman_id);
             }
 
             fetchData();
@@ -224,7 +266,21 @@ const Shops = () => {
                                     <tr key={shop.id}>
                                         <td><strong style={{ fontSize: '1.05rem', color: '#1e293b' }}>{shop.name}</strong></td>
                                         <td>{shop.route ? <span style={{ padding: '4px 10px', background: '#f5f3ff', color: '#6d28d9', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '800' }}>🛣️ {shop.route.name}</span> : <span style={{ color: '#cbd5e1', fontStyle: 'italic' }}>Unmapped</span>}</td>
-                                        <td>{shop.salesman ? <span style={{ fontWeight: '700', color: '#059669' }}>👤 {shop.salesman.name}</span> : <span style={{ color: '#cbd5e1' }}>Vacant</span>}</td>
+                                        <td>
+                                            {shop.salesman ? (
+                                                <div>
+                                                    <span style={{ fontWeight: '700', color: shop.salesman.role === 'shop_owner' ? '#d97706' : '#059669', display: 'block' }}>
+                                                        {shop.salesman.role === 'shop_owner' ? '👑' : '👤'} {shop.salesman.name}
+                                                        <span style={{ fontSize: '0.75rem', marginLeft: '6px', opacity: 0.8, fontWeight: '600' }}>
+                                                            ({shop.salesman.role === 'shop_owner' ? 'Owner' : 'Sales'})
+                                                        </span>
+                                                    </span>
+                                                    {shop.salesman.phone && <span style={{ fontSize: '0.7rem', color: '#64748b' }}>📞 {shop.salesman.phone}</span>}
+                                                </div>
+                                            ) : (
+                                                <span style={{ color: '#cbd5e1' }}>Vacant</span>
+                                            )}
+                                        </td>
                                         <td>{shop.rep ? <span style={{ color: '#444', fontWeight: '600' }}>🛡️ {shop.rep.name}</span> : <span style={{ color: '#cbd5e1' }}>Pending Assignment</span>}</td>
                                         <td style={{ textAlign: 'right' }}>
                                             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
@@ -265,8 +321,27 @@ const Shops = () => {
                                     <label className="form-label">Resident Salesman Assignment</label>
                                     <select className="form-control" name="salesman_id" value={formData.salesman_id} onChange={handleInputChange}>
                                         <option value="">-- Leave Vacant --</option>
-                                        {salesmen.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                        {salesmen.map(s => (
+                                            <option key={s.id} value={s.id}>
+                                                {s.role === 'pending' ? '⏳ ' : ''}{s.name} ({s.role === 'pending' ? 'Pending Approval' : s.role}) {s.phone ? `- 📞 ${s.phone}` : ''}
+                                            </option>
+                                        ))}
                                     </select>
+                                    {formData.salesman_id && (
+                                        <div style={{ marginTop: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <input
+                                                type="checkbox"
+                                                id="isOwner"
+                                                name="is_owner"
+                                                checked={formData.is_owner}
+                                                onChange={handleInputChange}
+                                                style={{ width: '1rem', height: '1rem', cursor: 'pointer' }}
+                                            />
+                                            <label htmlFor="isOwner" style={{ fontSize: '0.85rem', color: '#1e293b', cursor: 'pointer', fontWeight: '600' }}>
+                                                Grant 'Shop Owner' Status 👑
+                                            </label>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <div className="form-group" style={{ marginBottom: '2rem' }}>

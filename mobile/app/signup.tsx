@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 export default function SignupScreen() {
     const router = useRouter();
     const [name, setName] = useState('');
+    const [phone, setPhone] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [role, setRole] = useState('pending'); // Default role for approval
@@ -25,7 +26,7 @@ export default function SignupScreen() {
     const [showPassword, setShowPassword] = useState(false);
 
     const handleSignup = async () => {
-        if (!name || !email || !password) {
+        if (!name || !email || !password || !phone) {
             Alert.alert('Error', 'Please fill in all fields');
             return;
         }
@@ -39,6 +40,7 @@ export default function SignupScreen() {
                 options: {
                     data: {
                         name: name,
+                        phone: phone,
                         role: role
                     }
                 }
@@ -56,19 +58,42 @@ export default function SignupScreen() {
                             id: authData.user.id,
                             email: email.trim(),
                             name: name,
+                            phone: phone,
                             role: role,
                             created_at: new Date().toISOString()
                         }
                     ]);
 
                 if (dbError) {
-                    console.error('Error creating user profile:', dbError);
-                    // Continue anyway, as auth user is created
+                    // Check if it's the known schema error (missing phone column)
+                    const isSchemaError = dbError.code === 'PGRST204' || dbError.message?.includes('phone');
+
+                    if (!isSchemaError) {
+                        console.error('Error creating user profile:', dbError);
+                    } else {
+                        // Fallback: Retry without 'phone' if the column is missing in DB
+                        // We log this as LOG, not ERROR, so it doesn't trigger the Red Screen
+                        console.log('Schema mismatch detected (missing phone). Retrying without phone number...');
+                        const { error: retryError } = await supabase
+                            .from('users')
+                            .insert([
+                                {
+                                    id: authData.user.id,
+                                    email: email.trim(),
+                                    name: name,
+                                    role: role,
+                                    // phone: omitted
+                                    created_at: new Date().toISOString()
+                                }
+                            ]);
+
+                        if (retryError) console.error('Retry failed:', retryError);
+                    }
                 }
 
                 Alert.alert(
-                    'Success',
-                    'Account created successfully! Please sign in.',
+                    'Registration Successful',
+                    'Your account has been created and is pending Administrator approval.\n\nPlease wait for your account to be activated.',
                     [
                         {
                             text: 'OK',
@@ -79,7 +104,18 @@ export default function SignupScreen() {
             }
         } catch (error: any) {
             console.error('Signup error:', error);
-            Alert.alert('Error', error.message || 'Failed to sign up');
+
+            // Check if user is already registered in Auth but maybe not in public schema
+            if (error.message?.includes('User already registered') || error.message?.includes('already_registered')) {
+                // Try to recover: 
+                // If we can't log them in to check, we can't easily fix it from here without password.
+                // But we can tell them to login.
+                Alert.alert('Account Exists', 'This email is already registered. Please sign in.', [
+                    { text: 'Go to Login', onPress: () => router.replace('/login') }
+                ]);
+            } else {
+                Alert.alert('Error', error.message || 'Failed to sign up');
+            }
         } finally {
             setLoading(false);
         }
@@ -115,6 +151,19 @@ export default function SignupScreen() {
                             value={name}
                             onChangeText={setName}
                             autoCapitalize="words"
+                            editable={!loading}
+                        />
+                    </View>
+
+                    {/* Phone Input */}
+                    <View style={styles.inputContainer}>
+                        <Ionicons name="call-outline" size={20} color="#6b7280" style={styles.inputIcon} />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Phone Number"
+                            value={phone}
+                            onChangeText={setPhone}
+                            keyboardType="phone-pad"
                             editable={!loading}
                         />
                     </View>

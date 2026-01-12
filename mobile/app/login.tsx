@@ -83,17 +83,67 @@ export default function LoginScreen() {
                     .eq('email', data.user.email)
                     .single();
 
-                if (userError) {
+                let finalRole = userData?.role;
+
+                // Handle case where auth user exists but public profile is missing
+                // This happens if previous signup failed midway (e.g. schema error)
+                if (userError && (userError.code === 'PGRST116' || userError.details?.includes('0 rows'))) {
+                    console.log('User profile missing. Creating default profile...');
+
+                    // Get metadata from auth user if available
+                    const metaName = data.user.user_metadata?.name || email.split('@')[0];
+                    const metaPhone = data.user.user_metadata?.phone || null;
+                    const metaRole = data.user.user_metadata?.role || 'pending';
+
+                    const { error: insertError } = await supabase
+                        .from('users')
+                        .insert([{
+                            id: data.user.id,
+                            email: email.trim(),
+                            name: metaName,
+                            phone: metaPhone,
+                            role: metaRole,
+                            created_at: new Date().toISOString()
+                        }]);
+
+                    if (insertError) {
+                        console.error('Failed to recover profile:', insertError);
+
+                        // Retry without phone if schema error
+                        if (insertError.code === 'PGRST204' || insertError.message?.includes('phone')) {
+                            console.log('Retrying recovery without phone...');
+                            const { error: retryError } = await supabase
+                                .from('users')
+                                .insert([{
+                                    id: data.user.id,
+                                    email: email.trim(),
+                                    name: metaName,
+                                    role: metaRole, // Phone omitted
+                                    created_at: new Date().toISOString()
+                                }]);
+
+                            if (retryError) {
+                                Alert.alert('Login Error', 'User profile not found and auto-recovery failed.');
+                                return;
+                            }
+                        } else {
+                            Alert.alert('Login Error', 'User profile not found. Please contact admin.');
+                            return;
+                        }
+                    }
+
+                    finalRole = metaRole; // Proceed with this role
+                } else if (userError) {
                     console.error('Error fetching user data:', userError);
-                    Alert.alert('Error', 'Could not fetch user information. Please try demo mode: salesman@test.com / demo');
+                    Alert.alert('Error', 'Could not fetch user information.');
                     return;
                 }
 
-                console.log('User logged in:', userData);
+                console.log('User logged in, Role:', finalRole);
 
                 // Route based on role
-                if (userData?.role) {
-                    switch (userData.role.toLowerCase()) {
+                if (finalRole) {
+                    switch (finalRole.toLowerCase()) {
                         case 'salesman':
                         case 'shop_owner':
                             router.replace('/(tabs)/home' as any);
@@ -108,8 +158,11 @@ export default function LoginScreen() {
                         case 'admin':
                             router.replace('/dashboard' as any);
                             break;
+                        case 'pending':
+                            Alert.alert('Account Pending', 'Your account is waiting for approval.');
+                            break;
                         default:
-                            Alert.alert('Error', `Unknown role: ${userData.role}`);
+                            Alert.alert('Error', `Unknown role: ${finalRole}`);
                     }
                 } else {
                     Alert.alert('Error', 'User role not found');

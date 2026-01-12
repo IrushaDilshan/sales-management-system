@@ -22,11 +22,27 @@ const Users = () => {
 
     useEffect(() => {
         fetchUsers();
+
+        // Realtime subscription
+        const userSubscription = supabase
+            .channel('public:users')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
+                console.log('Realtime change received:', payload);
+                fetchUsers();
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(userSubscription);
+        };
     }, []);
 
     const fetchUsers = async () => {
         try {
-            setLoading(true);
+            // Don't set global loading true on refresh to avoid UI flicker
+            // Only set if users list is empty
+            if (users.length === 0) setLoading(true);
+
             const { data, error } = await supabase
                 .from('users')
                 .select('*')
@@ -36,7 +52,8 @@ const Users = () => {
             setUsers(data || []);
         } catch (err) {
             console.error('Error fetching users:', err);
-            setError('Failed to load personnel registry.');
+            // Don't show error on silent refresh failure
+            if (loading) setError('Failed to load personnel registry.');
         } finally {
             setLoading(false);
         }
@@ -344,6 +361,7 @@ const Users = () => {
                                             <div>
                                                 <div style={{ fontWeight: '800', color: '#1e293b', fontSize: '1.1rem' }}>{user.name}</div>
                                                 <div style={{ color: '#64748b', fontSize: '0.9rem' }}>{user.email}</div>
+                                                {user.phone && <div style={{ color: '#059669', fontSize: '0.85rem', fontWeight: 'bold' }}>📞 {user.phone}</div>}
                                                 <div style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: '4px' }}>Requested: {new Date(user.created_at).toLocaleDateString()}</div>
                                             </div>
                                         </div>

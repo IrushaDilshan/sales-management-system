@@ -18,6 +18,7 @@ export default function SalesmanSettings() {
     const [loading, setLoading] = useState(false);
     const [userData, setUserData] = useState<any>(null);
     const [name, setName] = useState('');
+    const [phone, setPhone] = useState('');
     const [email, setEmail] = useState('');
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
@@ -47,6 +48,7 @@ export default function SalesmanSettings() {
             if (userData) {
                 setUserData(userData);
                 setName(userData.name || '');
+                setPhone(userData.phone || '');
             }
         } catch (error) {
             console.error('Error fetching user data:', error);
@@ -70,7 +72,10 @@ export default function SalesmanSettings() {
 
             const { error } = await supabase
                 .from('users')
-                .update({ name: name.trim() })
+                .update({
+                    name: name.trim(),
+                    phone: phone.trim()
+                })
                 .eq('id', user.id);
 
             if (error) throw error;
@@ -173,6 +178,18 @@ export default function SalesmanSettings() {
                             value={name}
                             onChangeText={setName}
                             placeholder="Enter your name"
+                            editable={!loading}
+                        />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Phone Number</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={phone}
+                            onChangeText={setPhone}
+                            placeholder="Enter your phone number"
+                            keyboardType="phone-pad"
                             editable={!loading}
                         />
                     </View>

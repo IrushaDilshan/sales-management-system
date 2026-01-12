@@ -11,6 +11,8 @@ export default function AssignedRepsScreen() {
     const [reps, setReps] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [shopName, setShopName] = useState<string>('');
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [debugInfo, setDebugInfo] = useState<string>('');
 
     useEffect(() => {
         fetchReps();
@@ -18,6 +20,7 @@ export default function AssignedRepsScreen() {
 
     const fetchReps = async () => {
         setLoading(true);
+        setDebugInfo('');
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
@@ -39,32 +42,49 @@ export default function AssignedRepsScreen() {
             const shopData: any = userData.shops;
             setShopName(shopData?.name || (Array.isArray(shopData) ? shopData[0]?.name : 'My Shop'));
 
-            // 1. Fetch shop details to find owner and route_id
-            const { data: shopDetails } = await supabase
+            // 1. Fetch shop details to find direct rep_id and route_id
+            const { data: shopDetails, error: shopError } = await supabase
                 .from('shops')
-                .select('owner_id, route_id, name') // Get route_id!
+                .select('rep_id, route_id, name')
                 .eq('id', userData.shop_id)
                 .single();
 
-            setShopName(shopDetails?.name || 'My Shop');
+            let info = `ShopID: ${userData.shop_id?.slice(0, 6)}... | `;
 
             const potentialRepIds = new Set<string>();
 
-            // Add Owner
-            if (shopDetails?.owner_id) potentialRepIds.add(shopDetails.owner_id);
+            if (shopDetails) {
+                info += `DirectRep: ${shopDetails.rep_id ? 'Yes' : 'No'} | RouteID: ${shopDetails.route_id || 'None'} | `;
+
+                // Add direct rep if exists
+                if (shopDetails.rep_id) {
+                    potentialRepIds.add(shopDetails.rep_id);
+                }
+            } else {
+                info += `ShopDetails: Not Found (${shopError?.message}) | `;
+            }
+
+            setShopName(shopDetails?.name || 'My Shop');
+
+
 
             // 2. Fetch Route details if route_id exists
             if (shopDetails?.route_id) {
-                const { data: routeData } = await supabase
+                const { data: routeData, error: routeError } = await supabase
                     .from('routes')
                     .select('rep_id')
                     .eq('id', shopDetails.route_id)
                     .single();
 
-                if (routeData?.rep_id) {
-                    potentialRepIds.add(routeData.rep_id);
+                if (routeData) {
+                    info += `RouteRep: ${routeData.rep_id ? 'Yes' : 'No'} | `;
+                    if (routeData.rep_id) potentialRepIds.add(routeData.rep_id);
+                } else {
+                    info += `RouteFetch: Fail (${routeError?.message}) | `;
                 }
             }
+
+            setDebugInfo(info);
 
             // Fallback: Check user creation (as before)
             const { data: currentUserFull } = await supabase
@@ -112,8 +132,9 @@ export default function AssignedRepsScreen() {
 
             setReps(finalReps);
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error fetching reps:', error);
+            setErrorMsg(error.message || 'Unknown error occurred');
         } finally {
             setLoading(false);
         }
@@ -188,6 +209,15 @@ export default function AssignedRepsScreen() {
                     <Text style={{ marginTop: 8, fontSize: 10, color: '#94A3B8', textAlign: 'center' }}>
                         (Checked Route & Shop Records)
                     </Text>
+
+                    {/* DEBUG INFO - REMOVE LATER */}
+                    <View style={{ marginTop: 20, padding: 10, backgroundColor: '#F1F5F9', borderRadius: 8 }}>
+                        <Text style={{ fontSize: 10, color: '#64748B' }}>DEBUG INFO:</Text>
+                        <Text style={{ fontSize: 10, color: '#64748B' }}>{debugInfo}</Text>
+                        <Text style={{ fontSize: 10, color: '#64748B' }}>Shop: {shopName}</Text>
+                        <Text style={{ fontSize: 10, color: '#64748B' }}>Error: {errorMsg || 'None'}</Text>
+                        <Text style={{ fontSize: 10, color: '#64748B' }}>Reps Found: {reps.length}</Text>
+                    </View>
                 </View>
             ) : (
                 <FlatList
