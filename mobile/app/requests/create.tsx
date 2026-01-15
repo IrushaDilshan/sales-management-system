@@ -11,6 +11,7 @@ export default function CreateRequestScreen() {
     const [quantities, setQuantities] = useState<{ [key: string]: number }>({}); // { itemId: quantity }
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [searchText, setSearchText] = useState('');
 
     useEffect(() => {
         fetchItems();
@@ -124,7 +125,7 @@ export default function CreateRequestScreen() {
 
     return (
         <View style={styles.container}>
-            {/* Modern Header */}
+            {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity
                     style={styles.backBtn}
@@ -137,6 +138,25 @@ export default function CreateRequestScreen() {
                     <Text style={styles.headerTitle}>{shop_name}</Text>
                 </View>
                 <View style={{ width: 40 }} />
+            </View>
+
+            {/* Search Bar */}
+            <View style={styles.searchSection}>
+                <View style={styles.searchBar}>
+                    <Ionicons name="search" size={20} color="#94a3b8" />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Search items..."
+                        placeholderTextColor="#94a3b8"
+                        value={searchText}
+                        onChangeText={setSearchText}
+                    />
+                    {searchText.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchText('')}>
+                            <Ionicons name="close-circle" size={20} color="#94a3b8" />
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
 
             {loading ? (
@@ -163,7 +183,7 @@ export default function CreateRequestScreen() {
 
                     {/* Items List */}
                     <FlatList
-                        data={items}
+                        data={items.filter(i => i.name.toLowerCase().includes(searchText.toLowerCase()))}
                         keyExtractor={(item) => item.id.toString()}
                         contentContainerStyle={styles.list}
                         showsVerticalScrollIndicator={false}
@@ -241,15 +261,38 @@ const styles = StyleSheet.create({
     header: {
         backgroundColor: '#2196F3',
         paddingTop: 50,
-        paddingBottom: 24,
+        paddingBottom: 20,
         paddingHorizontal: 20,
         flexDirection: 'row',
         alignItems: 'center',
+    },
+    searchSection: {
+        backgroundColor: '#2196F3',
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+        marginBottom: 10,
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
         shadowColor: '#2196F3',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
+        shadowOpacity: 0.2,
         shadowRadius: 8,
         elevation: 8
+    },
+    searchBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'white',
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        height: 48,
+        gap: 8
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 16,
+        color: '#1e293b',
+        height: '100%'
     },
     backBtn: {
         width: 40,

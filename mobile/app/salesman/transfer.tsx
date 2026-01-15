@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert, StyleSheet, ActivityIndicator, StatusBar } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Alert, StyleSheet, ActivityIndicator, StatusBar, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
@@ -17,6 +17,7 @@ export default function StockTransferScreen() {
     const [currentShopId, setCurrentShopId] = useState<string | null>(null);
     const [currentShopName, setCurrentShopName] = useState<string>('');
     const [notes, setNotes] = useState('');
+    const [searchText, setSearchText] = useState('');
 
     useEffect(() => {
         fetchInitialData();
@@ -176,6 +177,10 @@ export default function StockTransferScreen() {
         }
     };
 
+    const filteredItems = items.filter(item =>
+        item.name.toLowerCase().includes(searchText.toLowerCase())
+    );
+
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
             <StatusBar barStyle="dark-content" />
@@ -198,37 +203,67 @@ export default function StockTransferScreen() {
                 </View>
             ) : (
                 <FlatList
-                    data={items}
+                    data={filteredItems}
                     keyExtractor={item => item.id.toString()}
                     contentContainerStyle={styles.list}
                     showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
                     ListHeaderComponent={
-                        <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Select Destination</Text>
-                            <View style={styles.shopGrid}>
-                                {shops.map(shop => {
-                                    const isSelected = selectedShopId === shop.id;
-                                    return (
-                                        <TouchableOpacity
-                                            key={shop.id}
-                                            style={[styles.shopCard, isSelected && styles.shopCardSelected]}
-                                            onPress={() => setSelectedShopId(shop.id)}
-                                        >
-                                            <View style={[styles.shopIcon, isSelected && { backgroundColor: '#2563EB', borderColor: '#2563EB' }]}>
-                                                <Ionicons
-                                                    name="storefront"
-                                                    size={20}
-                                                    color={isSelected ? "#FFF" : "#64748B"}
-                                                />
-                                            </View>
-                                            <Text style={[styles.shopName, isSelected && { color: '#2563EB', fontWeight: '700' }]}>
-                                                {shop.name}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    );
-                                })}
+                        <View>
+                            <View style={styles.section}>
+                                <Text style={styles.sectionTitle}>Select Destination</Text>
+                                <View style={styles.shopGrid}>
+                                    {shops.map(shop => {
+                                        const isSelected = selectedShopId === shop.id;
+                                        return (
+                                            <TouchableOpacity
+                                                key={shop.id}
+                                                style={[styles.shopCard, isSelected && styles.shopCardSelected]}
+                                                onPress={() => setSelectedShopId(shop.id)}
+                                            >
+                                                <View style={[styles.shopIcon, isSelected && { backgroundColor: '#2563EB', borderColor: '#2563EB' }]}>
+                                                    <Ionicons
+                                                        name="storefront"
+                                                        size={20}
+                                                        color={isSelected ? "#FFF" : "#64748B"}
+                                                    />
+                                                </View>
+                                                <Text style={[styles.shopName, isSelected && { color: '#2563EB', fontWeight: '700' }]}>
+                                                    {shop.name}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </View>
                             </View>
+
                             <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Select Items</Text>
+
+                            {/* Search Bar */}
+                            <View style={styles.searchWrapper}>
+                                <View style={styles.searchContainer}>
+                                    <Ionicons name="search" size={20} color="#94A3B8" />
+                                    <TextInput
+                                        style={styles.searchInput}
+                                        placeholder="Search items to transfer..."
+                                        placeholderTextColor="#94A3B8"
+                                        value={searchText}
+                                        onChangeText={setSearchText}
+                                    />
+                                    {searchText.length > 0 && (
+                                        <TouchableOpacity onPress={() => setSearchText('')}>
+                                            <Ionicons name="close-circle" size={20} color="#94A3B8" />
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            </View>
+                        </View>
+                    }
+                    ListEmptyComponent={
+                        <View style={{ alignItems: 'center', marginTop: 40 }}>
+                            <Text style={{ color: '#94A3B8' }}>
+                                {items.length === 0 ? "You have no stock to transfer." : "No matching items found."}
+                            </Text>
                         </View>
                     }
                     renderItem={({ item }) => {
@@ -255,7 +290,12 @@ export default function StockTransferScreen() {
                                         <Ionicons name="remove" size={18} color={qty === 0 ? "#CBD5E1" : "#2563EB"} />
                                     </TouchableOpacity>
 
-                                    <Text style={styles.qtyText}>{qty}</Text>
+                                    <TextInput
+                                        style={styles.qtyInput}
+                                        keyboardType="numeric"
+                                        value={qty.toString()}
+                                        editable={false}
+                                    />
 
                                     <TouchableOpacity
                                         style={[styles.qtyBtn, qty >= item.max_qty && styles.disabledBtn]}
@@ -342,7 +382,7 @@ const styles = StyleSheet.create({
         marginBottom: 10
     },
     sectionTitle: {
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: '700',
         color: '#94A3B8',
         textTransform: 'uppercase',
@@ -361,14 +401,15 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#F8FAFC',
         padding: 12,
-        borderRadius: 12,
+        borderRadius: 16,
         borderWidth: 1,
         borderColor: '#E2E8F0',
         gap: 10
     },
     shopCardSelected: {
         backgroundColor: '#EFF6FF',
-        borderColor: '#2563EB'
+        borderColor: '#2563EB',
+        borderWidth: 2
     },
     shopIcon: {
         width: 36,
@@ -386,6 +427,26 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         flex: 1
     },
+    searchWrapper: {
+        marginBottom: 16,
+    },
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F8FAFC',
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        height: 48,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        gap: 10
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 15,
+        color: '#0F172A',
+        height: '100%'
+    },
     card: {
         backgroundColor: '#FFFFFF',
         borderRadius: 16,
@@ -396,10 +457,15 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         borderWidth: 1,
         borderColor: '#F1F5F9',
+        shadowColor: '#64748B',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
     },
     cardActive: {
         borderColor: '#2563EB',
-        backgroundColor: '#EFF6FF',
+        backgroundColor: '#F0F9FF',
     },
     cardInfo: {
         flex: 1,
@@ -433,18 +499,21 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         borderRadius: 8,
         shadowColor: 'rgba(0,0,0,0.05)',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 1,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
         shadowRadius: 2,
         elevation: 1
     },
     disabledBtn: {
-        backgroundColor: '#F1F5F9',
+        backgroundColor: 'transparent',
         shadowOpacity: 0,
         elevation: 0
     },
-    qtyText: {
-        width: 36,
+    qtyText: { // Replaced with input style effectively
+        display: 'none'
+    },
+    qtyInput: {
+        width: 40,
         textAlign: 'center',
         fontWeight: '700',
         fontSize: 15,

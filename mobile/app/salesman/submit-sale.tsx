@@ -9,12 +9,14 @@ export default function SubmitSaleScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const [items, setItems] = useState<any[]>([]);
+    const [stockMap, setStockMap] = useState<Record<string, number>>({});
     const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
     const [prices, setPrices] = useState<{ [key: string]: string }>({});
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [shopId, setShopId] = useState<string | null>(null);
     const [shopName, setShopName] = useState<string>('');
+    const [searchText, setSearchText] = useState('');
 
     useEffect(() => {
         fetchInitialData();
@@ -36,9 +38,12 @@ export default function SubmitSaleScreen() {
                 .eq('id', user.id)
                 .single();
 
-            if (userError || !userData?.shop_id) {
+            let myShopId = userData?.shop_id;
+
+            if (userError || !myShopId) {
                 const { data: firstShop } = await supabase.from('shops').select('id, name').limit(1).single();
                 if (firstShop) {
+                    myShopId = firstShop.id;
                     setShopId(firstShop.id);
                     setShopName(firstShop.name);
                 } else {
@@ -47,16 +52,46 @@ export default function SubmitSaleScreen() {
                     return;
                 }
             } else {
-                setShopId(userData.shop_id);
+                setShopId(myShopId);
                 setShopName((userData.shops as any).name);
             }
 
+            // Fetch Items
             const { data: itemsData, error: itemsError } = await supabase
                 .from('items')
                 .select('*')
                 .order('name');
 
             if (itemsError) throw itemsError;
+
+            // Fetch Stock for this shop
+            let stockMapping: Record<string, number> = {};
+            try {
+                // Try modern schema first (qty, outlet_id)
+                const { data: stockData, error: stockError } = await supabase
+                    .from('stock')
+                    .select('item_id, qty')
+                    .eq('outlet_id', myShopId);
+
+                if (stockError) {
+                    // Check if it's a specific "column does not exist" error
+                    if (stockError.message?.includes('outlet_id') || stockError.message?.includes('exist')) {
+                        console.warn('Database schema mismatch: outlet_id missing on stock table.');
+                        Alert.alert('Database Update Needed', 'Please apply the latest database keys (Migration 12) to enable multi-location stock.');
+                        // Fallback: Return empty stock (safer than crashing or showing global stock)
+                    } else {
+                        throw stockError;
+                    }
+                } else {
+                    stockData?.forEach((s: any) => {
+                        stockMapping[s.item_id] = s.qty;
+                    });
+                }
+            } catch (err: any) {
+                console.error('Stock fetch error:', err);
+                // Non-fatal error for stock fetch, allows page to load with 0 stock
+            }
+            setStockMap(stockMapping);
 
             setItems(itemsData || []);
 
@@ -76,17 +111,29 @@ export default function SubmitSaleScreen() {
         }
     }
 
-    const updateQuantity = (id: string, qty: string) => {
-        const val = parseInt(qty);
-        setQuantities(prev => ({ ...prev, [id]: isNaN(val) ? 0 : val }));
+    const updateQuantity = (id: string, qty: string, maxStock: number) => {
+        let val = parseInt(qty);
+        if (isNaN(val)) val = 0;
+        if (val > maxStock) {
+            val = maxStock;
+            Alert.alert('Limit Reached', 'Cannot exceed available stock');
+        }
+        setQuantities(prev => ({ ...prev, [id]: val }));
     };
 
     const updatePrice = (id: string, price: string) => {
         setPrices(prev => ({ ...prev, [id]: price }));
     };
 
-    const incrementQuantity = (id: string) => {
-        setQuantities(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+    const incrementQuantity = (id: string, maxStock: number) => {
+        setQuantities(prev => {
+            const current = prev[id] || 0;
+            if (current >= maxStock) {
+                Alert.alert('Limit Reached', 'Cannot exceed available stock');
+                return prev;
+            }
+            return { ...prev, [id]: current + 1 };
+        });
     };
 
     const decrementQuantity = (id: string) => {
@@ -173,6 +220,20 @@ export default function SubmitSaleScreen() {
         }
     };
 
+    const filteredItems = items.filter(item =>
+        item.name.toLowerCase().includes(searchText.toLowerCase()) ||
+        (item.sku && item.sku.toLowerCase().includes(searchText.toLowerCase()))
+    );
+
+    // Sort items: Available items first, then by name
+    const sortedItems = [...filteredItems].sort((a, b) => {
+        const stockA = stockMap[a.id] || 0;
+        const stockB = stockMap[b.id] || 0;
+        if (stockA > 0 && stockB === 0) return -1;
+        if (stockA === 0 && stockB > 0) return 1;
+        return a.name.localeCompare(b.name);
+    });
+
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
             <StatusBar barStyle="dark-content" />
@@ -210,19 +271,66 @@ export default function SubmitSaleScreen() {
                         </View>
                     </View>
 
+                    {/* Search Bar */}
+                    <View style={styles.searchWrapper}>
+                        <View style={styles.searchContainer}>
+                            <Ionicons name="search" size={20} color="#94A3B8" />
+                            <TextInput
+                                style={styles.searchInput}
+                                placeholder="Search products..."
+                                placeholderTextColor="#94A3B8"
+                                value={searchText}
+                                onChangeText={setSearchText}
+                            />
+                            {searchText.length > 0 && (
+                                <TouchableOpacity onPress={() => setSearchText('')}>
+                                    <Ionicons name="close-circle" size={20} color="#94A3B8" />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    </View>
+
                     <FlatList
-                        data={items}
+                        data={sortedItems}
                         keyExtractor={item => item.id.toString()}
                         contentContainerStyle={styles.list}
                         showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                        ListEmptyComponent={
+                            <View style={{ alignItems: 'center', marginTop: 40 }}>
+                                <Text style={{ color: '#94A3B8' }}>No products found</Text>
+                            </View>
+                        }
                         renderItem={({ item }) => {
                             const qty = quantities[item.id] || 0;
                             const isActive = qty > 0;
+                            const currentStock = stockMap[item.id] || 0;
+                            const isOutOfStock = currentStock === 0;
 
                             return (
-                                <View style={[styles.card, isActive && styles.cardActive]}>
+                                <View style={[
+                                    styles.card,
+                                    isActive && styles.cardActive,
+                                    isOutOfStock && styles.cardDisabled
+                                ]}>
                                     <View style={styles.cardHeader}>
-                                        <Text style={styles.itemName}>{item.name}</Text>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={[styles.itemName, isOutOfStock && { color: '#94A3B8' }]}>
+                                                {item.name}
+                                            </Text>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 6 }}>
+                                                {isOutOfStock ? (
+                                                    <View style={styles.stockBadgeOut}>
+                                                        <Text style={styles.stockTextOut}>Out of Stock</Text>
+                                                    </View>
+                                                ) : (
+                                                    <View style={styles.stockBadgeIn}>
+                                                        <Text style={styles.stockTextIn}>Available: {currentStock}</Text>
+                                                    </View>
+                                                )}
+                                            </View>
+                                        </View>
+
                                         {isActive && (
                                             <View style={styles.badge}>
                                                 <Text style={styles.badgeText}>{qty}x</Text>
@@ -230,37 +338,40 @@ export default function SubmitSaleScreen() {
                                         )}
                                     </View>
 
-                                    <View style={styles.controlsRow}>
-                                        <View style={styles.priceContainer}>
-                                            <Text style={styles.label}>Price (Rs)</Text>
-                                            <TextInput
-                                                style={styles.priceInput}
-                                                keyboardType="numeric"
-                                                placeholder="0.00"
-                                                value={prices[item.id] || ''}
-                                                onChangeText={(txt) => updatePrice(item.id, txt)}
-                                            />
+                                    {!isOutOfStock && (
+                                        <View style={styles.controlsRow}>
+                                            <View style={styles.priceContainer}>
+                                                <Text style={styles.label}>Price (Rs)</Text>
+                                                <TextInput
+                                                    style={styles.priceInput}
+                                                    keyboardType="numeric"
+                                                    placeholder="0.00"
+                                                    value={prices[item.id] || ''}
+                                                    onChangeText={(txt) => updatePrice(item.id, txt)}
+                                                />
+                                            </View>
+
+                                            <View style={styles.qtyContainer}>
+                                                <TouchableOpacity
+                                                    style={[styles.qtyBtn, qty === 0 && styles.disabledBtn]}
+                                                    onPress={() => decrementQuantity(item.id)}
+                                                    disabled={qty === 0}
+                                                >
+                                                    <Ionicons name="remove" size={20} color={qty === 0 ? "#CBD5E1" : "#2563EB"} />
+                                                </TouchableOpacity>
+
+                                                <Text style={styles.qtyText}>{qty}</Text>
+
+                                                <TouchableOpacity
+                                                    style={[styles.qtyBtn, qty >= currentStock && styles.disabledBtn]}
+                                                    onPress={() => incrementQuantity(item.id, currentStock)}
+                                                    disabled={qty >= currentStock}
+                                                >
+                                                    <Ionicons name="add" size={20} color={qty >= currentStock ? "#CBD5E1" : "#2563EB"} />
+                                                </TouchableOpacity>
+                                            </View>
                                         </View>
-
-                                        <View style={styles.qtyContainer}>
-                                            <TouchableOpacity
-                                                style={[styles.qtyBtn, qty === 0 && styles.disabledBtn]}
-                                                onPress={() => decrementQuantity(item.id)}
-                                                disabled={qty === 0}
-                                            >
-                                                <Ionicons name="remove" size={20} color={qty === 0 ? "#CBD5E1" : "#2563EB"} />
-                                            </TouchableOpacity>
-
-                                            <Text style={styles.qtyText}>{qty}</Text>
-
-                                            <TouchableOpacity
-                                                style={styles.qtyBtn}
-                                                onPress={() => incrementQuantity(item.id)}
-                                            >
-                                                <Ionicons name="add" size={20} color="#2563EB" />
-                                            </TouchableOpacity>
-                                        </View>
-                                    </View>
+                                    )}
                                 </View>
                             );
                         }}
@@ -268,15 +379,15 @@ export default function SubmitSaleScreen() {
 
                     <View style={styles.footer}>
                         <TouchableOpacity
-                            style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
+                            style={[styles.submitBtn, (submitting || getSelectedItemsCount() === 0) && styles.submitBtnDisabled]}
                             onPress={handleSubmit}
-                            disabled={submitting}
+                            disabled={submitting || getSelectedItemsCount() === 0}
                         >
                             {submitting ? (
                                 <ActivityIndicator color="#fff" />
                             ) : (
                                 <>
-                                    <Text style={styles.submitText}>Complete Sale</Text>
+                                    <Text style={styles.submitText}>Complete Sale ({getSelectedItemsCount()})</Text>
                                     <Ionicons name="chevron-forward" size={24} color="#fff" />
                                 </>
                             )}
@@ -500,4 +611,55 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: '700',
     },
+    searchWrapper: {
+        paddingHorizontal: 20,
+        marginBottom: 16,
+    },
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F1F5F9', // Light Slate for search
+        borderRadius: 16,
+        paddingHorizontal: 16,
+        height: 52,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        gap: 10
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 16,
+        color: '#0F172A',
+        height: '100%'
+    },
+    cardDisabled: {
+        opacity: 0.7,
+        backgroundColor: '#F8FAFC'
+    },
+    stockBadgeIn: {
+        backgroundColor: '#DCFCE7', // Light Green
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: '#bbf7d0'
+    },
+    stockTextIn: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#166534' // Dark Green
+    },
+    stockBadgeOut: {
+        backgroundColor: '#F1F5F9',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: '#E2E8F0'
+    },
+    stockTextOut: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#94A3B8'
+    }
 });

@@ -49,12 +49,55 @@ export default function StockReturnScreen() {
             }
             setCurrentShopId(myShopId);
 
+
+            // Fetch Items & Stock
+            let availableItemIds: number[] = [];
+            const stockMapping: Record<string, number> = {};
+
+            try {
+                const { data: stockData, error: stockError } = await supabase
+                    .from('stock')
+                    .select('item_id, qty')
+                    .eq('outlet_id', myShopId)
+                    .gt('qty', 0);
+
+                if (stockError) {
+                    if (stockError.message?.includes('outlet_id')) {
+                        console.warn('Database mismatch (outlet_id)');
+                        // Fallback to empty
+                    } else {
+                        throw stockError;
+                    }
+                }
+
+                if (stockData) {
+                    stockData.forEach((s: any) => {
+                        availableItemIds.push(s.item_id);
+                        stockMapping[s.item_id] = s.qty;
+                    });
+                }
+            } catch (e) {
+                console.error('Stock fetch fail', e);
+            }
+
+            if (availableItemIds.length === 0) {
+                setItems([]);
+                return;
+            }
+
             const { data: itemsData } = await supabase
                 .from('items')
                 .select('id, name, unit_of_measure')
+                .in('id', availableItemIds)
                 .order('name');
 
-            setItems(itemsData || []);
+            // Attach max stock info to items if needed
+            const itemsWithStock = itemsData?.map((item: any) => ({
+                ...item,
+                max_qty: stockMapping[item.id] || 0
+            }));
+
+            setItems(itemsWithStock || []);
 
         } catch (error: any) {
             console.error(error);

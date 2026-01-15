@@ -46,7 +46,7 @@ export default function RequestHistoryScreen() {
                 .from('requests')
                 .select('*')
                 .eq('salesman_id', user.id)
-                .order('created_at', { ascending: false });
+                .order('date', { ascending: false });
 
             if (error) {
                 setRequests([]);
@@ -76,6 +76,13 @@ export default function RequestHistoryScreen() {
                         ...req,
                         shopName: shopsMap[req.shop_id] || 'Unknown Shop'
                     }));
+
+                    // Double check sort client-side to ensure newest dates are first
+                    requestsWithShops.sort((a, b) => {
+                        const dateA = new Date(a.date || a.created_at).getTime();
+                        const dateB = new Date(b.date || b.created_at).getTime();
+                        return dateB - dateA;
+                    });
 
                     setRequests(requestsWithShops);
                 }

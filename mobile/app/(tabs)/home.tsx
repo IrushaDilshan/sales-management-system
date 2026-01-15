@@ -12,10 +12,11 @@ export default function SalesmanDashboard() {
     const [userName, setUserName] = useState('Salesman');
     const [refreshing, setRefreshing] = useState(false);
 
-    // Stats state (kept for logic, though UI focus is changed)
+    // Stats state
     const [stats, setStats] = useState({
         requests: 0,
-        income: 0
+        income: 0,
+        expenses: 0
     });
 
     useEffect(() => {
@@ -44,7 +45,35 @@ export default function SalesmanDashboard() {
     };
 
     const fetchStats = async () => {
-        // ... fetching logic (simplified for UI focus)
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const now = new Date();
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+            // Fetch Expenses for this month
+            // Note: This relies on Migration 13 being run. If not, it will fail gracefully (error logged but app won't crash)
+            const { data: expensesData, error: expError } = await supabase
+                .from('expenses')
+                .select('amount')
+                .eq('salesman_id', user.id)
+                .gte('date', startOfMonth);
+
+            // Handle table not found (migration missing)
+            let totalExpenses = 0;
+            if (!expError && expensesData) {
+                totalExpenses = expensesData.reduce((sum: number, item: any) => sum + Number(item.amount), 0);
+            }
+
+            setStats(prev => ({
+                ...prev,
+                expenses: totalExpenses
+            }));
+
+        } catch (error) {
+            console.error('Stats fetch error:', error);
+        }
     };
 
     const CircleAction = ({ title, icon, color, onPress, badge }: any) => (
@@ -99,9 +128,9 @@ export default function SalesmanDashboard() {
                         badge
                     />
                     <CircleAction
-                        title="My Stock"
-                        icon="cube-outline"
-                        onPress={() => router.push('/salesman/inventory')}
+                        title="Restock"
+                        icon="cart-outline"
+                        onPress={() => router.push('/shops')}
                     />
                     <CircleAction
                         title="Transfer"
@@ -119,17 +148,14 @@ export default function SalesmanDashboard() {
                 <View style={styles.sectionContainer}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>MANAGEMENT</Text>
-                        <TouchableOpacity onPress={() => router.push('/shops')}>
-                            <Text style={styles.sectionLink}>VIEW ALL</Text>
-                        </TouchableOpacity>
                     </View>
 
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
                         <CircleItem
-                            name="Restock"
-                            icon="cart-outline"
+                            name="My Stock"
+                            icon="cube-outline"
                             color="#2563EB"
-                            onPress={() => router.push('/shops')}
+                            onPress={() => router.push('/salesman/inventory')}
                         />
                         <CircleItem
                             name="Income"
@@ -138,16 +164,16 @@ export default function SalesmanDashboard() {
                             onPress={() => router.push('/shop-owner/submit-income')}
                         />
                         <CircleItem
-                            name="Profile"
-                            icon="person-outline"
-                            color="#9333EA"
-                            onPress={() => router.push('/settings')}
+                            name="Sales Rep"
+                            icon="document-text-outline"
+                            color="#2563EB"
+                            onPress={() => router.push('/salesman/assigned-reps')}
                         />
                         <CircleItem
                             name="Support"
                             icon="headset-outline"
                             color="#EA580C"
-                            onPress={() => { }}
+                            onPress={() => router.push('/salesman/support')}
                         />
                     </ScrollView>
                 </View>
@@ -156,9 +182,6 @@ export default function SalesmanDashboard() {
                 <View style={styles.sectionContainer}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>HISTORY & REPORTS</Text>
-                        <TouchableOpacity>
-                            <Text style={styles.sectionLink}>ADD NEW</Text>
-                        </TouchableOpacity>
                     </View>
 
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
@@ -175,15 +198,15 @@ export default function SalesmanDashboard() {
                             color="#0F172A"
                         />
                         <CircleItem
-                            name="Sales Rep"
-                            icon="document-text-outline"
-                            onPress={() => router.push('/salesman/assigned-reps')}
-                            color="#64748B"
+                            name="Stock Log"
+                            icon="swap-horizontal-outline"
+                            onPress={() => router.push('/salesman/stock-history')}
+                            color="#0F172A"
                         />
                         <CircleItem
                             name="Analytics"
                             icon="pie-chart-outline"
-                            onPress={() => { }}
+                            onPress={() => router.push('/salesman/analytics')}
                             color="#64748B"
                         />
                     </ScrollView>
@@ -193,13 +216,35 @@ export default function SalesmanDashboard() {
                 <View style={[styles.sectionContainer, { borderBottomWidth: 0, paddingBottom: 20 }]}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>EXPENSES</Text>
-                        <TouchableOpacity>
-                            <Text style={styles.sectionLink}>ANALYSIS</Text>
+                        <TouchableOpacity onPress={() => router.push('/salesman/expenses')}>
+                            <Text style={styles.sectionLink}>VIEW ALL</Text>
                         </TouchableOpacity>
                     </View>
-                    <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-                        <Text style={{ color: '#94a3b8' }}>No recent expenses recorded</Text>
-                    </View>
+
+                    {stats.expenses > 0 ? (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', padding: 16, borderRadius: 16 }}>
+                            <View>
+                                <Text style={{ fontSize: 13, color: '#64748B' }}>This Month</Text>
+                                <Text style={{ fontSize: 20, fontWeight: '700', color: '#EF4444' }}>Rs. {stats.expenses.toLocaleString()}</Text>
+                            </View>
+                            <TouchableOpacity
+                                style={{ backgroundColor: '#FEE2E2', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 }}
+                                onPress={() => router.push('/salesman/expenses')}
+                            >
+                                <Text style={{ color: '#EF4444', fontWeight: '700', fontSize: 12 }}>+ Add New</Text>
+                            </TouchableOpacity>
+                        </View>
+                    ) : (
+                        <View style={{ paddingVertical: 10, alignItems: 'center', backgroundColor: '#fff', borderRadius: 16, padding: 16 }}>
+                            <Text style={{ color: '#94a3b8', marginBottom: 12 }}>No recent expenses recorded</Text>
+                            <TouchableOpacity
+                                style={{ backgroundColor: '#F1F5F9', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20 }}
+                                onPress={() => router.push('/salesman/expenses')}
+                            >
+                                <Text style={{ color: '#475569', fontWeight: '600', fontSize: 13 }}>Record Expense</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
                 </View>
 
                 <View style={{ height: 80 }} />
