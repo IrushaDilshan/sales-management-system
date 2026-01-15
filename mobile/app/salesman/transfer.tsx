@@ -71,14 +71,7 @@ export default function StockTransferScreen() {
                 stockError = res.error;
             } catch (e) { }
 
-            if (stockError || !stockData) {
-                const res = await supabase
-                    .from('stock')
-                    .select('item_id, qty')
-                    .gt('qty', 0);
-                stockData = res.data;
-                stockError = res.error;
-            }
+
 
             if (stockError) throw stockError;
 

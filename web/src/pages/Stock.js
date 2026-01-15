@@ -4,6 +4,7 @@ import '../shared/ModernPage.css';
 
 const Stock = () => {
     const [stocks, setStocks] = useState([]);
+    const [allItems, setAllItems] = useState([]);
     const [outlets, setOutlets] = useState([]);
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -39,7 +40,23 @@ const Stock = () => {
         fetchData();
         fetchOutlets();
         fetchCategories();
+        fetchItems();
     }, []);
+
+    const fetchItems = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('items')
+                .select('*')
+                .eq('is_active', true)
+                .order('name');
+
+            if (error) throw error;
+            setAllItems(data || []);
+        } catch (err) {
+            console.error('Error fetching items:', err);
+        }
+    };
 
     useEffect(() => {
         calculateStats();
@@ -593,7 +610,9 @@ const Stock = () => {
                                         <label className="form-label">Product Portfolio</label>
                                         <select className="form-control" name="item_id" value={formData.item_id} onChange={handleInputChange} required>
                                             <option value="">Select Item</option>
-                                            {stocks.map(s => s.items && <option key={s.items.id} value={s.items.id}>{s.items.name}</option>).filter((v, i, a) => a.findIndex(t => t.key === v.key) === i)}
+                                            {allItems.map(item => (
+                                                <option key={item.id} value={item.id}>{item.name}</option>
+                                            ))}
                                         </select>
                                     </div>
                                     <div className="form-group">

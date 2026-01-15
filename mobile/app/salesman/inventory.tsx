@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, StatusBar, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,9 +15,12 @@ export default function SalesmanInventoryScreen() {
     const [shopName, setShopName] = useState<string>('');
     const [searchText, setSearchText] = useState('');
 
-    useEffect(() => {
-        fetchInventory();
-    }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchInventory();
+        }, [])
+    );
 
     async function fetchInventory() {
         setLoading(true);
@@ -55,12 +59,6 @@ export default function SalesmanInventoryScreen() {
                 stockData = res.data;
                 stockError = res.error;
             } catch (e) { }
-
-            if (stockError || !stockData) {
-                const res = await supabase.from('stock').select('item_id, qty');
-                stockData = res.data;
-                stockError = res.error;
-            }
 
             if (stockError) throw stockError;
 
