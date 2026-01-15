@@ -1,17 +1,28 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import {
+    View,
+    Text,
+    TouchableOpacity,
+    StyleSheet,
+    ScrollView,
+    TextInput,
+    Alert,
+    ActivityIndicator
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import { supabase } from '../../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { supabase } from '../../../lib/supabase';
 
 export default function RepSettings() {
     const router = useRouter();
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [userData, setUserData] = useState<any>(null);
+    const [name, setName] = useState('');
+    const [phone, setPhone] = useState('');
+    const [email, setEmail] = useState('');
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
 
     useEffect(() => {
         fetchUserData();
@@ -19,21 +30,25 @@ export default function RepSettings() {
 
     const fetchUserData = async () => {
         try {
-            const { data: userData } = await supabase.auth.getUser();
-            const userEmail = userData?.user?.email;
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-            if (userEmail) {
-                setEmail(userEmail);
+            if (authError || !user) {
+                console.error('Auth error:', authError);
+                return;
+            }
 
-                const { data: userRecord } = await supabase
-                    .from('users')
-                    .select('name')
-                    .eq('email', userEmail)
-                    .single();
+            setEmail(user.email || '');
 
-                if (userRecord?.name) {
-                    setName(userRecord.name);
-                }
+            const { data: userData, error: dbError } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', user.id)
+                .single();
+
+            if (userData) {
+                setUserData(userData);
+                setName(userData.name || '');
+                setPhone(userData.phone || '');
             }
         } catch (error) {
             console.error('Error fetching user data:', error);
@@ -48,18 +63,27 @@ export default function RepSettings() {
 
         setLoading(true);
         try {
-            const { data: userData } = await supabase.auth.getUser();
-            const userEmail = userData?.user?.email;
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (!user) {
+                Alert.alert('Error', 'Not authenticated');
+                return;
+            }
 
             const { error } = await supabase
                 .from('users')
-                .update({ name: name.trim() })
-                .eq('email', userEmail);
+                .update({
+                    name: name.trim(),
+                    phone: phone.trim()
+                })
+                .eq('id', user.id);
 
             if (error) throw error;
 
             Alert.alert('Success', 'Profile updated successfully');
+            fetchUserData();
         } catch (error: any) {
+            console.error('Update error:', error);
             Alert.alert('Error', error.message || 'Failed to update profile');
         } finally {
             setLoading(false);
@@ -67,17 +91,17 @@ export default function RepSettings() {
     };
 
     const handleChangePassword = async () => {
-        if (!password || !confirmPassword) {
-            Alert.alert('Error', 'Please enter both password fields');
+        if (!newPassword || !confirmPassword) {
+            Alert.alert('Error', 'Please fill in all password fields');
             return;
         }
 
-        if (password !== confirmPassword) {
+        if (newPassword !== confirmPassword) {
             Alert.alert('Error', 'Passwords do not match');
             return;
         }
 
-        if (password.length < 6) {
+        if (newPassword.length < 6) {
             Alert.alert('Error', 'Password must be at least 6 characters');
             return;
         }
@@ -85,15 +109,17 @@ export default function RepSettings() {
         setLoading(true);
         try {
             const { error } = await supabase.auth.updateUser({
-                password: password
+                password: newPassword
             });
 
             if (error) throw error;
 
             Alert.alert('Success', 'Password changed successfully');
-            setPassword('');
+            setCurrentPassword('');
+            setNewPassword('');
             setConfirmPassword('');
         } catch (error: any) {
+            console.error('Password change error:', error);
             Alert.alert('Error', error.message || 'Failed to change password');
         } finally {
             setLoading(false);
@@ -105,7 +131,10 @@ export default function RepSettings() {
             'Logout',
             'Are you sure you want to logout?',
             [
-                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Cancel',
+                    style: 'cancel'
+                },
                 {
                     text: 'Logout',
                     style: 'destructive',
@@ -120,161 +149,126 @@ export default function RepSettings() {
 
     return (
         <View style={styles.container}>
-            {/* Premium Gradient Header */}
-            <LinearGradient
-                colors={['#7C3AED', '#A78BFA', '#EC4899', '#F472B6']}
-                style={styles.header}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-            >
-                {/* Decorative circles */}
-                <View style={styles.decorativeCircle1} />
-                <View style={styles.decorativeCircle2} />
-
-                <View style={styles.headerContent}>
-                    <View>
-                        <Text style={styles.greeting}>ACCOUNT</Text>
-                        <Text style={styles.title}>Settings</Text>
-                    </View>
-                    <View style={styles.avatarContainer}>
-                        <LinearGradient
-                            colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.1)']}
-                            style={styles.avatar}
-                        >
-                            <Ionicons name="person" size={28} color="#FFF" />
-                        </LinearGradient>
-                    </View>
+            {/* Header */}
+            <View style={styles.header}>
+                <View>
+                    <Text style={styles.title}>Settings</Text>
+                    <Text style={styles.subtitle}>Manage your account</Text>
                 </View>
-            </LinearGradient>
+                {/* 
+                   Included this close button because user explicitly asked for "Same" 
+                   as Salesman page, even though it's a tab. 
+                   Navigates to Home tab.
+                */}
+                <TouchableOpacity
+                    onPress={() => router.push('/rep/(tabs)/home')}
+                    style={styles.backBtn}
+                >
+                    <Ionicons name="close" size={24} color="#fff" />
+                </TouchableOpacity>
+            </View>
 
-            <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={styles.content}
-                showsVerticalScrollIndicator={false}
-            >
+            <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
                 {/* Profile Section */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
-                        <View style={styles.iconWrapper}>
-                            <Ionicons name="person-outline" size={18} color="#7C3AED" />
-                        </View>
+                        <Ionicons name="person-outline" size={24} color="#2196F3" />
                         <Text style={styles.sectionTitle}>Profile Information</Text>
                     </View>
 
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Full Name</Text>
-                        <View style={styles.inputContainer}>
-                            <Ionicons name="person-outline" size={18} color="#6B7280" style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                value={name}
-                                onChangeText={setName}
-                                placeholder="Enter your name"
-                                placeholderTextColor="#9CA3AF"
-                                editable={!loading}
-                            />
-                        </View>
+                        <Text style={styles.label}>Name</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={name}
+                            onChangeText={setName}
+                            placeholder="Enter your name"
+                            editable={!loading}
+                        />
                     </View>
 
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Email Address</Text>
-                        <View style={[styles.inputContainer, styles.inputDisabled]}>
-                            <Ionicons name="mail-outline" size={18} color="#9CA3AF" style={styles.inputIcon} />
-                            <TextInput
-                                style={[styles.input, { color: '#9CA3AF' }]}
-                                value={email}
-                                editable={false}
-                            />
-                        </View>
-                        <Text style={styles.helpText}>
-                            <Ionicons name="information-circle" size={12} color="#6B7280" /> Email cannot be changed
-                        </Text>
+                        <Text style={styles.label}>Phone Number</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={phone}
+                            onChangeText={setPhone}
+                            placeholder="Enter your phone number"
+                            keyboardType="phone-pad"
+                            editable={!loading}
+                        />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Email</Text>
+                        <TextInput
+                            style={[styles.input, styles.inputDisabled]}
+                            value={email}
+                            editable={false}
+                        />
+                        <Text style={styles.helpText}>Email cannot be changed</Text>
                     </View>
 
                     <TouchableOpacity
-                        style={[styles.primaryBtn, loading && styles.btnDisabled]}
+                        style={[styles.updateBtn, loading && styles.updateBtnDisabled]}
                         onPress={handleUpdateProfile}
                         disabled={loading}
                     >
-                        <LinearGradient
-                            colors={['#7C3AED', '#EC4899']}
-                            style={styles.gradientBtn}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                        >
-                            {loading ? (
-                                <ActivityIndicator color="white" />
-                            ) : (
-                                <>
-                                    <Ionicons name="checkmark-circle" size={20} color="white" />
-                                    <Text style={styles.btnText}>Update Profile</Text>
-                                </>
-                            )}
-                        </LinearGradient>
+                        {loading ? (
+                            <ActivityIndicator color="white" />
+                        ) : (
+                            <>
+                                <Ionicons name="save-outline" size={20} color="white" />
+                                <Text style={styles.updateBtnText}>Update Profile</Text>
+                            </>
+                        )}
                     </TouchableOpacity>
                 </View>
 
                 {/* Password Section */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
-                        <View style={[styles.iconWrapper, { backgroundColor: '#FFF3E0' }]}>
-                            <Ionicons name="lock-closed-outline" size={20} color="#F59E0B" />
-                        </View>
-                        <Text style={styles.sectionTitle}>Security</Text>
+                        <Ionicons name="lock-closed-outline" size={24} color="#2196F3" />
+                        <Text style={styles.sectionTitle}>Change Password</Text>
                     </View>
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>New Password</Text>
-                        <View style={styles.inputContainer}>
-                            <Ionicons name="lock-closed-outline" size={18} color="#6B7280" style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                value={password}
-                                onChangeText={setPassword}
-                                placeholder="Enter new password"
-                                placeholderTextColor="#9CA3AF"
-                                secureTextEntry
-                                editable={!loading}
-                            />
-                        </View>
+                        <TextInput
+                            style={styles.input}
+                            value={newPassword}
+                            onChangeText={setNewPassword}
+                            placeholder="Enter new password"
+                            secureTextEntry
+                            editable={!loading}
+                        />
                     </View>
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Confirm Password</Text>
-                        <View style={styles.inputContainer}>
-                            <Ionicons name="shield-checkmark-outline" size={18} color="#6B7280" style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                value={confirmPassword}
-                                onChangeText={setConfirmPassword}
-                                placeholder="Confirm new password"
-                                placeholderTextColor="#9CA3AF"
-                                secureTextEntry
-                                editable={!loading}
-                            />
-                        </View>
+                        <TextInput
+                            style={styles.input}
+                            value={confirmPassword}
+                            onChangeText={setConfirmPassword}
+                            placeholder="Confirm new password"
+                            secureTextEntry
+                            editable={!loading}
+                        />
                     </View>
 
                     <TouchableOpacity
-                        style={[styles.primaryBtn, loading && styles.btnDisabled]}
+                        style={[styles.updateBtn, loading && styles.updateBtnDisabled]}
                         onPress={handleChangePassword}
                         disabled={loading}
                     >
-                        <LinearGradient
-                            colors={['#F59E0B', '#F97316']}
-                            style={styles.gradientBtn}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                        >
-                            {loading ? (
-                                <ActivityIndicator color="white" />
-                            ) : (
-                                <>
-                                    <Ionicons name="key-outline" size={20} color="white" />
-                                    <Text style={styles.btnText}>Update Password</Text>
-                                </>
-                            )}
-                        </LinearGradient>
+                        {loading ? (
+                            <ActivityIndicator color="white" />
+                        ) : (
+                            <>
+                                <Ionicons name="key-outline" size={20} color="white" />
+                                <Text style={styles.updateBtnText}>Change Password</Text>
+                            </>
+                        )}
                     </TouchableOpacity>
                 </View>
 
@@ -283,24 +277,27 @@ export default function RepSettings() {
                     <TouchableOpacity
                         style={styles.logoutBtn}
                         onPress={handleLogout}
-                        activeOpacity={0.7}
                     >
-                        <Ionicons name="log-out-outline" size={22} color="#DC2626" />
-                        <Text style={styles.logoutBtnText}>Sign Out</Text>
-                        <Ionicons name="chevron-forward" size={20} color="#DC2626" />
+                        <Ionicons name="log-out-outline" size={24} color="#f44336" />
+                        <Text style={styles.logoutBtnText}>Logout</Text>
                     </TouchableOpacity>
                 </View>
 
                 {/* App Info */}
                 <View style={styles.appInfo}>
-                    <Ionicons name="shield-checkmark" size={24} color="#9CA3AF" />
                     <Text style={styles.appInfoText}>Sales Management System</Text>
-                    <Text style={styles.versionText}>Representative Portal v1.0.0</Text>
+                    <Text style={styles.appInfoText}>Version 1.0.0</Text>
                 </View>
 
-                {/* Bottom Padding for Nav Bar */}
-                <View style={{ height: 100 }} />
+                {/* Padding for ScrollView to avoid cutoff if tab bar exists */}
+                <View style={{ height: 80 }} />
+
             </ScrollView>
+
+            {/* 
+                We intentionally DO NOT include the Salesman BottomNav here
+                because Rep Settings is inside a Tab Navigator.
+            */}
         </View>
     );
 }
@@ -308,82 +305,43 @@ export default function RepSettings() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F8FAFC'
+        backgroundColor: '#f5f5f5'
     },
     header: {
-        paddingTop: 60,
-        paddingBottom: 36,
-        paddingHorizontal: 24,
-        shadowColor: '#7C3AED',
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.4,
-        shadowRadius: 24,
-        elevation: 16,
-        overflow: 'hidden'
-    },
-    decorativeCircle1: {
-        position: 'absolute',
-        width: 200,
-        height: 200,
-        borderRadius: 100,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        top: -50,
-        right: -50
-    },
-    decorativeCircle2: {
-        position: 'absolute',
-        width: 150,
-        height: 150,
-        borderRadius: 75,
-        backgroundColor: 'rgba(255, 255, 255, 0.08)',
-        bottom: -30,
-        left: -40
-    },
-    headerContent: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        zIndex: 1
-    },
-    greeting: {
-        fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.85)',
-        marginBottom: 4,
-        fontWeight: '700',
-        letterSpacing: 1.2,
-        textTransform: 'uppercase'
+        backgroundColor: '#2196F3',
+        padding: 20,
+        paddingTop: 50,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3
     },
     title: {
-        fontSize: 36,
-        fontWeight: '900',
-        color: '#FFFFFF',
-        letterSpacing: -1,
-        textShadowColor: 'rgba(0, 0, 0, 0.1)',
-        textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 8
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: '#fff'
     },
-    avatarContainer: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 5
+    subtitle: {
+        fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.9)',
+        marginTop: 4
     },
-    avatar: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 3,
-        borderColor: 'rgba(255, 255, 255, 0.3)'
+    backBtn: {
+        padding: 8,
+        borderRadius: 8,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)'
     },
     scrollView: {
         flex: 1
     },
     content: {
         padding: 20,
-        gap: 16
+        gap: 20,
+        paddingBottom: 100
     },
     section: {
         backgroundColor: 'white',
@@ -391,129 +349,89 @@ const styles = StyleSheet.create({
         padding: 20,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
         elevation: 2
     },
     sectionHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 18,
+        marginBottom: 20,
         gap: 12
-    },
-    iconWrapper: {
-        width: 38,
-        height: 38,
-        borderRadius: 11,
-        backgroundColor: '#EDE9FE',
-        justifyContent: 'center',
-        alignItems: 'center'
     },
     sectionTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#0F172A',
-        letterSpacing: -0.3
+        color: '#1a1a2e'
     },
     inputGroup: {
         marginBottom: 16
     },
     label: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#0F172A',
-        marginBottom: 8,
-        letterSpacing: 0.2,
-        textTransform: 'uppercase'
-    },
-    inputContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#F8F9FA',
-        borderRadius: 12,
-        borderWidth: 2,
-        borderColor: '#E5E7EB',
-        paddingHorizontal: 14,
-        height: 48
-    },
-    inputIcon: {
-        marginRight: 10
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#1a1a2e',
+        marginBottom: 8
     },
     input: {
-        flex: 1,
-        fontSize: 15,
-        color: '#0F172A',
-        fontWeight: '500'
+        backgroundColor: '#f8f9fa',
+        borderRadius: 12,
+        padding: 14,
+        fontSize: 16,
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+        color: '#1a1a2e'
     },
     inputDisabled: {
-        backgroundColor: '#F0F0F0',
-        borderColor: '#E0E0E0'
+        backgroundColor: '#e9ecef',
+        color: '#6b7280'
     },
     helpText: {
         fontSize: 12,
-        color: '#6B7280',
-        marginTop: 6,
-        fontWeight: '500'
+        color: '#6b7280',
+        marginTop: 4
     },
-    primaryBtn: {
-        marginTop: 8,
-        borderRadius: 12,
-        overflow: 'hidden',
-        shadowColor: '#7C3AED',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.25,
-        shadowRadius: 6,
-        elevation: 3
-    },
-    gradientBtn: {
+    updateBtn: {
+        backgroundColor: '#2196F3',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         padding: 14,
+        borderRadius: 12,
+        marginTop: 8,
         gap: 8
     },
-    btnDisabled: {
+    updateBtnDisabled: {
         opacity: 0.6
     },
-    btnText: {
+    updateBtnText: {
         color: 'white',
-        fontSize: 15,
-        fontWeight: '700',
-        letterSpacing: 0.3
+        fontSize: 16,
+        fontWeight: '700'
     },
     logoutBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: 'center',
         padding: 16,
+        gap: 12,
         borderRadius: 12,
         borderWidth: 2,
-        borderColor: '#FEE2E2',
-        backgroundColor: '#FAFAFA'
+        borderColor: '#f44336'
     },
     logoutBtnText: {
-        flex: 1,
-        color: '#DC2626',
+        color: '#f44336',
         fontSize: 16,
-        fontWeight: '700',
-        marginLeft: 12,
-        letterSpacing: 0.2
+        fontWeight: '700'
     },
     appInfo: {
         alignItems: 'center',
-        marginTop: 24,
-        marginBottom: 20,
-        gap: 8
+        marginTop: 20,
+        marginBottom: 20
     },
     appInfoText: {
-        fontSize: 13,
-        color: '#9CA3AF',
-        fontWeight: '600',
+        fontSize: 12,
+        color: '#9ca3af',
         marginTop: 4
-    },
-    versionText: {
-        fontSize: 11,
-        color: '#CBD5E1',
-        fontWeight: '600'
     }
 });

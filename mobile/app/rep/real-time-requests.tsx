@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { View, Text, SectionList, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, SectionList, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type RealTimeRequest = {
     id: number;
@@ -19,7 +19,6 @@ type GroupedSection = {
     data: RealTimeRequest[];
 };
 
-// Helper function to group requests by date
 const groupByDate = (requests: RealTimeRequest[]): GroupedSection[] => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -27,7 +26,6 @@ const groupByDate = (requests: RealTimeRequest[]): GroupedSection[] => {
     const groups = new Map<string, RealTimeRequest[]>();
 
     requests.forEach(request => {
-        // Use created_at if available, otherwise date
         const dateStr = request.created_at || request.date;
         const requestDate = new Date(dateStr);
         const requestDay = new Date(requestDate.getFullYear(), requestDate.getMonth(), requestDate.getDate());
@@ -36,35 +34,25 @@ const groupByDate = (requests: RealTimeRequest[]): GroupedSection[] => {
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
         let dateLabel: string;
-        if (diffDays === 0) {
-            dateLabel = 'Today';
-        } else if (diffDays === 1) {
-            dateLabel = 'Yesterday';
-        } else if (diffDays < 7) {
-            dateLabel = `${diffDays} days ago`;
-        } else {
-            dateLabel = requestDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        }
+        if (diffDays === 0) dateLabel = 'Today';
+        else if (diffDays === 1) dateLabel = 'Yesterday';
+        else if (diffDays < 7) dateLabel = `${diffDays} days ago`;
+        else dateLabel = requestDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-        if (!groups.has(dateLabel)) {
-            groups.set(dateLabel, []);
-        }
+        if (!groups.has(dateLabel)) groups.set(dateLabel, []);
         groups.get(dateLabel)!.push(request);
     });
 
-    // Convert to sections array
-    return Array.from(groups.entries()).map(([title, data]) => ({
-        title,
-        data
-    }));
+    return Array.from(groups.entries()).map(([title, data]) => ({ title, data }));
 };
 
 export default function RealTimeRequests() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const [realTimeRequests, setRealTimeRequests] = useState<GroupedSection[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+    const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['Today', 'Yesterday'])); // Default expanded
 
     useEffect(() => {
         fetchRealTimeRequests();
@@ -73,11 +61,8 @@ export default function RealTimeRequests() {
     const toggleSection = (sectionTitle: string) => {
         setExpandedSections(prev => {
             const newSet = new Set(prev);
-            if (newSet.has(sectionTitle)) {
-                newSet.delete(sectionTitle);
-            } else {
-                newSet.add(sectionTitle);
-            }
+            if (newSet.has(sectionTitle)) newSet.delete(sectionTitle);
+            else newSet.add(sectionTitle);
             return newSet;
         });
     };
@@ -90,15 +75,7 @@ export default function RealTimeRequests() {
 
             let currentUserId = null;
             if (userEmail) {
-                const { data: userRecord, error: userError } = await supabase
-                    .from('users')
-                    .select('id')
-                    .eq('email', userEmail)
-                    .maybeSingle();
-
-                if (userError) {
-                    console.error('Error fetching user:', userError);
-                }
+                const { data: userRecord } = await supabase.from('users').select('id').eq('email', userEmail).maybeSingle();
                 currentUserId = userRecord?.id;
             }
 
@@ -108,45 +85,24 @@ export default function RealTimeRequests() {
                 return;
             }
 
-            // Get shops assigned to this rep
-            const { data: myRoutes } = await supabase
-                .from('routes')
-                .select('id')
-                .eq('rep_id', currentUserId);
-
+            const { data: myRoutes } = await supabase.from('routes').select('id').eq('rep_id', currentUserId);
             const myRouteIds = myRoutes?.map(r => r.id) || [];
 
-            let shopsQuery = supabase
-                .from('shops')
-                .select('id, name');
-
-            if (myRouteIds.length > 0) {
-                shopsQuery = shopsQuery.or(`rep_id.eq.${currentUserId},route_id.in.(${myRouteIds.join(',')})`);
-            } else {
-                shopsQuery = shopsQuery.eq('rep_id', currentUserId);
-            }
+            let shopsQuery = supabase.from('shops').select('id, name');
+            if (myRouteIds.length > 0) shopsQuery = shopsQuery.or(`rep_id.eq.${currentUserId},route_id.in.(${myRouteIds.join(',')})`);
+            else shopsQuery = shopsQuery.eq('rep_id', currentUserId);
 
             const { data: shopsData } = await shopsQuery;
-
             if (!shopsData || shopsData.length === 0) {
                 setRealTimeRequests([]);
                 setLoading(false);
                 return;
             }
 
-            // Create shop name map
             const shopNamesMap = new Map();
             shopsData.forEach(shop => shopNamesMap.set(shop.id, shop.name));
-
             const shopIds = shopsData.map(s => s.id).filter(id => id != null);
 
-            if (shopIds.length === 0) {
-                setRealTimeRequests([]);
-                setLoading(false);
-                return;
-            }
-
-            // Fetch ALL pending requests (no date filter - real-time)
             const { data: requestsData } = await supabase
                 .from('requests')
                 .select('id, shop_id, date, created_at')
@@ -156,25 +112,21 @@ export default function RealTimeRequests() {
 
             if (!requestsData || requestsData.length === 0) {
                 setRealTimeRequests([]);
-                setLoading(false);
                 return;
             }
 
-            // Get item counts for each request
             const requestIds = requestsData.map(r => r.id);
             const { data: itemsData } = await supabase
                 .from('request_items')
                 .select('request_id')
                 .in('request_id', requestIds);
 
-            // Count items per request
             const itemCountMap = new Map();
             itemsData?.forEach(item => {
                 const count = itemCountMap.get(item.request_id) || 0;
                 itemCountMap.set(item.request_id, count + 1);
             });
 
-            // Build real-time requests array
             const realTimeReqs: RealTimeRequest[] = requestsData.map(req => ({
                 id: req.id,
                 shopName: shopNamesMap.get(req.shop_id) || 'Unknown Shop',
@@ -184,43 +136,26 @@ export default function RealTimeRequests() {
                 itemCount: itemCountMap.get(req.id) || 0
             }));
 
-            // Group by date
             const grouped = groupByDate(realTimeReqs);
             setRealTimeRequests(grouped);
 
+            // Expand all initially if wanted, or just Today/Yesterday
+            // setExpandedSections(new Set(grouped.map(g => g.title)));
+
         } catch (err: any) {
-            if (
-                err.name === 'AbortError' ||
-                err.message?.includes('aborted') ||
-                err.message?.includes('Aborted')
-            ) {
-                return;
-            }
-            console.log('Error fetching real-time requests:', err);
+            console.log('Error fetching requests:', err);
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
     };
 
-    const onRefresh = () => {
-        setRefreshing(true);
-        fetchRealTimeRequests();
-    };
-
     const renderRequest = ({ item }: { item: RealTimeRequest }) => {
-        // Check if created_at exists AND has time component (length > 10 for ISO string)
         const hasTime = item.created_at && item.created_at.length > 10;
-
         let timeAgo = '';
         if (hasTime) {
             let dateStr = item.created_at!;
-            // Fix: If timestamp from DB lacks timezone (Supabase/Postgres specific), treat as UTC
-            // This fixes the "5h ago" issue where UTC time was parsed as Local time
-            if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
-                dateStr += 'Z';
-            }
-
+            if (!dateStr.endsWith('Z') && !dateStr.includes('+')) dateStr += 'Z';
             const requestDate = new Date(dateStr);
             const now = new Date();
             const diffMs = now.getTime() - requestDate.getTime();
@@ -233,24 +168,7 @@ export default function RealTimeRequests() {
             else if (diffHours < 24) timeAgo = `${diffHours}h ago`;
             else timeAgo = `${diffDays}d ago`;
         } else {
-            // Fallback for date-only values (prevents "19h ago" timezone confusion)
-            const date = new Date(item.date);
-            const now = new Date();
-            const isToday = date.getDate() === now.getDate() &&
-                date.getMonth() === now.getMonth() &&
-                date.getFullYear() === now.getFullYear();
-
-            if (isToday) timeAgo = 'Today';
-            else {
-                const yesterday = new Date(now);
-                yesterday.setDate(now.getDate() - 1);
-                const isYesterday = date.getDate() === yesterday.getDate() &&
-                    date.getMonth() === yesterday.getMonth() &&
-                    date.getFullYear() === yesterday.getFullYear();
-
-                if (isYesterday) timeAgo = 'Yesterday';
-                else timeAgo = date.toLocaleDateString();
-            }
+            timeAgo = new Date(item.date).toLocaleDateString();
         }
 
         const isNew = hasTime ? (Date.now() - new Date(item.created_at!).getTime()) < 24 * 60 * 60 * 1000 : true;
@@ -259,175 +177,81 @@ export default function RealTimeRequests() {
             <TouchableOpacity
                 style={styles.requestCard}
                 onPress={() => router.push(`/rep/request-details/${item.id}` as any)}
-                activeOpacity={0.7}
             >
-                <LinearGradient
-                    colors={isNew ? ['#F0F9FF', '#E0F2FE'] : ['#FFFFFF', '#F9FAFB']}
-                    style={styles.cardGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                >
-                    {/* Shop Icon */}
-                    <View style={styles.iconWrapper}>
-                        <LinearGradient
-                            colors={['#7C3AED', '#EC4899']}
-                            style={styles.icon}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                        >
-                            <Ionicons name="storefront" size={20} color="#FFF" />
-                        </LinearGradient>
+                <View style={styles.cardContent}>
+                    <View style={styles.iconContainer}>
+                        <Ionicons name="storefront" size={24} color="#EA580C" />
                     </View>
 
-                    {/* Shop Details */}
-                    <View style={styles.details}>
-                        <Text style={styles.shopName} numberOfLines={1}>
-                            {item.shopName}
-                        </Text>
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.shopName} numberOfLines={1}>{item.shopName}</Text>
                         <View style={styles.meta}>
                             <Ionicons name="time-outline" size={13} color="#64748B" />
                             <Text style={styles.time}>{timeAgo}</Text>
-                            <View style={styles.itemBadge}>
-                                <Ionicons name="cube-outline" size={12} color="#7C3AED" />
-                                <Text style={styles.itemCount}>{item.itemCount} items</Text>
+                            <View style={styles.badge}>
+                                <Text style={styles.badgeText}>{item.itemCount} items</Text>
                             </View>
                         </View>
                     </View>
-
-                    {/* New Badge & Chevron */}
-                    <View style={styles.rightSection}>
-                        {isNew && (
-                            <View style={styles.newBadge}>
-                                <Text style={styles.newBadgeText}>NEW</Text>
-                            </View>
-                        )}
-                        <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+                </View>
+                {isNew && (
+                    <View style={styles.newIndicator}>
+                        <Text style={styles.newText}>NEW</Text>
                     </View>
-                </LinearGradient>
+                )}
             </TouchableOpacity>
         );
     };
 
     return (
-        <View style={styles.container}>
-            {/* Premium Gradient Header */}
-            <LinearGradient
-                colors={['#7C3AED', '#A78BFA', '#EC4899', '#F472B6']}
-                style={styles.header}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-            >
-                {/* Decorative circles */}
-                <View style={styles.decorativeCircle1} />
-                <View style={styles.decorativeCircle2} />
-
-                <View style={styles.headerContent}>
-                    <TouchableOpacity
-                        style={styles.backButton}
-                        onPress={() => router.back()}
-                        activeOpacity={0.7}
-                    >
-                        <Ionicons name="arrow-back" size={22} color="#FFF" />
-                    </TouchableOpacity>
-                    <View style={styles.headerCenter}>
-                        <Text style={styles.headerSubtitle}>ALL SHOP REQUESTS</Text>
-                        <Text style={styles.headerTitle}>Real-Time View</Text>
-                    </View>
-                    <View style={styles.backButton} />
-                </View>
-
-                {/* Live Counter */}
-                <View style={styles.counterCard}>
-                    <View style={styles.liveDot} />
-                    <Text style={styles.counterText}>
-                        {realTimeRequests.reduce((sum, section) => sum + section.data.length, 0)} Active Request{realTimeRequests.reduce((sum, section) => sum + section.data.length, 0) !== 1 ? 's' : ''}
-                    </Text>
-                </View>
-            </LinearGradient>
-
-            {/* Content */}
-            <View style={styles.content}>
-                {loading && !refreshing ? (
-                    <View style={styles.loadingState}>
-                        <LinearGradient
-                            colors={['#7C3AED20', '#EC489920']}
-                            style={styles.loadingCircle}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                        >
-                            <ActivityIndicator size="large" color="#7C3AED" />
-                        </LinearGradient>
-                        <Text style={styles.loadingText}>Loading requests...</Text>
-                    </View>
-                ) : (
-                    <SectionList
-                        sections={realTimeRequests.map(section => ({
-                            ...section,
-                            data: expandedSections.has(section.title) ? section.data : []
-                        }))}
-                        keyExtractor={(item) => item.id.toString()}
-                        renderItem={renderRequest}
-                        renderSectionHeader={({ section }) => {
-                            const isExpanded = expandedSections.has(section.title);
-                            const originalSection = realTimeRequests.find(s => s.title === section.title);
-                            const itemCount = originalSection?.data.length || 0;
-
-                            return (
-                                <TouchableOpacity
-                                    style={styles.sectionHeader}
-                                    onPress={() => toggleSection(section.title)}
-                                    activeOpacity={0.7}
-                                >
-                                    <LinearGradient
-                                        colors={['#7C3AED', '#EC4899']}
-                                        style={styles.sectionHeaderGradient}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 1 }}
-                                    >
-                                        <Ionicons name="calendar" size={16} color="#FFF" />
-                                        <Text style={styles.sectionHeaderText}>{section.title}</Text>
-                                        <View style={styles.sectionBadge}>
-                                            <Text style={styles.sectionBadgeText}>{itemCount}</Text>
-                                        </View>
-                                        <Ionicons
-                                            name={isExpanded ? "chevron-up" : "chevron-down"}
-                                            size={20}
-                                            color="#FFF"
-                                        />
-                                    </LinearGradient>
-                                </TouchableOpacity>
-                            );
-                        }}
-                        contentContainerStyle={styles.listContainer}
-                        showsVerticalScrollIndicator={false}
-                        stickySectionHeadersEnabled={true}
-                        refreshControl={
-                            <RefreshControl
-                                refreshing={refreshing}
-                                onRefresh={onRefresh}
-                                tintColor="#7C3AED"
-                                colors={['#7C3AED', '#EC4899']}
-                            />
-                        }
-                        ListEmptyComponent={
-                            <View style={styles.emptyState}>
-                                <LinearGradient
-                                    colors={['#7C3AED15', '#EC489915']}
-                                    style={styles.emptyCircle}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                >
-                                    <Ionicons name="checkmark-circle-outline" size={72} color="#7C3AED" />
-                                </LinearGradient>
-                                <Text style={styles.emptyTitle}>All Caught Up!</Text>
-                                <Text style={styles.emptyMessage}>
-                                    No pending requests from your shops right now
-                                </Text>
-                            </View>
-                        }
-                    />
-                )}
+        <View style={[styles.container, { paddingTop: insets.top }]}>
+            <StatusBar barStyle="dark-content" />
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                    <Ionicons name="arrow-back" size={24} color="#0F172A" />
+                </TouchableOpacity>
+                <Text style={styles.title}>Real-Time Requests</Text>
+                <View style={{ width: 40 }} />
             </View>
+
+            {loading && !refreshing ? (
+                <View style={styles.centered}>
+                    <ActivityIndicator size="large" color="#2563EB" />
+                </View>
+            ) : (
+                <SectionList
+                    sections={realTimeRequests.map(section => ({
+                        ...section,
+                        data: expandedSections.has(section.title) ? section.data : []
+                    }))}
+                    keyExtractor={(item) => item.id.toString()}
+                    renderItem={renderRequest}
+                    renderSectionHeader={({ section }) => (
+                        <TouchableOpacity
+                            style={styles.sectionHeader}
+                            onPress={() => toggleSection(section.title)}
+                        >
+                            <Text style={styles.sectionTitle}>{section.title}</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                <View style={styles.countBadge}>
+                                    <Text style={styles.countText}>{section.data.length}</Text>
+                                </View>
+                                <Ionicons name={expandedSections.has(section.title) ? "chevron-up" : "chevron-down"} size={16} color="#64748B" />
+                            </View>
+                        </TouchableOpacity>
+                    )}
+                    contentContainerStyle={styles.list}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchRealTimeRequests(); }} />
+                    }
+                    ListEmptyComponent={
+                        <View style={styles.centered}>
+                            <Text style={styles.emptyText}>No pending requests</Text>
+                        </View>
+                    }
+                />
+            )}
         </View>
     );
 }
@@ -435,151 +259,92 @@ export default function RealTimeRequests() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F8FAFC'
+        backgroundColor: '#F8FAFC',
     },
     header: {
-        paddingTop: 50,
-        paddingBottom: 24,
-        paddingHorizontal: 20,
-        borderBottomLeftRadius: 36,
-        borderBottomRightRadius: 36,
-        shadowColor: '#7C3AED',
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.4,
-        shadowRadius: 24,
-        elevation: 16,
-        overflow: 'hidden'
-    },
-    decorativeCircle1: {
-        position: 'absolute',
-        width: 200,
-        height: 200,
-        borderRadius: 100,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        top: -50,
-        right: -50
-    },
-    decorativeCircle2: {
-        position: 'absolute',
-        width: 150,
-        height: 150,
-        borderRadius: 75,
-        backgroundColor: 'rgba(255, 255, 255, 0.08)',
-        bottom: -30,
-        left: -40
-    },
-    headerContent: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 16,
-        zIndex: 1
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+        backgroundColor: '#FFFFFF',
     },
-    backButton: {
+    backBtn: {
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: '#F1F5F9',
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 1.5,
-        borderColor: 'rgba(255, 255, 255, 0.3)'
     },
-    headerCenter: {
-        flex: 1,
-        alignItems: 'center',
-        paddingHorizontal: 12
-    },
-    headerSubtitle: {
-        fontSize: 10,
-        color: 'rgba(255, 255, 255, 0.85)',
+    title: {
+        fontSize: 18,
         fontWeight: '700',
-        marginBottom: 4,
-        letterSpacing: 1.2,
-        textTransform: 'uppercase'
+        color: '#0F172A',
     },
-    headerTitle: {
-        fontSize: 28,
-        fontWeight: '900',
-        color: '#FFFFFF',
-        letterSpacing: -0.8,
-        textAlign: 'center'
+    list: {
+        paddingBottom: 40,
     },
-    counterCard: {
+    sectionHeader: {
         flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        borderRadius: 20,
+        backgroundColor: '#F1F5F9',
         paddingVertical: 12,
         paddingHorizontal: 20,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.3)',
-        zIndex: 1
+        marginTop: 10
     },
-    liveDot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        backgroundColor: '#10B981',
-        marginRight: 8
+    sectionTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#475569',
+        textTransform: 'uppercase'
     },
-    counterText: {
-        fontSize: 15,
-        color: '#FFFFFF',
-        fontWeight: '800',
-        letterSpacing: 0.3
+    countBadge: {
+        backgroundColor: '#CBD5E1',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 12
     },
-    content: {
-        flex: 1,
-        paddingTop: 20
-    },
-    listContainer: {
-        paddingHorizontal: 20,
-        paddingBottom: 100,
-        gap: 12
+    countText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#334155'
     },
     requestCard: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        padding: 16,
+        marginHorizontal: 20,
+        marginVertical: 6,
         borderRadius: 16,
-        overflow: 'hidden',
-        shadowColor: '#000',
+        shadowColor: '#64748B',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
-        shadowRadius: 8,
+        shadowRadius: 4,
         elevation: 2
     },
-    cardGradient: {
+    cardContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 16,
-        gap: 14,
-        borderWidth: 1,
-        borderColor: '#F1F5F9',
-        borderRadius: 16
+        flex: 1
     },
-    iconWrapper: {
-        shadowColor: '#7C3AED',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 4,
-        elevation: 3
-    },
-    icon: {
+    iconContainer: {
         width: 48,
         height: 48,
-        borderRadius: 14,
+        borderRadius: 24,
+        backgroundColor: '#FFEDD5',
         justifyContent: 'center',
-        alignItems: 'center'
-    },
-    details: {
-        flex: 1,
-        gap: 7
+        alignItems: 'center',
+        marginRight: 16
     },
     shopName: {
         fontSize: 16,
-        fontWeight: '800',
-        color: '#1E293B',
-        letterSpacing: -0.4
+        fontWeight: '700',
+        color: '#0F172A',
+        marginBottom: 4
     },
     meta: {
         flexDirection: 'row',
@@ -588,119 +353,39 @@ const styles = StyleSheet.create({
     },
     time: {
         fontSize: 13,
-        color: '#64748B',
+        color: '#64748B'
+    },
+    badge: {
+        backgroundColor: '#F1F5F9',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 8
+    },
+    badgeText: {
+        fontSize: 11,
+        color: '#475569',
         fontWeight: '600'
     },
-    itemBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 5,
-        backgroundColor: '#F3E8FF',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 10
-    },
-    itemCount: {
-        fontSize: 12,
-        color: '#7C3AED',
-        fontWeight: '700'
-    },
-    rightSection: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10
-    },
-    newBadge: {
+    newIndicator: {
         backgroundColor: '#10B981',
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 10
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+        marginLeft: 8
     },
-    newBadgeText: {
+    newText: {
         fontSize: 10,
         fontWeight: '900',
-        color: '#FFFFFF',
-        letterSpacing: 0.5
-    },
-    loadingState: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingVertical: 60
-    },
-    loadingCircle: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 20
-    },
-    loadingText: {
-        fontSize: 15,
-        color: '#64748B',
-        fontWeight: '600',
-        marginTop: 12
-    },
-    emptyState: {
-        alignItems: 'center',
-        paddingVertical: 60,
-        paddingHorizontal: 40
-    },
-    emptyCircle: {
-        width: 140,
-        height: 140,
-        borderRadius: 70,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 28
-    },
-    emptyTitle: {
-        fontSize: 28,
-        fontWeight: '900',
-        color: '#0F172A',
-        marginBottom: 12,
-        letterSpacing: -1
-    },
-    emptyMessage: {
-        fontSize: 15,
-        color: '#64748B',
-        textAlign: 'center',
-        lineHeight: 22,
-        fontWeight: '500'
-    },
-    // Section Header Styles
-    sectionHeader: {
-        paddingHorizontal: 20,
-        paddingTop: 16,
-        paddingBottom: 8
-    },
-    sectionHeaderGradient: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        borderRadius: 12,
-        gap: 8
-    },
-    sectionHeaderText: {
-        flex: 1,
-        fontSize: 15,
-        fontWeight: '800',
-        color: '#FFFFFF',
-        letterSpacing: 0.3
-    },
-    sectionBadge: {
-        backgroundColor: 'rgba(255, 255, 255, 0.3)',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.4)'
-    },
-    sectionBadgeText: {
-        fontSize: 12,
-        fontWeight: '900',
         color: '#FFFFFF'
+    },
+    centered: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingTop: 60
+    },
+    emptyText: {
+        color: '#94A3B8',
+        fontSize: 15
     }
 });

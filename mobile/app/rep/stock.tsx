@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type StockItem = {
     id: number;
@@ -14,6 +15,7 @@ export default function StockScreen() {
     const [items, setItems] = useState<StockItem[]>([]);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
+    const insets = useSafeAreaInsets();
 
     useEffect(() => {
         fetchStock();
@@ -22,11 +24,9 @@ export default function StockScreen() {
     const fetchStock = async () => {
         setLoading(true);
         try {
-            // Get current user from users table (not auth ID)
             const { data: userData } = await supabase.auth.getUser();
             const userEmail = userData?.user?.email;
 
-            // Get the user's ID from the users table
             let currentUserId = null;
             if (userEmail) {
                 const { data: userRecord } = await supabase
@@ -37,7 +37,6 @@ export default function StockScreen() {
                 currentUserId = userRecord?.id;
             }
 
-            // 1. Fetch Item Definitions
             const { data: itemsData, error: itemsError } = await supabase
                 .from('items')
                 .select('id, name')
@@ -45,10 +44,8 @@ export default function StockScreen() {
 
             if (itemsError) throw itemsError;
 
-            // 2. Fetch Rep's Stock from Transactions (issued by storekeeper)
             const repStockMap = new Map();
 
-            // Only fetch if we have a valid user ID
             if (currentUserId) {
                 const { data: repTransactions, error: stockError } = await supabase
                     .from('stock_transactions')
@@ -57,25 +54,22 @@ export default function StockScreen() {
 
                 if (stockError && stockError.code !== 'PGRST116') throw stockError;
 
-                // 3. Calculate rep's stock per item
                 repTransactions?.forEach((trans: any) => {
                     const currentStock = repStockMap.get(trans.item_id) || 0;
                     if (trans.type === 'OUT') {
-                        // Stock issued to rep
                         repStockMap.set(trans.item_id, currentStock + trans.qty);
                     }
-                    // Future: handle RETURN if needed
                 });
-            } else {
-                console.warn('No user ID found, stock will show as 0');
             }
 
-            // 4. Merge
             const merged: StockItem[] = (itemsData || []).map((item: any) => ({
                 id: item.id,
                 name: item.name,
                 qty: repStockMap.get(item.id) || 0
             }));
+
+            // Sort to show items with stock first
+            merged.sort((a, b) => b.qty - a.qty);
 
             setItems(merged);
 
@@ -88,34 +82,48 @@ export default function StockScreen() {
 
     const renderItem = ({ item }: { item: StockItem }) => (
         <View style={styles.card}>
-            <View style={styles.row}>
+            <View style={styles.iconContainer}>
+                <Ionicons name="cube-outline" size={24} color="#3B82F6" />
+            </View>
+            <View style={styles.infoContainer}>
                 <Text style={styles.name}>{item.name}</Text>
-                <View style={[styles.badge, { backgroundColor: item.qty > 0 ? '#E8F5E9' : '#FFEBEE' }]}>
-                    <Text style={[styles.qty, { color: item.qty > 0 ? '#2E7D32' : '#C62828' }]}>
-                        {item.qty} in Stock
-                    </Text>
-                </View>
+                <Text style={styles.code}>ID: {item.id}</Text>
+            </View>
+            <View style={[styles.badge, { backgroundColor: item.qty > 0 ? '#DCFCE7' : '#FEE2E2' }]}>
+                <Text style={[styles.qty, { color: item.qty > 0 ? '#16A34A' : '#EF4444' }]}>
+                    {item.qty}
+                </Text>
             </View>
         </View>
     );
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { paddingTop: insets.top }]}>
+            <StatusBar barStyle="dark-content" />
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={24} color="#333" />
+                    <Ionicons name="arrow-back" size={24} color="#0F172A" />
                 </TouchableOpacity>
                 <Text style={styles.title}>My Assigned Stock</Text>
+                <View style={{ width: 40 }} />
             </View>
 
             {loading ? (
-                <ActivityIndicator size="large" color="#0000ff" style={{ marginTop: 20 }} />
+                <View style={styles.centered}>
+                    <ActivityIndicator size="large" color="#2563EB" />
+                </View>
             ) : (
                 <FlatList
                     data={items}
                     keyExtractor={item => item.id.toString()}
                     renderItem={renderItem}
                     contentContainerStyle={styles.list}
+                    showsVerticalScrollIndicator={false}
+                    ListEmptyComponent={
+                        <View style={styles.centered}>
+                            <Text style={styles.emptyText}>No items found</Text>
+                        </View>
+                    }
                 />
             )}
         </View>
@@ -123,14 +131,89 @@ export default function StockScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
-    header: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, marginTop: 40 },
-    backBtn: { marginRight: 16 },
-    title: { fontSize: 24, fontWeight: 'bold' },
-    list: { paddingBottom: 20 },
-    card: { backgroundColor: 'white', padding: 16, borderRadius: 12, marginBottom: 10, elevation: 1 },
-    row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    name: { fontSize: 16, fontWeight: '600', color: '#333' },
-    badge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
-    qty: { fontWeight: 'bold' }
+    container: {
+        flex: 1,
+        backgroundColor: '#F8FAFC',
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+        backgroundColor: '#FFFFFF',
+    },
+    backBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#F1F5F9',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    title: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#0F172A',
+    },
+    list: {
+        padding: 20,
+        gap: 12
+    },
+    card: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        padding: 16,
+        borderRadius: 16,
+        shadowColor: '#64748B',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
+        marginBottom: 12
+    },
+    iconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: '#EFF6FF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 16
+    },
+    infoContainer: {
+        flex: 1,
+    },
+    name: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#0F172A',
+        marginBottom: 2
+    },
+    code: {
+        fontSize: 12,
+        color: '#94A3B8'
+    },
+    badge: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        minWidth: 60,
+        alignItems: 'center'
+    },
+    qty: {
+        fontWeight: '700',
+        fontSize: 16
+    },
+    centered: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingTop: 100
+    },
+    emptyText: {
+        color: '#94A3B8',
+        fontSize: 16
+    }
 });

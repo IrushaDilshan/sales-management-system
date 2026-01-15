@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, TextInput, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type ShopRequest = {
     shopId: number;
@@ -17,6 +18,7 @@ export default function ShopsListScreen() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const router = useRouter();
+    const insets = useSafeAreaInsets();
 
     useEffect(() => {
         fetchShops();
@@ -25,7 +27,6 @@ export default function ShopsListScreen() {
     const fetchShops = async () => {
         setLoading(true);
         try {
-            // Get current user
             const { data: userData } = await supabase.auth.getUser();
             const userEmail = userData?.user?.email;
 
@@ -45,38 +46,27 @@ export default function ShopsListScreen() {
                 return;
             }
 
-            // 1. Find all routes where this rep is assigned
-            const { data: myRoutes, error: routesError } = await supabase
+            const { data: myRoutes } = await supabase
                 .from('routes')
                 .select('id')
                 .eq('rep_id', currentUserId);
 
-            if (routesError && routesError.code !== 'PGRST116') throw routesError;
-
             const myRouteIds = myRoutes?.map(r => r.id) || [];
 
-            // 2. Find all shops assigned to this rep (either directly or through routes)
             let shopsQuery = supabase
                 .from('shops')
                 .select('id, name');
 
-            // Build the query to find shops where:
-            // - rep_id matches current user (direct assignment)
-            // - OR route_id is in the rep's assigned routes
             if (myRouteIds.length > 0) {
-                // Rep has routes OR direct shop assignments
                 shopsQuery = shopsQuery.or(`rep_id.eq.${currentUserId},route_id.in.(${myRouteIds.join(',')})`);
             } else {
-                // Rep only has direct shop assignments, no routes
                 shopsQuery = shopsQuery.eq('rep_id', currentUserId);
             }
 
             const { data: myShops, error: shopsError } = await shopsQuery;
-
             if (shopsError) throw shopsError;
 
             if (!myShops || myShops.length === 0) {
-                // No shops assigned to this rep
                 setShops([]);
                 setFilteredShops([]);
                 return;
@@ -84,7 +74,6 @@ export default function ShopsListScreen() {
 
             const myShopIds = myShops.map(s => s.id);
 
-            // 3. Fetch pending requests ONLY from the rep's assigned shops
             const { data: requestsData, error: reqError } = await supabase
                 .from('requests')
                 .select('shop_id, date')
@@ -99,10 +88,8 @@ export default function ShopsListScreen() {
                 return;
             }
 
-            // 4. Aggregate
             const shopsMap = new Map();
             myShops.forEach((s: any) => shopsMap.set(s.id, s.name));
-
             const shopIdsWithRequests = Array.from(new Set(requestsData.map((r: any) => r.shop_id)));
 
             const aggregated = shopIdsWithRequests.map(id => {
@@ -111,7 +98,7 @@ export default function ShopsListScreen() {
                     shopId: id,
                     shopName: shopsMap.get(id) || 'Unknown Shop',
                     requestCount: shopRequests.length,
-                    latestDate: shopRequests[0]?.date // Simplified
+                    latestDate: shopRequests[0]?.date
                 };
             });
 
@@ -139,68 +126,63 @@ export default function ShopsListScreen() {
             style={styles.card}
             onPress={() => router.push(`/rep/request/${item.shopId}`)}
         >
-            <View style={styles.cardHeader}>
-                <View style={{
-                    backgroundColor: '#fff3e0',
-                    padding: 12,
-                    borderRadius: 14,
-                    marginRight: 14
-                }}>
-                    <Ionicons name="storefront" size={28} color="#FF9800" />
+            <View style={styles.cardContent}>
+                <View style={styles.iconContainer}>
+                    <Ionicons name="storefront" size={24} color="#EA580C" />
                 </View>
                 <View style={{ flex: 1 }}>
                     <Text style={styles.shopName}>{item.shopName}</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-                        <View style={{
-                            backgroundColor: '#dbeafe',
-                            paddingHorizontal: 10,
-                            paddingVertical: 4,
-                            borderRadius: 8
-                        }}>
-                            <Text style={{
-                                color: '#2196F3',
-                                fontSize: 13,
-                                fontWeight: '700',
-                                letterSpacing: 0.2
-                            }}>
+                    <View style={styles.badgeContainer}>
+                        <View style={styles.badge}>
+                            <Text style={styles.badgeText}>
                                 {item.requestCount} {item.requestCount === 1 ? 'Request' : 'Requests'}
                             </Text>
                         </View>
                     </View>
                 </View>
             </View>
-            <Ionicons name="chevron-forward" size={24} color="#d1d5db" />
+            <Ionicons name="chevron-forward" size={20} color="#CBD5E1" />
         </TouchableOpacity>
     );
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { paddingTop: insets.top }]}>
+            <StatusBar barStyle="dark-content" />
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={24} color="#333" />
+                    <Ionicons name="arrow-back" size={24} color="#0F172A" />
                 </TouchableOpacity>
                 <Text style={styles.title}>Shop Requests</Text>
+                <View style={{ width: 40 }} />
             </View>
 
             <View style={styles.searchContainer}>
-                <Ionicons name="search" size={20} color="#666" style={{ marginRight: 8 }} />
+                <Ionicons name="search" size={20} color="#94A3B8" style={{ marginRight: 8 }} />
                 <TextInput
                     style={styles.searchInput}
                     placeholder="Search Shop..."
+                    placeholderTextColor="#94A3B8"
                     value={search}
                     onChangeText={handleSearch}
                 />
             </View>
 
             {loading ? (
-                <ActivityIndicator size="large" color="#0000ff" style={{ marginTop: 20 }} />
+                <View style={styles.centered}>
+                    <ActivityIndicator size="large" color="#2563EB" />
+                </View>
             ) : (
                 <FlatList
                     data={filteredShops}
                     keyExtractor={item => item.shopId.toString()}
                     renderItem={renderItem}
                     contentContainerStyle={styles.list}
-                    ListEmptyComponent={<Text style={styles.emptyText}>No shops with pending requests.</Text>}
+                    showsVerticalScrollIndicator={false}
+                    ListEmptyComponent={
+                        <View style={styles.centered}>
+                            <Text style={styles.emptyText}>No shops with pending requests.</Text>
+                        </View>
+                    }
                 />
             )}
         </View>
@@ -210,99 +192,112 @@ export default function ShopsListScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8f9fa'
+        backgroundColor: '#F8FAFC',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 24,
-        marginTop: 50,
-        paddingHorizontal: 20
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+        backgroundColor: '#FFFFFF',
     },
     backBtn: {
-        marginRight: 16,
-        padding: 8,
-        borderRadius: 12,
-        backgroundColor: 'white',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        elevation: 2
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#F1F5F9',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     title: {
-        fontSize: 32,
-        fontWeight: '800',
-        color: '#1a1a2e',
-        letterSpacing: -0.5
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#0F172A',
     },
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'white',
+        backgroundColor: '#FFFFFF',
         paddingHorizontal: 16,
-        paddingVertical: 14,
+        paddingVertical: 12,
         borderRadius: 16,
-        marginBottom: 20,
         marginHorizontal: 20,
-        shadowColor: '#000',
+        marginBottom: 20,
+        shadowColor: '#64748B',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        elevation: 3,
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
         borderWidth: 1,
-        borderColor: '#f0f0f0'
+        borderColor: '#E2E8F0'
     },
     searchInput: {
         flex: 1,
-        fontSize: 16,
-        marginLeft: 12,
-        color: '#1a1a2e',
+        fontSize: 15,
+        color: '#0F172A',
         fontWeight: '500'
     },
     list: {
-        paddingBottom: 30,
-        paddingHorizontal: 20
+        padding: 20,
+        paddingTop: 0
     },
     card: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: 'white',
-        padding: 18,
-        borderRadius: 20,
+        backgroundColor: '#FFFFFF',
+        padding: 16,
+        borderRadius: 16,
         marginBottom: 12,
-        shadowColor: '#000',
+        shadowColor: '#64748B',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        elevation: 3,
-        borderWidth: 1,
-        borderColor: '#f0f0f0'
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2
     },
-    cardHeader: {
+    cardContent: {
         flexDirection: 'row',
         alignItems: 'center',
         flex: 1
     },
+    iconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: '#FFEDD5',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 16
+    },
     shopName: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '700',
-        color: '#1a1a2e',
-        letterSpacing: -0.3,
+        color: '#0F172A',
         marginBottom: 4
     },
-    subtitle: {
-        color: '#6b7280',
-        marginTop: 4,
-        fontSize: 14,
-        fontWeight: '500'
+    badgeContainer: {
+        flexDirection: 'row'
+    },
+    badge: {
+        backgroundColor: '#EFF6FF',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8
+    },
+    badgeText: {
+        color: '#2563EB',
+        fontSize: 12,
+        fontWeight: '700'
+    },
+    centered: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingTop: 60
     },
     emptyText: {
-        textAlign: 'center',
-        marginTop: 60,
-        color: '#9ca3af',
-        fontSize: 16,
-        fontWeight: '500'
+        color: '#94A3B8',
+        fontSize: 15
     }
 });

@@ -53,23 +53,17 @@ export default function ShopListScreen() {
     }
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
-            <StatusBar barStyle="light-content" backgroundColor="#2563EB" />
+        <View style={styles.container}>
+            <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
             {/* Header Area */}
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: insets.top }]}>
                 <View style={styles.headerTop}>
                     <TouchableOpacity
                         style={styles.backBtn}
                         onPress={() => router.back()}
                     >
                         <Ionicons name="arrow-back" size={24} color="#fff" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.refreshBtn}
-                        onPress={() => fetchShops()}
-                    >
-                        <Ionicons name="refresh" size={20} color="#fff" />
                     </TouchableOpacity>
                 </View>
 
