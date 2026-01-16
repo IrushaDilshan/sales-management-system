@@ -231,7 +231,6 @@ const Users = () => {
                         { id: 'all', label: 'All Access' },
                         { id: 'admin', label: 'Admins' },
                         { id: 'storekeeper', label: 'Stock' },
-                        { id: 'ma', label: 'MA' },
                         { id: 'rep', label: 'Field' },
                         { id: 'salesman', label: 'Sales' }
                     ].map(chip => (
@@ -416,7 +415,6 @@ const Users = () => {
                                         {[
                                             { id: 'admin', label: 'Admin', icon: '🛡️', desc: 'Full Access' },
                                             { id: 'storekeeper', label: 'Stock', icon: '📦', desc: 'Warehouse' },
-                                            { id: 'ma', label: 'MA', icon: '📝', desc: 'Admin Asst' },
                                             { id: 'rep', label: 'Field', icon: '🚚', desc: 'Routes' },
                                             { id: 'salesman', label: 'Sales', icon: '💰', desc: 'POS System' }
                                         ].map(role => (
