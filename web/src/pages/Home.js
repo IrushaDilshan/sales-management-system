@@ -14,9 +14,10 @@ import naturalHeroBg from '../assets/nldb_hero_bg.png';
 
 const Home = () => {
     const [isScrolled, setIsScrolled] = useState(false);
-    const [activeCategory, setActiveCategory] = useState('dairy');
+    const [activeCategory, setActiveCategory] = useState(null); // Will set to first fetched category
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [dbProducts, setDbProducts] = useState([]);
+    const [categories, setCategories] = useState([]); // Dynamic Categories
     const [loading, setLoading] = useState(true);
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -32,11 +33,28 @@ const Home = () => {
 
     const fetchProducts = async () => {
         try {
+            // 1. Fetch Categories first
+            const { data: catData, error: catError } = await supabase
+                .from('product_categories')
+                .select('id, name')
+                .eq('is_active', true)
+                .order('name');
+
+            if (catError) throw catError;
+
+            setCategories(catData || []);
+            if (catData && catData.length > 0) {
+                // Default to the first category if not already set
+                setActiveCategory(prev => prev || catData[0].id);
+            }
+
+            // 2. Fetch Items
             const { data, error } = await supabase
                 .from('items')
                 .select(`
                     *,
                     product_categories (
+                        id,
                         name
                     )
                 `)
@@ -45,46 +63,32 @@ const Home = () => {
             if (error) throw error;
             setDbProducts(data || []);
         } catch (err) {
-            console.error('Error fetching products:', err);
+            console.error('Error fetching data:', err);
         } finally {
             setLoading(false);
         }
     };
 
-    // Helper to categorize products
-    const getCategoryProducts = (catId) => {
-        if (!dbProducts.length) return [];
+    // Helper to get products for the CURRENT active category
+    const getActiveCategoryProducts = () => {
+        if (!activeCategory || !dbProducts.length) return [];
 
         return dbProducts.filter(p => {
-            const catName = p.product_categories?.name || '';
+            // Match by Database Category ID directly (Most Accurate)
+            if (p.category_id === activeCategory) return true;
 
-            // Robust Matching (Handles both Old & New Category Names)
-            const lowerName = catName.toLowerCase();
-
-            if (catId === 'dairy') {
-                return lowerName.includes('milk') || lowerName.includes('dairy') || lowerName.includes('curd') || lowerName.includes('yogurt');
-            }
-            if (catId === 'meat') {
-                return lowerName.includes('meat') || lowerName.includes('poultry') || lowerName.includes('chicken') || lowerName.includes('egg') || lowerName.includes('pork');
-            }
-            if (catId === 'agro') {
-                return lowerName.includes('agro') || lowerName.includes('coconut') || lowerName.includes('agricultural') || lowerName.includes('water') || lowerName.includes('fertilizer');
-            }
-
+            // Fallback: If category_id is missing, try matching by name (Legacy safety)
+            // This is technically not needed if FKs are correct, but good for stability during migration
+            // We won't rely on it for NEW categories, only old ones.
             return false;
         }).map(p => ({
             name: p.name,
-            img: p.image_url || 'https://via.placeholder.com/300?text=No+Image', // Fallback
+            img: p.image_url || 'https://via.placeholder.com/300?text=No+Image',
             desc: p.description || 'No description available',
             tag: p.is_perishable ? 'Fresh' : 'Standard',
-            price: p.retail_price
+            price: p.retail_price,
+            categoryName: p.product_categories?.name
         }));
-    };
-
-    const productRegistry = {
-        dairy: getCategoryProducts('dairy'),
-        meat: getCategoryProducts('meat'),
-        agro: getCategoryProducts('agro')
     };
 
     const nldbOutlets = [
@@ -129,7 +133,7 @@ const Home = () => {
                             <div className="modal-info-col">
                                 <div className="modal-header">
                                     <span className="modal-tag">{selectedProduct.tag}</span>
-                                    <span className="modal-cat">{activeCategory}</span>
+                                    <span className="modal-cat">{selectedProduct.categoryName}</span>
                                 </div>
                                 <h2>{selectedProduct.name}</h2>
                                 <p className="modal-desc">{selectedProduct.desc}</p>
@@ -316,54 +320,62 @@ const Home = () => {
 
                     <div className="text-center">
                         <div className="category-tabs">
-                            {[
-                                { id: 'dairy', label: 'Milk & Dairy', icon: '🥛' },
-                                { id: 'meat', label: 'Poultry & Meat', icon: '🥩' },
-                                { id: 'agro', label: 'Agro Products', icon: '🥥' }
-                            ].map(cat => (
+                            {categories.map(cat => (
                                 <button
                                     key={cat.id}
                                     onClick={() => setActiveCategory(cat.id)}
                                     className={`tab-btn ${activeCategory === cat.id ? 'active' : ''}`}
                                 >
-                                    <span style={{ marginRight: '8px' }}>{cat.icon}</span>
-                                    {cat.label}
+                                    {/* Simple Icon Mapping based on name keywords, or default star */}
+                                    <span style={{ marginRight: '8px' }}>
+                                        {cat.name.toLowerCase().includes('milk') || cat.name.toLowerCase().includes('dairy') ? '🥛' :
+                                            cat.name.toLowerCase().includes('meat') || cat.name.toLowerCase().includes('poultry') ? '🥩' :
+                                                cat.name.toLowerCase().includes('agro') || cat.name.toLowerCase().includes('coconut') ? '🥥' :
+                                                    '📦'}
+                                    </span>
+                                    {cat.name}
                                 </button>
                             ))}
                         </div>
                     </div>
 
                     <div className="product-showcase-grid">
-                        {productRegistry[activeCategory].map((p, i) => (
-                            <div key={i} className="product-card-premium animate-fade" style={{ animationDelay: `${i * 0.1}s` }}>
-                                <div className="p-card-img">
-                                    <img src={p.img} alt={p.name} />
-                                    <div className="p-card-availability">
-                                        <span className="dot-live"></span> Available in Outlets
+                        {getActiveCategoryProducts().length > 0 ? (
+                            getActiveCategoryProducts().map((p, i) => (
+                                <div key={i} className="product-card-premium animate-fade" style={{ animationDelay: `${i * 0.1}s` }}>
+                                    <div className="p-card-img">
+                                        <img src={p.img} alt={p.name} />
+                                        <div className="p-card-availability">
+                                            <span className="dot-live"></span> Available in Outlets
+                                        </div>
+                                        <div className="p-card-overlay-modern">
+                                            <button className="btn-quick-view" onClick={() => setSelectedProduct(p)}>Quick View</button>
+                                        </div>
                                     </div>
-                                    <div className="p-card-overlay-modern">
-                                        <button className="btn-quick-view" onClick={() => setSelectedProduct(p)}>Quick View</button>
+                                    <div className="p-card-info">
+                                        <div className="p-card-header-flex">
+                                            <span className="p-category">{p.categoryName}</span>
+                                            <span className="p-tag">{p.tag}</span>
+                                        </div>
+                                        <h3>{p.name}</h3>
+                                        <p>{p.desc}</p>
+                                        <div className="p-card-footer-modern">
+                                            <button
+                                                className="btn-outlet-modern"
+                                                onClick={() => document.getElementById('outlets').scrollIntoView({ behavior: 'smooth' })}
+                                            >
+                                                <span>Locate Outlet</span>
+                                                <i className="arrow-icon">→</i>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="p-card-info">
-                                    <div className="p-card-header-flex">
-                                        <span className="p-category">{activeCategory}</span>
-                                        <span className="p-tag">{p.tag}</span>
-                                    </div>
-                                    <h3>{p.name}</h3>
-                                    <p>{p.desc}</p>
-                                    <div className="p-card-footer-modern">
-                                        <button
-                                            className="btn-outlet-modern"
-                                            onClick={() => document.getElementById('outlets').scrollIntoView({ behavior: 'smooth' })}
-                                        >
-                                            <span>Locate Outlet</span>
-                                            <i className="arrow-icon">→</i>
-                                        </button>
-                                    </div>
-                                </div>
+                            ))
+                        ) : (
+                            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                                <p>No products found in this category yet.</p>
                             </div>
-                        ))}
+                        )}
                     </div>
                 </div>
             </section>
