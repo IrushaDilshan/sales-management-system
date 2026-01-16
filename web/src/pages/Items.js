@@ -18,7 +18,8 @@ const Items = () => {
         retail_price: '',
         unit_of_measure: 'piece',
         is_perishable: false,
-        shelf_life_days: ''
+        shelf_life_days: '',
+        image_url: ''
     });
     const [error, setError] = useState(null);
     const [filterCategory, setFilterCategory] = useState('all');
@@ -102,7 +103,8 @@ const Items = () => {
                 retail_price: item.retail_price || '',
                 unit_of_measure: item.unit_of_measure || 'piece',
                 is_perishable: item.is_perishable || false,
-                shelf_life_days: item.shelf_life_days || ''
+                shelf_life_days: item.shelf_life_days || '',
+                image_url: item.image_url || ''
             });
         } else {
             setFormData({
@@ -116,7 +118,8 @@ const Items = () => {
                 retail_price: '',
                 unit_of_measure: 'piece',
                 is_perishable: false,
-                shelf_life_days: ''
+                shelf_life_days: '',
+                image_url: ''
             });
         }
         setIsModalOpen(true);
@@ -136,7 +139,8 @@ const Items = () => {
             retail_price: '',
             unit_of_measure: 'piece',
             is_perishable: false,
-            shelf_life_days: ''
+            shelf_life_days: '',
+            image_url: ''
         });
         setError(null);
     };
@@ -162,7 +166,8 @@ const Items = () => {
                 retail_price: formData.retail_price ? parseFloat(formData.retail_price) : null,
                 unit_of_measure: formData.unit_of_measure,
                 is_perishable: formData.is_perishable,
-                shelf_life_days: formData.shelf_life_days ? parseInt(formData.shelf_life_days) : null
+                shelf_life_days: formData.shelf_life_days ? parseInt(formData.shelf_life_days) : null,
+                image_url: formData.image_url || null
             };
 
             let submitError;
@@ -337,6 +342,13 @@ const Items = () => {
                                 {filteredItems.map((item) => (
                                     <tr key={item.id}>
                                         <td>
+                                            {item.image_url && (
+                                                <img
+                                                    src={item.image_url}
+                                                    alt="Preview"
+                                                    style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', float: 'left', marginRight: '10px' }}
+                                                />
+                                            )}
                                             <div style={{ fontWeight: '700', color: '#1e293b' }}>{item.name}</div>
                                             {item.description && (
                                                 <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -384,102 +396,111 @@ const Items = () => {
                         </table>
                     )}
                 </div>
-            )}
+            )
+            }
 
             {/* Modal */}
-            {isModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-content" style={{ maxWidth: '750px', borderRadius: '24px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                            <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800' }}>
-                                {formData.id ? 'Modify Product Specifications' : 'Initialize New SKU'}
-                            </h2>
-                            <button onClick={handleCloseModal} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8' }}>×</button>
+            {
+                isModalOpen && (
+                    <div className="modal-overlay">
+                        <div className="modal-content" style={{ maxWidth: '750px', borderRadius: '24px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                                <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800' }}>
+                                    {formData.id ? 'Modify Product Specifications' : 'Initialize New SKU'}
+                                </h2>
+                                <button onClick={handleCloseModal} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8' }}>×</button>
+                            </div>
+
+                            {error && <div style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', fontWeight: '600' }}>{error}</div>}
+
+                            <form onSubmit={handleSubmit}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                                    <div className="form-group">
+                                        <label className="form-label">Commercial Product Name *</label>
+                                        <input type="text" className="form-control" name="name" value={formData.name} onChange={handleInputChange} required placeholder="Official NLDB Product Name" />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Classification Category</label>
+                                        <select className="form-control" name="category_id" value={formData.category_id} onChange={handleInputChange}>
+                                            <option value="">Select Category</option>
+                                            {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                                    <label className="form-label">Operational Description</label>
+                                    <textarea className="form-control" name="description" value={formData.description} onChange={handleInputChange} rows="2" placeholder="Brief details for reports..." />
+                                </div>
+
+                                <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                                    <label className="form-label">Product Image URL</label>
+                                    <input type="text" className="form-control" name="image_url" value={formData.image_url} onChange={handleInputChange} placeholder="https://example.com/image.jpg" />
+                                    <small style={{ color: '#64748b' }}>Provide a direct link to the product image.</small>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                                    <div className="form-group">
+                                        <label className="form-label">SKU / Item Code</label>
+                                        <input type="text" className="form-control" name="sku" value={formData.sku} onChange={handleInputChange} placeholder="STOCK-ID" />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">GS1 / Barcode String</label>
+                                        <input type="text" className="form-control" name="barcode" value={formData.barcode} onChange={handleInputChange} placeholder="Universal ID" />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Unit of Measure</label>
+                                        <select className="form-control" name="unit_of_measure" value={formData.unit_of_measure} onChange={handleInputChange}>
+                                            <option value="piece">Piece / Unit</option>
+                                            <option value="kg">Kilogram (kg)</option>
+                                            <option value="liter">Liter (l)</option>
+                                            <option value="dozen">Dozen</option>
+                                            <option value="pack">Commercial Pack</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', marginBottom: '1.5rem', border: '1px solid #e2e8f0' }}>
+                                    <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pricing Architecture</h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                        <div className="form-group">
+                                            <label className="form-label">Ex-Factory / Wholesale Price (Rs.)</label>
+                                            <input type="number" className="form-control" name="wholesale_price" value={formData.wholesale_price} onChange={handleInputChange} step="0.01" min="0" placeholder="0.00" />
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="form-label">MSRP / Retail Price (Rs.)</label>
+                                            <input type="number" className="form-control" name="retail_price" value={formData.retail_price} onChange={handleInputChange} step="0.01" min="0" placeholder="0.00" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem', alignItems: 'center' }}>
+                                    <div className="form-group">
+                                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontWeight: '700', color: formData.is_perishable ? '#f59e0b' : '#64748b' }}>
+                                            <input type="checkbox" name="is_perishable" checked={formData.is_perishable} onChange={handleInputChange} style={{ marginRight: '0.8rem', width: '20px', height: '20px' }} />
+                                            <span>TRACK SHELF LIFE (Perishable)</span>
+                                        </label>
+                                    </div>
+                                    {formData.is_perishable && (
+                                        <div className="form-group">
+                                            <label className="form-label">Standard Shelf Life (Days)</label>
+                                            <input type="number" className="form-control" name="shelf_life_days" value={formData.shelf_life_days} onChange={handleInputChange} min="1" placeholder="Days from production" />
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '1rem' }}>
+                                    <button type="button" className="btn-cancel" style={{ flex: 1 }} onClick={handleCloseModal}>Discard Changes</button>
+                                    <button type="submit" className="btn-primary" style={{ flex: 2 }}>
+                                        {formData.id ? 'Execute SKU Update' : 'Initialize Product Recording'}
+                                    </button>
+                                </div>
+                            </form>
                         </div>
-
-                        {error && <div style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', fontWeight: '600' }}>{error}</div>}
-
-                        <form onSubmit={handleSubmit}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                                <div className="form-group">
-                                    <label className="form-label">Commercial Product Name *</label>
-                                    <input type="text" className="form-control" name="name" value={formData.name} onChange={handleInputChange} required placeholder="Official NLDB Product Name" />
-                                </div>
-                                <div className="form-group">
-                                    <label className="form-label">Classification Category</label>
-                                    <select className="form-control" name="category_id" value={formData.category_id} onChange={handleInputChange}>
-                                        <option value="">Select Category</option>
-                                        {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                                <label className="form-label">Operational Description</label>
-                                <textarea className="form-control" name="description" value={formData.description} onChange={handleInputChange} rows="2" placeholder="Brief details for reports..." />
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                                <div className="form-group">
-                                    <label className="form-label">SKU / Item Code</label>
-                                    <input type="text" className="form-control" name="sku" value={formData.sku} onChange={handleInputChange} placeholder="STOCK-ID" />
-                                </div>
-                                <div className="form-group">
-                                    <label className="form-label">GS1 / Barcode String</label>
-                                    <input type="text" className="form-control" name="barcode" value={formData.barcode} onChange={handleInputChange} placeholder="Universal ID" />
-                                </div>
-                                <div className="form-group">
-                                    <label className="form-label">Unit of Measure</label>
-                                    <select className="form-control" name="unit_of_measure" value={formData.unit_of_measure} onChange={handleInputChange}>
-                                        <option value="piece">Piece / Unit</option>
-                                        <option value="kg">Kilogram (kg)</option>
-                                        <option value="liter">Liter (l)</option>
-                                        <option value="dozen">Dozen</option>
-                                        <option value="pack">Commercial Pack</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', marginBottom: '1.5rem', border: '1px solid #e2e8f0' }}>
-                                <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pricing Architecture</h4>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                                    <div className="form-group">
-                                        <label className="form-label">Ex-Factory / Wholesale Price (Rs.)</label>
-                                        <input type="number" className="form-control" name="wholesale_price" value={formData.wholesale_price} onChange={handleInputChange} step="0.01" min="0" placeholder="0.00" />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">MSRP / Retail Price (Rs.)</label>
-                                        <input type="number" className="form-control" name="retail_price" value={formData.retail_price} onChange={handleInputChange} step="0.01" min="0" placeholder="0.00" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem', alignItems: 'center' }}>
-                                <div className="form-group">
-                                    <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontWeight: '700', color: formData.is_perishable ? '#f59e0b' : '#64748b' }}>
-                                        <input type="checkbox" name="is_perishable" checked={formData.is_perishable} onChange={handleInputChange} style={{ marginRight: '0.8rem', width: '20px', height: '20px' }} />
-                                        <span>TRACK SHELF LIFE (Perishable)</span>
-                                    </label>
-                                </div>
-                                {formData.is_perishable && (
-                                    <div className="form-group">
-                                        <label className="form-label">Standard Shelf Life (Days)</label>
-                                        <input type="number" className="form-control" name="shelf_life_days" value={formData.shelf_life_days} onChange={handleInputChange} min="1" placeholder="Days from production" />
-                                    </div>
-                                )}
-                            </div>
-
-                            <div style={{ display: 'flex', gap: '1rem' }}>
-                                <button type="button" className="btn-cancel" style={{ flex: 1 }} onClick={handleCloseModal}>Discard Changes</button>
-                                <button type="submit" className="btn-primary" style={{ flex: 2 }}>
-                                    {formData.id ? 'Execute SKU Update' : 'Initialize Product Recording'}
-                                </button>
-                            </div>
-                        </form>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };
 

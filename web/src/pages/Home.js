@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { supabase } from '../shared/supabaseClient';
 import './Home.css';
 
 // Premium Visual Assets
@@ -15,6 +16,8 @@ const Home = () => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [activeCategory, setActiveCategory] = useState('dairy');
     const [selectedProduct, setSelectedProduct] = useState(null);
+    const [dbProducts, setDbProducts] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -23,44 +26,54 @@ const Home = () => {
             setIsScrolled(window.scrollY > 50);
         };
         window.addEventListener('scroll', handleScroll);
+        fetchProducts();
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
+    const fetchProducts = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('items')
+                .select(`
+                    *,
+                    product_categories (
+                        name
+                    )
+                `)
+                .order('name');
+
+            if (error) throw error;
+            setDbProducts(data || []);
+        } catch (err) {
+            console.error('Error fetching products:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Helper to categorize products
+    const getCategoryProducts = (catId) => {
+        if (!dbProducts.length) return [];
+
+        return dbProducts.filter(p => {
+            const catName = p.product_categories?.name || '';
+            if (catId === 'dairy') return catName === 'Milk Products';
+            if (catId === 'meat') return catName === 'Meat Products' || catName === 'Eggs';
+            if (catId === 'agro') return catName === 'Coconut Products' || catName === 'Agricultural Products';
+            return false;
+        }).map(p => ({
+            name: p.name,
+            img: p.image_url || 'https://via.placeholder.com/300?text=No+Image', // Fallback
+            desc: p.description || 'No description available',
+            tag: p.is_perishable ? 'Fresh' : 'Standard',
+            price: p.retail_price
+        }));
+    };
+
     const productRegistry = {
-        dairy: [
-            { name: 'Fresh Milk', img: '/nldb_products/fresh_milk.jpg', desc: 'High-quality fresh milk processed under strict hygiene.', tag: 'Pure' },
-            { name: 'Buffalo Curd', img: '/nldb_products/curd.jpg', desc: 'Rich, creamy texture traditional Buffalo curd.', tag: 'Organic' },
-            { name: 'Set Yogurt', img: '/nldb_products/set_yogurt.jpg', desc: 'Premium quality yogurt with high nutritional value.', tag: 'Daily' },
-            { name: 'Pure Ghee', img: '/nldb_products/ghee.jpg', desc: 'Traditionally prepared ghee with a rich aroma.', tag: 'Premium' },
-            { name: 'Drinking Yogurt', img: '/nldb_products/drinking_yogurt.jpg', desc: 'Healthy and refreshing flavored yogurt drinks.', tag: 'Popular' },
-            { name: 'Table Butter', img: '/nldb_products/butter.jpg', desc: 'High-quality dairy butter made from fresh cream.', tag: 'Essential' },
-            { name: 'Vanilla Ice Cream', img: 'https://www.nldb.gov.lk/images/products/vanila%20ice%20creem%20new.jpg', desc: 'Premium vanilla flavored dairy ice cream.', tag: 'Dessert' },
-            { name: 'Chocolate Ice Cream', img: 'https://www.nldb.gov.lk/images/products/chocolate%20ice%20creem%20new.jpg', desc: 'Rich chocolate flavored dairy ice cream.', tag: 'Dessert' },
-            { name: 'Strawberry Ice Cream', img: 'https://www.nldb.gov.lk/images/products/strawberry%20ice%20creem%20new.jpg', desc: 'Fresh strawberry flavored dairy ice cream.', tag: 'Dessert' },
-            { name: 'Fruit & Nut Ice Cream', img: 'https://www.nldb.gov.lk/images/products/fruit%20and%20nut%20ice%20creem%20new.jpg', desc: 'Delicious fruit and nut loaded dairy ice cream.', tag: 'Special' },
-            { name: 'Milk Toffee', img: '/nldb_products/milk_toffee.jpg', desc: 'A popular treat made with farm-fresh NLDB milk.', tag: 'Kids Choice' },
-            { name: 'Goat Milk', img: '/nldb_products/goat_milk.jpg', desc: 'Nutritional alternative to cow milk with health benefits.', tag: 'Healthy' },
-            { name: 'Goat Milk Yogurt', img: 'https://www.nldb.gov.lk/images/products/goat%20milk%20yoghurt%20new.jpg', desc: 'Nutritional goat milk yogurt with probiotic benefits.', tag: 'Healthy' }
-        ],
-        meat: [
-            { name: 'Boiler Chicken', img: '/nldb_products/boiler_chicken.jpg', desc: 'Fresh chicken processed under high quality standards.', tag: 'High Protein' },
-            { name: 'Chicken Family Pack', img: '/nldb_products/chicken_family_pack.jpg', desc: 'Economical family pack of fresh chicken.', tag: 'Family Choice' },
-            { name: 'Curry Pork', img: '/nldb_products/curry_pork.jpg', desc: 'Quality pork cuts suitable for traditional curry.', tag: 'Tasty' },
-            { name: 'Pork Chops', img: '/nldb_products/pork_chops.jpg', desc: 'Premium pork chops sourced from well-managed farms.', tag: 'Premium' },
-            { name: 'Pork Loin', img: '/nldb_products/pork_loin.jpg', desc: 'High-quality pork loin processed with hygiene.', tag: 'Lean' },
-            { name: 'Leg Pork', img: '/nldb_products/leg_pork.jpg', desc: 'Fresh leg pork cuts for standard preparations.', tag: 'Standard' },
-            { name: 'Farm Eggs', img: '/nldb_products/eggs.jpg', desc: 'Fresh farm eggs produced at NLDB poultry centers.', tag: 'Fresh Pick' },
-            { name: 'Mutton', img: '/nldb_products/mutton.jpg', desc: 'Fresh mutton products available from NLDB centers.', tag: 'Gourmet' }
-        ],
-        agro: [
-            { name: 'Coconut Oil', img: '/nldb_products/coconut_oil.jpg', desc: 'Pure edible oil made from high-quality coconuts.', tag: 'Health' },
-            { name: 'Fresh Coconuts', img: '/nldb_products/coconuts.jpg', desc: 'High grade fresh coconuts from NLDB plantations.', tag: 'Fresh' },
-            { name: 'Roasted Cashew', img: '/nldb_products/cashew.jpg', desc: 'Premium roasted and raw cashew nuts (Seasonal).', tag: 'Premium' },
-            { name: 'Coffee', img: '/nldb_products/coffee.jpg', desc: 'Unique Sri Lankan coffee varieties from NLDB estates.', tag: 'Export' },
-            { name: 'Drinking Water', img: '/nldb_products/water_bottle.jpg', desc: 'Purified and refreshing bottled drinking water.', tag: 'Pure' },
-            { name: 'Silage', img: '/nldb_products/silage.jpg', desc: 'High quality silage for dairy farmer livestock feed.', tag: 'Farming' },
-            { name: 'Compost', img: '/nldb_products/compost.jpg', desc: 'Organic compost manufactured at NLDB farms.', tag: 'Organic' }
-        ]
+        dairy: getCategoryProducts('dairy'),
+        meat: getCategoryProducts('meat'),
+        agro: getCategoryProducts('agro')
     };
 
     const nldbOutlets = [
