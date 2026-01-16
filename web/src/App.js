@@ -1,10 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
-import SalesSidebar from './components/SalesSidebar';
 import StoreKeeperSidebar from './components/StoreKeeperSidebar';
 import Dashboard from './pages/Dashboard';
-import SalesDashboard from './pages/SalesDashboard';
 import Users from './pages/Users';
 import Shops from './pages/Shops';
 import Items from './pages/Items';
@@ -43,14 +41,7 @@ function App() {
             </div>
           } />
 
-          <Route path="/sales-dashboard" element={
-            <div className="app-layout">
-              <SalesSidebar />
-              <div className="main-content">
-                <SalesDashboard />
-              </div>
-            </div>
-          } />
+
 
           <Route path="/users" element={
             <div className="app-layout">
@@ -99,7 +90,7 @@ function App() {
 
           <Route path="/stock" element={
             <div className="app-layout">
-              <SalesSidebar />
+              <Sidebar />
               <div className="main-content">
                 <Stock />
               </div>
@@ -108,7 +99,7 @@ function App() {
 
           <Route path="/customers" element={
             <div className="app-layout">
-              <SalesSidebar />
+              <Sidebar />
               <div className="main-content">
                 <Customers />
               </div>
@@ -117,7 +108,7 @@ function App() {
 
           <Route path="/sales" element={
             <div className="app-layout">
-              <SalesSidebar />
+              <Sidebar />
               <div className="main-content">
                 <Sales />
               </div>
@@ -126,7 +117,7 @@ function App() {
 
           <Route path="/sales-history" element={
             <div className="app-layout">
-              <SalesSidebar />
+              <Sidebar />
               <div className="main-content">
                 <SalesHistory />
               </div>
