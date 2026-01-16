@@ -226,6 +226,18 @@ export default function TransferItemsScreen() {
                         keyExtractor={item => item.id.toString()}
                         renderItem={renderItem}
                         contentContainerStyle={styles.list}
+                        ListEmptyComponent={
+                            <View style={styles.emptyState}>
+                                <View style={styles.emptyIconCircle}>
+                                    <Ionicons name="cube-outline" size={48} color="#94A3B8" />
+                                </View>
+                                <Text style={styles.emptyTitle}>No Stock Available</Text>
+                                <Text style={styles.emptyText}>
+                                    You don't have any floating stock to transfer right now.
+                                    Items issued to you will appear here.
+                                </Text>
+                            </View>
+                        }
                     />
 
                     <View style={styles.footer}>
@@ -361,5 +373,31 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 16,
         fontWeight: '700'
+    },
+    emptyState: {
+        alignItems: 'center',
+        paddingVertical: 60,
+        paddingHorizontal: 20
+    },
+    emptyIconCircle: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: '#F1F5F9',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20
+    },
+    emptyTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#0F172A',
+        marginBottom: 8
+    },
+    emptyText: {
+        fontSize: 15,
+        color: '#64748B',
+        textAlign: 'center',
+        lineHeight: 22
     }
 });

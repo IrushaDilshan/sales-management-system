@@ -14,7 +14,9 @@ export default function RepHomeDashboard() {
     const [userName, setUserName] = useState('User');
     const [refreshing, setRefreshing] = useState(false);
     const [pendingRequests, setPendingRequests] = useState(0);
+    const [totalItemsCount, setTotalItemsCount] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [summary, setSummary] = useState<{ name: string; total: number }[]>([]);
 
     useFocusEffect(
         useCallback(() => {
@@ -37,14 +39,72 @@ export default function RepHomeDashboard() {
             const { data: userData } = await supabase.from('users').select('name').eq('id', user.id).single();
             if (userData?.name) setUserName(userData.name);
 
-            // Fetch Pending Request Count
-            const { count, error } = await supabase
-                .from('requests')
-                .select('*', { count: 'exact', head: true })
-                .eq('status', 'pending');
+            // Fetch Pending Request Count (Yesterday's Requests Only)
+            const dateObj = new Date();
+            dateObj.setDate(dateObj.getDate() - 1); // Go back 1 day
+            const yesterday = dateObj.toISOString().split('T')[0];
 
-            if (!error && count !== null) {
-                setPendingRequests(count);
+            const { data: requestsData, error: reqError } = await supabase
+                .from('requests')
+                .select('id')
+                .eq('status', 'pending')
+                .eq('date', yesterday); // Visibility Rule: Only seeing exactly Yesterday's requests
+
+            if (!reqError && requestsData) {
+                setPendingRequests(requestsData.length);
+
+                if (requestsData.length > 0) {
+                    const reqIds = requestsData.map(r => r.id);
+
+                    // Fetch items for aggregation
+                    const { data: itemsData, error: itemsError } = await supabase
+                        .from('request_items')
+                        .select('item_id, qty, delivered_qty')
+                        .in('request_id', reqIds);
+
+                    if (itemsData && !itemsError) {
+                        // Aggregate (Subtract delivered amounts)
+                        const totals: Record<string, number> = {};
+                        let grandTotal = 0;
+                        itemsData.forEach((item: any) => {
+                            const remaining = item.qty - (item.delivered_qty || 0);
+                            if (remaining > 0) {
+                                totals[item.item_id] = (totals[item.item_id] || 0) + remaining;
+                                grandTotal += remaining;
+                            }
+                        });
+                        setTotalItemsCount(grandTotal);
+
+                        // Fetch Item Names
+                        const itemIds = Object.keys(totals);
+
+                        const { data: products, error: productError } = await supabase
+                            .from('items')
+                            .select('id, name')
+                            .in('id', itemIds);
+
+                        if (productError) {
+                            console.error('Error fetching products:', productError);
+                        }
+
+                        const productMap: Record<string, string> = {};
+                        if (products) {
+                            products.forEach((p: any) => {
+                                productMap[p.id] = p.name;
+                            });
+                        }
+
+                        // Format for display
+                        const summaryList = Object.entries(totals).map(([id, qty]) => ({
+                            name: productMap[id] || `Unknown Item (${id})`,
+                            total: qty
+                        })).sort((a, b) => b.total - a.total); // Sort by highest qty
+
+                        setSummary(summaryList);
+                    }
+                } else {
+                    setSummary([]);
+                }
             }
 
         } catch (error) { console.error(error) } finally {
@@ -117,15 +177,30 @@ export default function RepHomeDashboard() {
                         ) : (
                             <>
                                 <View style={[styles.emptyCircle, { backgroundColor: '#FEF2F2' }]}>
-                                    <View style={[styles.badgeCount]}>
-                                        <Text style={styles.badgeCountText}>{pendingRequests}</Text>
+                                    <View style={[styles.badgeCount, { width: 80, height: 80, borderRadius: 40 }]}>
+                                        <Text style={[styles.badgeCountText, { fontSize: 28 }]}>{totalItemsCount}</Text>
                                     </View>
                                 </View>
-                                <Text style={styles.emptyTitle}>New Requests!</Text>
-                                <Text style={styles.emptyText}>
-                                    You have {pendingRequests} pending shop requests.{'\n'}
-                                    Check them out now.
-                                </Text>
+                                <Text style={styles.emptyTitle}>Pending Load</Text>
+                                {summary.length > 0 ? (
+                                    <View style={{ alignItems: 'center', marginTop: 8 }}>
+                                        <Text style={styles.summaryTitle}>Total Items to Load</Text>
+                                        {summary.slice(0, 3).map((item, idx) => (
+                                            <Text key={idx} style={styles.summaryText}>
+                                                {item.name}: <Text style={{ fontWeight: '700', color: '#2563EB' }}>{item.total}</Text>
+                                            </Text>
+                                        ))}
+                                        {summary.length > 3 && (
+                                            <Text style={[styles.summaryText, { fontSize: 12, opacity: 0.7 }]}>
+                                                + {summary.length - 3} more items...
+                                            </Text>
+                                        )}
+                                    </View>
+                                ) : (
+                                    <Text style={styles.emptyText}>
+                                        You have {pendingRequests} pending shop requests ready for preparation.
+                                    </Text>
+                                )}
                             </>
                         )}
                     </View>
@@ -262,6 +337,20 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         lineHeight: 24,
         fontWeight: '500'
+    },
+    summaryTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#0F172A',
+        marginBottom: 6,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5
+    },
+    summaryText: {
+        fontSize: 16,
+        color: '#334155',
+        fontWeight: '500',
+        marginBottom: 4
     }
 });
 
