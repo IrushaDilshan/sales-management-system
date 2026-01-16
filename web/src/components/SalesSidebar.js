@@ -71,14 +71,7 @@ const SalesSidebar = () => {
 
                 <div className="menu-group">
                     {!isCollapsed && <span className="group-label">Inventory</span>}
-                    <Link to="/categories" className={isActive('/categories')}>
-                        <div className="link-icon">📦</div>
-                        {!isCollapsed && <span className="link-text">Categories</span>}
-                    </Link>
-                    <Link to="/items" className={isActive('/items')}>
-                        <div className="link-icon">🏷️</div>
-                        {!isCollapsed && <span className="link-text">Products</span>}
-                    </Link>
+
                     <Link to="/stock" className={isActive('/stock')}>
                         <div className="link-icon">📈</div>
                         {!isCollapsed && <span className="link-text">Live Stock</span>}

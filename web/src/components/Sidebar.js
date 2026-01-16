@@ -69,6 +69,18 @@ const Sidebar = () => {
                 </div>
 
                 <div className="menu-group">
+                    {!isCollapsed && <span className="group-label">Product Catalog</span>}
+                    <Link to="/categories" className={isActive('/categories')}>
+                        <div className="link-icon">📦</div>
+                        {!isCollapsed && <span className="link-text">Categories</span>}
+                    </Link>
+                    <Link to="/items" className={isActive('/items')}>
+                        <div className="link-icon">🏷️</div>
+                        {!isCollapsed && <span className="link-text">Products</span>}
+                    </Link>
+                </div>
+
+                <div className="menu-group">
                     {!isCollapsed && <span className="group-label">Administration</span>}
                     <Link to="/users" className={isActive('/users')}>
                         <div className="link-icon">👥</div>
