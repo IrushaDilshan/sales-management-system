@@ -81,7 +81,7 @@ function App() {
 
           <Route path="/categories" element={
             <div className="app-layout">
-              <SalesSidebar />
+              <Sidebar />
               <div className="main-content">
                 <Categories />
               </div>
@@ -90,7 +90,7 @@ function App() {
 
           <Route path="/items" element={
             <div className="app-layout">
-              <SalesSidebar />
+              <Sidebar />
               <div className="main-content">
                 <Items />
               </div>
