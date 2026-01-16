@@ -78,26 +78,6 @@ const Sidebar = () => {
                         <div className="link-icon">🏷️</div>
                         {!isCollapsed && <span className="link-text">Products</span>}
                     </Link>
-                    <Link to="/stock" className={isActive('/stock')}>
-                        <div className="link-icon">📈</div>
-                        {!isCollapsed && <span className="link-text">Live Stock</span>}
-                    </Link>
-                </div>
-
-                <div className="menu-group">
-                    {!isCollapsed && <span className="group-label">Sales Operations</span>}
-                    <Link to="/customers" className={isActive('/customers')}>
-                        <div className="link-icon">👥</div>
-                        {!isCollapsed && <span className="link-text">Customers</span>}
-                    </Link>
-                    <Link to="/sales" className={isActive('/sales')}>
-                        <div className="link-icon">💵</div>
-                        {!isCollapsed && <span className="link-text">Sales Entry</span>}
-                    </Link>
-                    <Link to="/sales-history" className={isActive('/sales-history')}>
-                        <div className="link-icon">📋</div>
-                        {!isCollapsed && <span className="link-text">History</span>}
-                    </Link>
                 </div>
 
                 <div className="menu-group">
