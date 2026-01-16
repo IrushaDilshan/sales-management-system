@@ -140,8 +140,10 @@ const Home = () => {
 
                                 <div className="modal-specs">
                                     <div className="spec-item">
-                                        <span className="spec-label">Quality</span>
-                                        <span className="spec-val">Export Grade</span>
+                                        <span className="spec-label">Price</span>
+                                        <span className="spec-val" style={{ color: '#059669', fontSize: '1.25rem' }}>
+                                            Rs. {selectedProduct.price ? selectedProduct.price.toFixed(2) : 'N/A'}
+                                        </span>
                                     </div>
                                     <div className="spec-item">
                                         <span className="spec-label">Origin</span>
