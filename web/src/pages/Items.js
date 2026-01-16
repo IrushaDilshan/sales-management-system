@@ -403,103 +403,130 @@ const Items = () => {
             {
                 isModalOpen && (
                     <div className="modal-overlay">
-                        <div className="modal-content" style={{ maxWidth: '750px', borderRadius: '24px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                                <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800' }}>
-                                    {formData.id ? 'Modify Product Specifications' : 'Initialize New SKU'}
+                        <div className="modal-content animate-fade" style={{ maxWidth: '600px', borderRadius: '24px', padding: '2rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>
+                                    {formData.id ? 'Edit Product' : 'Add New Product'}
                                 </h2>
                                 <button onClick={handleCloseModal} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8' }}>×</button>
                             </div>
 
-                            {error && <div style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', fontWeight: '600' }}>{error}</div>}
+                            {error && <div style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', fontWeight: '600', fontSize: '0.9rem' }}>{error}</div>}
 
                             <form onSubmit={handleSubmit}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                                    <div className="form-group">
-                                        <label className="form-label">Commercial Product Name *</label>
-                                        <input type="text" className="form-control" name="name" value={formData.name} onChange={handleInputChange} required placeholder="Official NLDB Product Name" />
+                                {/* Top Section: Image Preview & Essential Info */}
+                                <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                                    {/* Image Upload / URL Area */}
+                                    <div style={{ width: '120px', flexShrink: 0 }}>
+                                        <div style={{
+                                            width: '120px',
+                                            height: '120px',
+                                            borderRadius: '16px',
+                                            overflow: 'hidden',
+                                            background: '#f1f5f9',
+                                            border: '2px dashed #cbd5e1',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            position: 'relative'
+                                        }}>
+                                            {formData.image_url ? (
+                                                <img src={formData.image_url} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => e.target.style.display = 'none'} />
+                                            ) : (
+                                                <span style={{ fontSize: '2rem', color: '#cbd5e1' }}>📷</span>
+                                            )}
+                                        </div>
+                                        <div style={{ marginTop: '0.5rem' }}>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                name="image_url"
+                                                value={formData.image_url}
+                                                onChange={handleInputChange}
+                                                placeholder="Paste Image URL..."
+                                                style={{ fontSize: '0.75rem', padding: '0.4rem' }}
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="form-group">
-                                        <label className="form-label">Classification Category</label>
-                                        <select className="form-control" name="category_id" value={formData.category_id} onChange={handleInputChange}>
-                                            <option value="">Select Category</option>
-                                            {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
-                                        </select>
-                                    </div>
-                                </div>
 
-                                <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                                    <label className="form-label">Operational Description</label>
-                                    <textarea className="form-control" name="description" value={formData.description} onChange={handleInputChange} rows="2" placeholder="Brief details for reports..." />
-                                </div>
-
-                                <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                                    <label className="form-label">Product Image URL</label>
-                                    <input type="text" className="form-control" name="image_url" value={formData.image_url} onChange={handleInputChange} placeholder="https://example.com/image.jpg" />
-                                    <small style={{ color: '#64748b' }}>Provide a direct link to the product image.</small>
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                                    <div className="form-group">
-                                        <label className="form-label">SKU / Item Code</label>
-                                        <input type="text" className="form-control" name="sku" value={formData.sku} onChange={handleInputChange} placeholder="STOCK-ID" />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">GS1 / Barcode String</label>
-                                        <input type="text" className="form-control" name="barcode" value={formData.barcode} onChange={handleInputChange} placeholder="Universal ID" />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">Unit of Measure</label>
-                                        <select className="form-control" name="unit_of_measure" value={formData.unit_of_measure} onChange={handleInputChange}>
-                                            <option value="piece">Piece / Unit</option>
-                                            <option value="kg">Kilogram (kg)</option>
-                                            <option value="liter">Liter (l)</option>
-                                            <option value="dozen">Dozen</option>
-                                            <option value="pack">Commercial Pack</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', marginBottom: '1.5rem', border: '1px solid #e2e8f0' }}>
-                                    <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pricing Architecture</h4>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                    {/* Main Details */}
+                                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                         <div className="form-group">
-                                            <label className="form-label">Ex-Factory / Wholesale Price (Rs.)</label>
+                                            <label className="form-label" style={{ fontSize: '0.85rem' }}>Product Name</label>
+                                            <input type="text" className="form-control" name="name" value={formData.name} onChange={handleInputChange} required placeholder="e.g. Fresh Milk 1L" style={{ fontWeight: '600' }} />
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="form-label" style={{ fontSize: '0.85rem' }}>Category</label>
+                                            <select className="form-control" name="category_id" value={formData.category_id} onChange={handleInputChange} required>
+                                                <option value="">Select Category...</option>
+                                                {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Description (Clean & Simple) */}
+                                <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                                    <label className="form-label" style={{ fontSize: '0.85rem' }}>Short Description</label>
+                                    <textarea className="form-control" name="description" value={formData.description} onChange={handleInputChange} rows="2" placeholder="Brief details about the product..." style={{ fontSize: '0.9rem' }} />
+                                </div>
+
+                                {/* Pricing & Units Grid */}
+                                <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', marginBottom: '1.5rem', border: '1px solid #e2e8f0' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                                        <div className="form-group">
+                                            <label className="form-label" style={{ fontSize: '0.8rem', color: '#64748b' }}>Retail Price (Rs.)</label>
+                                            <input type="number" className="form-control" name="retail_price" value={formData.retail_price} onChange={handleInputChange} step="0.01" min="0" placeholder="0.00" style={{ fontSize: '1.1rem', fontWeight: '700', color: '#6366f1' }} />
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="form-label" style={{ fontSize: '0.8rem', color: '#64748b' }}>Wholesale Price (Rs.)</label>
                                             <input type="number" className="form-control" name="wholesale_price" value={formData.wholesale_price} onChange={handleInputChange} step="0.01" min="0" placeholder="0.00" />
                                         </div>
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                         <div className="form-group">
-                                            <label className="form-label">MSRP / Retail Price (Rs.)</label>
-                                            <input type="number" className="form-control" name="retail_price" value={formData.retail_price} onChange={handleInputChange} step="0.01" min="0" placeholder="0.00" />
+                                            <label className="form-label" style={{ fontSize: '0.8rem', color: '#64748b' }}>Unit</label>
+                                            <select className="form-control" name="unit_of_measure" value={formData.unit_of_measure} onChange={handleInputChange}>
+                                                <option value="piece">Piece</option>
+                                                <option value="kg">Kg</option>
+                                                <option value="liter">Liter</option>
+                                                <option value="pack">Pack</option>
+                                            </select>
+                                        </div>
+                                        <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end' }}>
+                                            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '0.85rem', color: '#475569', paddingBottom: '0.5rem' }}>
+                                                <input type="checkbox" name="is_perishable" checked={formData.is_perishable} onChange={handleInputChange} style={{ marginRight: '0.5rem', width: '16px', height: '16px' }} />
+                                                Perishable Item?
+                                            </label>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem', alignItems: 'center' }}>
-                                    <div className="form-group">
-                                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontWeight: '700', color: formData.is_perishable ? '#f59e0b' : '#64748b' }}>
-                                            <input type="checkbox" name="is_perishable" checked={formData.is_perishable} onChange={handleInputChange} style={{ marginRight: '0.8rem', width: '20px', height: '20px' }} />
-                                            <span>TRACK SHELF LIFE (Perishable)</span>
-                                        </label>
-                                    </div>
-                                    {formData.is_perishable && (
+                                {/* Collapsible/Hidden Advanced Fields (SKU/Barcode) - keeping them reachable but hidden by default concept, or just simplified side-by-side at bottom if essential */}
+                                <details style={{ marginBottom: '1.5rem', fontSize: '0.85rem', color: '#64748b' }}>
+                                    <summary style={{ cursor: 'pointer', padding: '0.5rem 0' }}>Advanced Options (SKU, IDs)</summary>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.5rem', padding: '1rem', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
                                         <div className="form-group">
-                                            <label className="form-label">Standard Shelf Life (Days)</label>
-                                            <input type="number" className="form-control" name="shelf_life_days" value={formData.shelf_life_days} onChange={handleInputChange} min="1" placeholder="Days from production" />
+                                            <label className="form-label">SKU Code</label>
+                                            <input type="text" className="form-control" name="sku" value={formData.sku} onChange={handleInputChange} placeholder="Auto-generated if empty" />
                                         </div>
-                                    )}
-                                </div>
+                                        <div className="form-group">
+                                            <label className="form-label">Barcode</label>
+                                            <input type="text" className="form-control" name="barcode" value={formData.barcode} onChange={handleInputChange} placeholder="Scan Barcode" />
+                                        </div>
+                                    </div>
+                                </details>
 
                                 <div style={{ display: 'flex', gap: '1rem' }}>
-                                    <button type="button" className="btn-cancel" style={{ flex: 1 }} onClick={handleCloseModal}>Discard Changes</button>
-                                    <button type="submit" className="btn-primary" style={{ flex: 2 }}>
-                                        {formData.id ? 'Execute SKU Update' : 'Initialize Product Recording'}
+                                    <button type="button" className="btn-cancel" style={{ flex: 1, padding: '0.8rem' }} onClick={handleCloseModal}>Cancel</button>
+                                    <button type="submit" className="btn-primary" style={{ flex: 2, padding: '0.8rem', fontSize: '1rem' }}>
+                                        {formData.id ? 'Save Changes' : 'Create Product'}
                                     </button>
                                 </div>
                             </form>
                         </div>
                     </div>
-                )
-            }
+                )}
         </div >
     );
 };
