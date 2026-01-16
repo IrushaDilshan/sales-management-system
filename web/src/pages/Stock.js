@@ -91,32 +91,31 @@ const Stock = () => {
         }
     };
 
+    // Debug
+    const [debugInfo, setDebugInfo] = useState('');
+
     const fetchData = async () => {
         try {
             setLoading(true);
+            setDebugInfo('Fetching...');
 
+            // Simplified Query: Remove complex aliasing for now to ensure data flows
             const { data: stockData, error: stockError } = await supabase
                 .from('stock')
                 .select(`
                     *,
-                    items (
-                        id,
-                        name,
-                        category_id,
-                        unit_of_measure,
-                        is_perishable,
-                        product_categories (
-                            name
-                        )
-                    ),
-                    shops:outlet_id (
-                        id,
-                        name
-                    )
-                `)
-                .order('last_updated', { ascending: false });
+                    items ( id, name, category_id, unit_of_measure, is_perishable, product_categories(name) ),
+                    shops ( id, name )
+                `);
 
-            if (stockError) throw stockError;
+            if (stockError) {
+                console.error('Fetch Error:', stockError);
+                setDebugInfo('Error: ' + stockError.message);
+                throw stockError;
+            }
+
+            console.log('Stock Data Loaded:', stockData);
+            setDebugInfo(`Success! Loaded ${stockData?.length || 0} rows.`);
             setStocks(stockData || []);
 
         } catch (err) {
@@ -128,9 +127,10 @@ const Stock = () => {
     };
 
     const calculateStats = () => {
+        if (!stocks) return;
         const stats = {
-            totalItems: stocks.reduce((sum, s) => sum + (parseInt(s.quantity) || 0), 0),
-            lowStockItems: stocks.filter(s => isLowStock(s.quantity, s.minimum_stock_level)).length,
+            totalItems: stocks.reduce((sum, s) => sum + (parseInt(s.quantity || s.qty) || 0), 0),
+            lowStockItems: stocks.filter(s => isLowStock(s.quantity || s.qty, s.minimum_stock_level)).length,
             expiringSoon: stocks.filter(s => isExpiringSoon(s.expiry_date)).length,
             totalLocations: new Set(stocks.map(s => s.outlet_id).filter(Boolean)).size
         };
@@ -587,6 +587,11 @@ const Stock = () => {
                     )}
                 </div>
             )}
+
+            {/* Debug Footer */}
+            <div style={{ marginTop: '2rem', padding: '1rem', background: '#f1f5f9', borderRadius: '8px', fontSize: '0.8rem', color: '#64748b' }}>
+                <strong>System diagnostics:</strong> {debugInfo} {stocks.length === 0 && ' (Check RLS policies if 0)'}
+            </div>
 
             {/* Modal Handling */}
             {isModalOpen && (
