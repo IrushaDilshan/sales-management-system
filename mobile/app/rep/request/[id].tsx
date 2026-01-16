@@ -230,7 +230,7 @@ export default function ShopRequestDetails() {
                 const createItem = () => ({
                     id: `${dateKey}-${itemId}`,
                     itemId: itemId,
-                    itemName: itemsMap.get(itemId) || 'Unknown Item',
+                    itemName: itemsMap.get(itemId) || 'Item Unavailable',
                     qty: 0,
                     deliveredQty: 0,
                     pendingQty: 0,

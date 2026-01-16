@@ -67,10 +67,11 @@ export default function SubmitSaleScreen() {
             // Fetch Stock for this shop
             let stockMapping: Record<string, number> = {};
             try {
-                // Try modern schema first (qty, outlet_id)
+                // Try modern schema first (quantity, outlet_id)
+                // UPDATE: Changed 'qty' to 'quantity' based on schema check
                 const { data: stockData, error: stockError } = await supabase
                     .from('stock')
-                    .select('item_id, qty')
+                    .select('item_id, quantity')
                     .eq('outlet_id', myShopId);
 
                 if (stockError) {
@@ -84,7 +85,7 @@ export default function SubmitSaleScreen() {
                     }
                 } else {
                     stockData?.forEach((s: any) => {
-                        stockMapping[s.item_id] = s.qty;
+                        stockMapping[s.item_id] = s.quantity;
                     });
                 }
             } catch (err: any) {

@@ -72,11 +72,12 @@ export default function StockTransferScreen() {
             let stockData, stockError;
 
             try {
+                // FIXED: Changed 'qty' to 'quantity'
                 const res = await supabase
                     .from('stock')
-                    .select('item_id, qty')
+                    .select('item_id, quantity')
                     .eq('outlet_id', myShopId)
-                    .gt('qty', 0);
+                    .gt('quantity', 0);
                 stockData = res.data;
                 stockError = res.error;
             } catch (e) { }
@@ -101,7 +102,7 @@ export default function StockTransferScreen() {
                         id: s.item_id,
                         name: itemDetail?.name || 'Unknown Item',
                         unit: itemDetail?.unit_of_measure || 'units',
-                        max_qty: s.qty
+                        max_qty: s.quantity // FIXED: Changed 'qty' to 'quantity'
                     };
                 }).filter((i: any) => i.name !== 'Unknown Item')
                     .sort((a: any, b: any) => a.name.localeCompare(b.name));

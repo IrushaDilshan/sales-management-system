@@ -52,9 +52,10 @@ export default function SalesmanInventoryScreen() {
             let stockData, stockError;
 
             try {
+                // FIXED: Changed 'qty' to 'quantity'
                 const res = await supabase
                     .from('stock')
-                    .select('item_id, qty')
+                    .select('item_id, quantity')
                     .eq('outlet_id', myShopId);
                 stockData = res.data;
                 stockError = res.error;
@@ -75,14 +76,16 @@ export default function SalesmanInventoryScreen() {
                     const itemDetail = itemsData?.find((i: any) => i.id === s.item_id);
                     if (!itemDetail) return null;
 
+                    const qty = s.quantity; // FIXED: Changed 'qty' to 'quantity'
+
                     return {
                         id: s.item_id,
                         name: itemDetail.name,
                         unit: itemDetail.unit_of_measure || 'units',
                         price: itemDetail.retail_price,
                         sku: itemDetail.sku || '-',
-                        qty: s.qty,
-                        status: s.qty > 10 ? 'In Stock' : (s.qty > 0 ? 'Low Stock' : 'Out of Stock')
+                        qty: qty,
+                        status: qty > 10 ? 'In Stock' : (qty > 0 ? 'Low Stock' : 'Out of Stock')
                     };
                 }).filter(Boolean)
                     .sort((a: any, b: any) => a.name.localeCompare(b.name));

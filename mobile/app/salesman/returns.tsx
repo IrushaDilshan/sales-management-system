@@ -55,11 +55,12 @@ export default function StockReturnScreen() {
             const stockMapping: Record<string, number> = {};
 
             try {
+                // FIXED: Changed 'qty' to 'quantity'
                 const { data: stockData, error: stockError } = await supabase
                     .from('stock')
-                    .select('item_id, qty')
+                    .select('item_id, quantity')
                     .eq('outlet_id', myShopId)
-                    .gt('qty', 0);
+                    .gt('quantity', 0);
 
                 if (stockError) {
                     if (stockError.message?.includes('outlet_id')) {
@@ -73,7 +74,7 @@ export default function StockReturnScreen() {
                 if (stockData) {
                     stockData.forEach((s: any) => {
                         availableItemIds.push(s.item_id);
-                        stockMapping[s.item_id] = s.qty;
+                        stockMapping[s.item_id] = s.quantity; // FIXED: Changed 'qty' to 'quantity'
                     });
                 }
             } catch (e) {

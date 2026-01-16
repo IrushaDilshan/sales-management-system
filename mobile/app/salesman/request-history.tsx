@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import {
     View,
@@ -168,7 +169,7 @@ export default function RequestHistoryScreen() {
                 const itemMap = new Map(items?.map(i => [i.id, i.name]));
 
                 itemDetails = (requestItems || []).map(ri => ({
-                    name: itemMap.get(ri.item_id) || 'Unknown Item',
+                    name: itemMap.get(ri.item_id) || 'Item Unavailable',
                     qty: ri.qty,
                     subtext: 'Requested'
                 }));
@@ -182,7 +183,7 @@ export default function RequestHistoryScreen() {
                 const itemMap = new Map(items?.map(i => [i.id, i.name]));
 
                 itemDetails = movements.map(m => ({
-                    name: itemMap.get(m.product_id) || 'Unknown Item',
+                    name: itemMap.get(m.product_id) || 'Item Unavailable',
                     qty: m.quantity,
                     subtext: item.subType === 'rep_transfer' ? 'Received' : 'Returned'
                 }));
@@ -576,4 +577,3 @@ const styles = StyleSheet.create({
         fontSize: 14
     }
 });
-

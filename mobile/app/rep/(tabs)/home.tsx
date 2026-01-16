@@ -96,7 +96,7 @@ export default function RepHomeDashboard() {
 
                         // Format for display
                         const summaryList = Object.entries(totals).map(([id, qty]) => ({
-                            name: productMap[id] || `Unknown Item (${id})`,
+                            name: productMap[id] || 'Item Unavailable',
                             total: qty
                         })).sort((a, b) => b.total - a.total); // Sort by highest qty
 
@@ -353,4 +353,3 @@ const styles = StyleSheet.create({
         marginBottom: 4
     }
 });
-
