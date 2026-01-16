@@ -55,7 +55,7 @@ const StoreKeeperDashboard = () => {
 
     return (
         <div className="page-container storekeeper-dashboard-page">
-            <div className="page-header" style={{ marginBottom: '3rem' }}>
+            <div className="page-header">
                 <div>
                     <h1 className="page-title">Inventory Command Center</h1>
                     <p className="page-subtitle">National Livestock Development Board - Central Logistics & Storage</p>

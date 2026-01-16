@@ -1,6 +1,45 @@
+/* Modern Page Container - Dark Premium Theme */
+:root {
+    --bg-app: #0f172a;
+    --card-bg: rgba(30, 41, 59, 0.65);
+    --card-border: 1px solid rgba(255, 255, 255, 0.08);
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+
+    --col-primary: #f59e0b;
+    /* Gold */
+    --col-secondary: #38bdf8;
+    /* Sky Blue */
+    --col-success: #34d399;
+    --col-danger: #f87171;
+    --col-purple: #a78bfa;
+
+    --grad-gold: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+    --grad-blue: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+    --grad-card: linear-gradient(to bottom right, rgba(255, 255, 255, 0.05), transparent);
+
+    --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    --shadow-glow: 0 0 15px rgba(251, 191, 36, 0.15);
+
+    --radius-lg: 20px;
+    --radius-md: 12px;
+}
+
+.storekeeper-dashboard-page {
+    /* Ensure the implicit page container in StoreKeeperDashboard uses these */
+    background-color: var(--bg-app);
+    background-image:
+        radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.08), transparent 25%),
+        radial-gradient(circle at 85% 30%, rgba(251, 191, 36, 0.08), transparent 25%);
+    /* Use min-height to cover screen */
+    min-height: 100vh;
+    color: var(--text-primary);
+}
+
 .storekeeper-container {
     min-height: 100vh;
-    background: #f5f7fa;
+    background: var(--bg-app);
+    color: var(--text-primary);
 }
 
 /* Layout */
@@ -12,10 +51,12 @@
 .storekeeper-content {
     flex: 1;
     margin-left: 280px;
-    padding: 2.5rem;
-    background: #f5f7fa;
-    min-height: 100vh;
+    padding: 0;
+    background: var(--bg-app);
+    height: 100vh;
+    overflow: hidden;
     transition: margin-left 0.3s ease;
+    color: var(--text-primary);
 }
 
 /* When sidebar is collapsed */
@@ -28,7 +69,16 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 2.5rem;
+    /* Fixed header bleed */
+    margin: -2.5rem -2.5rem 1.5rem -2.5rem;
+    padding: 2.5rem 2.5rem 1.5rem 2.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(15, 23, 42, 0.95);
+    /* Little more opaque */
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .page-title {
@@ -43,17 +93,22 @@
 
 .page-subtitle {
     font-size: 1rem;
-    color: #6b7280;
+    color: #94a3b8;
+    /* text-secondary */
     margin: 0;
 }
 
 .header-date {
-    background: white;
+    background: rgba(30, 41, 59, 0.65);
+    /* card-bg */
     padding: 1rem 1.5rem;
     border-radius: 12px;
     font-size: 0.95rem;
-    color: #6b7280;
+    color: #94a3b8;
+    /* text-secondary */
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    /* card-border */
 }
 
 /* Loading */
@@ -67,7 +122,7 @@
 }
 
 .loading-container p {
-    color: #6b7280;
+    color: #94a3b8;
     font-size: 1.1rem;
 }
 
@@ -75,7 +130,8 @@
 .section-title {
     font-size: 1.5rem;
     font-weight: 700;
-    color: #1f2937;
+    color: #f8fafc;
+    /* text-primary */
     margin: 0 0 1.5rem 0;
 }
 
@@ -93,7 +149,8 @@
 }
 
 .storekeeper-dashboard-page .stat-card {
-    background: white;
+    background: var(--card-bg);
+    /* card-bg */
     padding: 1.75rem;
     border-radius: 16px;
     display: flex;
@@ -105,6 +162,7 @@
     cursor: pointer;
     position: relative;
     overflow: hidden;
+    border: var(--card-border);
 }
 
 .storekeeper-dashboard-page .stat-card::before {
@@ -140,7 +198,8 @@
 .storekeeper-dashboard-page .stat-value {
     font-size: 2.5rem;
     font-weight: 800;
-    color: #1f2937;
+    color: #f8fafc;
+    /* text-primary */
     line-height: 1;
     margin-bottom: 0.5rem;
 }
@@ -148,13 +207,14 @@
 .storekeeper-dashboard-page .stat-title {
     font-size: 1rem;
     font-weight: 600;
-    color: #6b7280;
+    color: #94a3b8;
+    /* text-secondary */
     margin-bottom: 0.25rem;
 }
 
 .storekeeper-dashboard-page .stat-subtitle {
     font-size: 0.85rem;
-    color: #9ca3af;
+    color: #64748b;
 }
 
 /* Quick Actions */
@@ -165,7 +225,7 @@
 }
 
 .storekeeper-dashboard-page .quick-action-card {
-    background: white;
+    background: var(--card-bg);
     padding: 1.75rem;
     border-radius: 16px;
     display: flex;
@@ -175,6 +235,7 @@
     transition: all 0.3s ease;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     cursor: pointer;
+    border: var(--card-border);
 }
 
 .storekeeper-dashboard-page .quick-action-card:hover {
@@ -200,13 +261,13 @@
 .storekeeper-dashboard-page .action-content h3 {
     font-size: 1.1rem;
     font-weight: 700;
-    color: #1f2937;
+    color: #f8fafc;
     margin: 0 0 0.5rem 0;
 }
 
 .storekeeper-dashboard-page .action-content p {
     font-size: 0.9rem;
-    color: #6b7280;
+    color: #94a3b8;
     margin: 0;
 }
 
@@ -214,6 +275,7 @@
     font-size: 1.5rem;
     font-weight: 700;
     transition: transform 0.3s ease;
+    color: #f8fafc;
 }
 
 .storekeeper-dashboard-page .quick-action-card:hover .action-arrow {
@@ -228,7 +290,7 @@
 }
 
 .storekeeper-dashboard-page .alert-card {
-    background: white;
+    background: var(--card-bg);
     padding: 1.5rem;
     border-radius: 16px;
     display: flex;
@@ -236,6 +298,9 @@
     gap: 1rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     border-left: 4px solid;
+    border: var(--card-border);
+    border-left-width: 4px;
+    /* Ensure overwrite */
 }
 
 .storekeeper-dashboard-page .alert-card.urgent {
@@ -272,13 +337,13 @@
 .alert-content h3 {
     font-size: 1rem;
     font-weight: 700;
-    color: #1f2937;
+    color: #f8fafc;
     margin: 0 0 0.25rem 0;
 }
 
 .alert-content p {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: #94a3b8;
     margin: 0;
 }
 
@@ -358,6 +423,101 @@
     animation-delay: 0.3s;
 }
 
-.stat-card:nth-child(4) {
-    animation-delay: 0.4s;
+
+/* Modal Overrides for Dark Theme */
+.storekeeper-dashboard-page .modal-overlay {
+    backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10000;
+    /* Ensure on top */
+}
+
+.storekeeper-dashboard-page .modal-content {
+    background: #1e293b !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    color: #f8fafc !important;
+}
+
+.storekeeper-dashboard-page .modal-header h2 {
+    color: #f8fafc;
+}
+
+.storekeeper-dashboard-page .modal-content label {
+    color: #94a3b8;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+}
+
+.storekeeper-dashboard-page .form-input,
+.storekeeper-dashboard-page .form-select,
+.storekeeper-dashboard-page textarea {
+    background: rgba(15, 23, 42, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+    border-radius: 8px;
+}
+
+.storekeeper-dashboard-page .form-input:focus,
+.storekeeper-dashboard-page .form-select:focus,
+.storekeeper-dashboard-page textarea:focus {
+    border-color: #3b82f6 !important;
+    background: rgba(15, 23, 42, 0.8) !important;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.storekeeper-dashboard-page .btn-cancel {
+    background: transparent;
+    color: #f87171;
+    border: 1px solid rgba(248, 113, 113, 0.2);
+}
+
+.storekeeper-dashboard-page .btn-cancel:hover {
+    background: rgba(248, 113, 113, 0.1);
+    color: #f87171;
+}
+
+.storekeeper-dashboard-page .close-btn {
+    color: #94a3b8;
+}
+
+.storekeeper-dashboard-page .close-btn:hover {
+    color: white;
+}
+
+/* History Table in Modal */
+.storekeeper-dashboard-page .modal-content table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 0.5rem;
+}
+
+.storekeeper-dashboard-page .modal-content th {
+    background: transparent;
+    color: #64748b;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.storekeeper-dashboard-page .modal-content td {
+    background: rgba(255, 255, 255, 0.02);
+    color: #f8fafc;
+    border: none;
+    padding: 1rem;
+}
+
+.storekeeper-dashboard-page .modal-content tr {
+    transition: transform 0.2s;
+}
+
+/* Fix for select dropdown options usually being white in some browsers */
+.storekeeper-dashboard-page option {
+    background: #1e293b;
+    color: white;
 }

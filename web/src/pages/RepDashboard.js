@@ -115,80 +115,84 @@ const RepDashboard = () => {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
-                <StatCard icon="📥" label="Pending Shop Requests" value={stats.totalRequests} color="#6366f1" />
-                <StatCard icon="🏪" label="Managed Outlets" value={stats.assignedShops} color="#10b981" />
-                <StatCard icon="✅" label="Fulfilled (Today)" value={stats.fulfilledToday} color="#06b6d4" />
-                <div onClick={() => window.location.href = '/rep/stock'} style={{ background: '#1e293b', padding: '1.5rem', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '1.25rem', cursor: 'pointer', transition: '0.2s' }}>
-                    <div style={{ fontSize: '2rem', background: 'rgba(255,255,255,0.1)', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px' }}>📦</div>
-                    <div>
-                        <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Vehicle Stock</div>
-                        <div style={{ fontSize: '1rem', fontWeight: '800', color: 'white' }}>Manage Inventory →</div>
+            {/* Stat Cards */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
+                    <StatCard icon="📥" label="Pending Shop Requests" value={stats.totalRequests} color="#6366f1" />
+                    <StatCard icon="🏪" label="Managed Outlets" value={stats.assignedShops} color="#10b981" />
+                    <StatCard icon="✅" label="Fulfilled (Today)" value={stats.fulfilledToday} color="#06b6d4" />
+                    <div onClick={() => window.location.href = '/rep/stock'} style={{ background: '#1e293b', padding: '1.5rem', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '1.25rem', cursor: 'pointer', transition: '0.2s' }}>
+                        <div style={{ fontSize: '2rem', background: 'rgba(255,255,255,0.1)', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px' }}>📦</div>
+                        <div>
+                            <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Vehicle Stock</div>
+                            <div style={{ fontSize: '1rem', fontWeight: '800', color: 'white' }}>Manage Inventory →</div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {error && <div style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', border: '1px solid #fee2e2' }}>⚠️ {error}</div>}
+                {error && <div style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', border: '1px solid #fee2e2' }}>⚠️ {error}</div>}
 
-            <div className="modern-table-container" style={{ padding: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                    <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '900' }}>Live Fulfillment Summary</h2>
-                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Consolidated requirement across all managed routes</div>
+                <div className="modern-table-container" style={{ padding: '2rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                        <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '900' }}>Live Fulfillment Summary</h2>
+                        <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Consolidated requirement across all managed routes</div>
+                    </div>
+
+                    {loading ? (
+                        <div style={{ textAlign: 'center', padding: '5rem' }}>
+                            <div className="loading-spinner" style={{ margin: '0 auto', borderTopColor: '#6366f1' }}></div>
+                            <p style={{ marginTop: '1rem', color: '#64748b' }}>Recalculating field requirements...</p>
+                        </div>
+                    ) : pendingItems.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '5rem' }}>
+                            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏆</div>
+                            <h3 style={{ color: '#1e293b' }}>Grid Sector Clear</h3>
+                            <p style={{ color: '#64748b' }}>All distribution requests in your sector have been satisfied.</p>
+                        </div>
+                    ) : (
+                        <table className="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Biological / Product SKU</th>
+                                    <th style={{ textAlign: 'center' }}>Aggregate Requirement</th>
+                                    <th style={{ textAlign: 'center' }}>Vehicle Stock On-Hand</th>
+                                    <th style={{ textAlign: 'center' }}>Deployment Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {pendingItems.map(item => {
+                                    const hasEnough = item.availableStock >= item.totalPendingQty;
+                                    return (
+                                        <tr key={item.itemId}>
+                                            <td><strong style={{ fontSize: '1.05rem', color: '#1e293b' }}>{item.itemName}</strong></td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <span style={{ padding: '6px 14px', borderRadius: '8px', background: '#fff1f2', color: '#e11d48', fontWeight: '800', fontSize: '1.1rem' }}>{item.totalPendingQty}</span>
+                                            </td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <span style={{ padding: '6px 14px', borderRadius: '8px', background: hasEnough ? '#f0fdf4' : '#fffbeb', color: hasEnough ? '#166534' : '#d97706', fontWeight: '800', fontSize: '1.1rem' }}>{item.availableStock}</span>
+                                            </td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <span style={{
+                                                    padding: '6px 12px',
+                                                    borderRadius: '20px',
+                                                    fontSize: '0.7rem',
+                                                    fontWeight: '900',
+                                                    textTransform: 'uppercase',
+                                                    background: hasEnough ? '#10b981' : '#f59e0b',
+                                                    color: 'white',
+                                                    boxShadow: `0 4px 10px ${hasEnough ? '#10b98140' : '#f59e0b40'}`
+                                                }}>{hasEnough ? 'READY FOR DEPLOY' : 'STOCK DEFICIT'}</span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
-
-                {loading ? (
-                    <div style={{ textAlign: 'center', padding: '5rem' }}>
-                        <div className="loading-spinner" style={{ margin: '0 auto', borderTopColor: '#6366f1' }}></div>
-                        <p style={{ marginTop: '1rem', color: '#64748b' }}>Recalculating field requirements...</p>
-                    </div>
-                ) : pendingItems.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '5rem' }}>
-                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏆</div>
-                        <h3 style={{ color: '#1e293b' }}>Grid Sector Clear</h3>
-                        <p style={{ color: '#64748b' }}>All distribution requests in your sector have been satisfied.</p>
-                    </div>
-                ) : (
-                    <table className="modern-table">
-                        <thead>
-                            <tr>
-                                <th>Biological / Product SKU</th>
-                                <th style={{ textAlign: 'center' }}>Aggregate Requirement</th>
-                                <th style={{ textAlign: 'center' }}>Vehicle Stock On-Hand</th>
-                                <th style={{ textAlign: 'center' }}>Deployment Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {pendingItems.map(item => {
-                                const hasEnough = item.availableStock >= item.totalPendingQty;
-                                return (
-                                    <tr key={item.itemId}>
-                                        <td><strong style={{ fontSize: '1.05rem', color: '#1e293b' }}>{item.itemName}</strong></td>
-                                        <td style={{ textAlign: 'center' }}>
-                                            <span style={{ padding: '6px 14px', borderRadius: '8px', background: '#fff1f2', color: '#e11d48', fontWeight: '800', fontSize: '1.1rem' }}>{item.totalPendingQty}</span>
-                                        </td>
-                                        <td style={{ textAlign: 'center' }}>
-                                            <span style={{ padding: '6px 14px', borderRadius: '8px', background: hasEnough ? '#f0fdf4' : '#fffbeb', color: hasEnough ? '#166534' : '#d97706', fontWeight: '800', fontSize: '1.1rem' }}>{item.availableStock}</span>
-                                        </td>
-                                        <td style={{ textAlign: 'center' }}>
-                                            <span style={{
-                                                padding: '6px 12px',
-                                                borderRadius: '20px',
-                                                fontSize: '0.7rem',
-                                                fontWeight: '900',
-                                                textTransform: 'uppercase',
-                                                background: hasEnough ? '#10b981' : '#f59e0b',
-                                                color: 'white',
-                                                boxShadow: `0 4px 10px ${hasEnough ? '#10b98140' : '#f59e0b40'}`
-                                            }}>{hasEnough ? 'READY FOR DEPLOY' : 'STOCK DEFICIT'}</span>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                )}
             </div>
         </div>
+        </div >
     );
 };
 

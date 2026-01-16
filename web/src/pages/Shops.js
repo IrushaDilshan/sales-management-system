@@ -215,86 +215,88 @@ const Shops = () => {
                 </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
-                <StatCard icon="🏪" label="Operational Outlets" value={stats.total} color="#6366f1" />
-                <StatCard icon="🛣️" label="Active Routes" value={stats.routes} color="#10b981" />
-                <StatCard icon="🚶" label="Staffed Coverage" value={stats.covered} color="#06b6d4" />
-                <StatCard icon="❓" label="Route Unassigned" value={stats.unassigned} color="#f43f5e" />
-            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+                    <StatCard icon="🏪" label="Operational Outlets" value={stats.total} color="#6366f1" />
+                    <StatCard icon="🛣️" label="Active Routes" value={stats.routes} color="#10b981" />
+                    <StatCard icon="🚶" label="Staffed Coverage" value={stats.covered} color="#06b6d4" />
+                    <StatCard icon="❓" label="Route Unassigned" value={stats.unassigned} color="#f43f5e" />
+                </div>
 
-            <div className="registry-filter-hub" style={{ marginBottom: '2rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                <div style={{ flex: '1', minWidth: '300px' }}>
-                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Network Search</label>
-                    <input type="text" className="form-control" placeholder="Identify by shop name, route, or assigned staff..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                <div className="registry-filter-hub" style={{ marginBottom: '2rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                    <div style={{ flex: '1', minWidth: '300px' }}>
+                        <label className="form-label" style={{ fontSize: '0.8rem' }}>Network Search</label>
+                        <input type="text" className="form-control" placeholder="Identify by shop name, route, or assigned staff..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                    </div>
+                    <div style={{ width: '250px' }}>
+                        <label className="form-label" style={{ fontSize: '0.8rem' }}>Deployment Route</label>
+                        <select className="form-control" value={selectedRoute} onChange={(e) => setSelectedRoute(e.target.value)}>
+                            <option value="all">Every Route</option>
+                            {routes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                        </select>
+                    </div>
+                    <button className="btn-secondary" style={{ width: 'auto', padding: '0.75rem 1.5rem' }} onClick={() => { setSearchQuery(''); setSelectedRoute('all'); }}>Reset Registry</button>
                 </div>
-                <div style={{ width: '250px' }}>
-                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Deployment Route</label>
-                    <select className="form-control" value={selectedRoute} onChange={(e) => setSelectedRoute(e.target.value)}>
-                        <option value="all">Every Route</option>
-                        {routes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                    </select>
-                </div>
-                <button className="btn-secondary" style={{ width: 'auto', padding: '0.75rem 1.5rem' }} onClick={() => { setSearchQuery(''); setSelectedRoute('all'); }}>Reset Registry</button>
-            </div>
 
-            {loading ? (
-                <div style={{ textAlign: 'center', padding: '5rem' }}>
-                    <div className="loading-spinner" style={{ margin: '0 auto', borderTopColor: '#6366f1' }}></div>
-                    <p style={{ marginTop: '1rem', color: '#64748b' }}>Pulling network data...</p>
-                </div>
-            ) : (
-                <div className="modern-table-container">
-                    {filteredShops.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '5rem' }}>
-                            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔦</div>
-                            <h3 style={{ color: '#f8fafc' }}>No matching outlets</h3>
-                            <p style={{ color: '#94a3b8' }}>Try broadening your search or adjusting the route filter.</p>
-                        </div>
-                    ) : (
-                        <table className="modern-table">
-                            <thead>
-                                <tr>
-                                    <th>Outlet Identity</th>
-                                    <th>Deployment Route</th>
-                                    <th>Primary Salesman</th>
-                                    <th>Field Representative</th>
-                                    <th className="text-right">Governance</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredShops.map(shop => (
-                                    <tr key={shop.id}>
-                                        <td><strong style={{ fontSize: '1.05rem', color: '#f8fafc' }}>{shop.name}</strong></td>
-                                        <td>{shop.route ? <span style={{ padding: '4px 10px', background: '#f5f3ff', color: '#6d28d9', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '800' }}>🛣️ {shop.route.name}</span> : <span style={{ color: '#cbd5e1', fontStyle: 'italic' }}>Unmapped</span>}</td>
-                                        <td>
-                                            {shop.salesman ? (
-                                                <div>
-                                                    <span style={{ fontWeight: '700', color: shop.salesman.role === 'shop_owner' ? '#d97706' : '#059669', display: 'block' }}>
-                                                        {shop.salesman.role === 'shop_owner' ? '👑' : '👤'} {shop.salesman.name}
-                                                        <span style={{ fontSize: '0.75rem', marginLeft: '6px', opacity: 0.8, fontWeight: '600' }}>
-                                                            ({shop.salesman.role === 'shop_owner' ? 'Owner' : 'Sales'})
-                                                        </span>
-                                                    </span>
-                                                    {shop.salesman.phone && <span style={{ fontSize: '0.7rem', color: '#64748b' }}>📞 {shop.salesman.phone}</span>}
-                                                </div>
-                                            ) : (
-                                                <span style={{ color: '#cbd5e1' }}>Vacant</span>
-                                            )}
-                                        </td>
-                                        <td>{shop.rep ? <span style={{ color: '#444', fontWeight: '600' }}>🛡️ {shop.rep.name}</span> : <span style={{ color: '#cbd5e1' }}>Pending Assignment</span>}</td>
-                                        <td style={{ textAlign: 'right' }}>
-                                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                                                <button className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem' }} onClick={() => handleOpenModal(shop)}>Modify</button>
-                                                <button className="btn-cancel" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', color: '#ef4444', borderColor: '#fee2e2' }} onClick={() => handleDelete(shop.id)}>Terminate</button>
-                                            </div>
-                                        </td>
+                {loading ? (
+                    <div style={{ textAlign: 'center', padding: '5rem' }}>
+                        <div className="loading-spinner" style={{ margin: '0 auto', borderTopColor: '#6366f1' }}></div>
+                        <p style={{ marginTop: '1rem', color: '#64748b' }}>Pulling network data...</p>
+                    </div>
+                ) : (
+                    <div className="modern-table-container">
+                        {filteredShops.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '5rem' }}>
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔦</div>
+                                <h3 style={{ color: '#f8fafc' }}>No matching outlets</h3>
+                                <p style={{ color: '#94a3b8' }}>Try broadening your search or adjusting the route filter.</p>
+                            </div>
+                        ) : (
+                            <table className="modern-table">
+                                <thead>
+                                    <tr>
+                                        <th>Outlet Identity</th>
+                                        <th>Deployment Route</th>
+                                        <th>Primary Salesman</th>
+                                        <th>Field Representative</th>
+                                        <th className="text-right">Governance</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
-                </div>
-            )}
+                                </thead>
+                                <tbody>
+                                    {filteredShops.map(shop => (
+                                        <tr key={shop.id}>
+                                            <td><strong style={{ fontSize: '1.05rem', color: '#f8fafc' }}>{shop.name}</strong></td>
+                                            <td>{shop.route ? <span style={{ padding: '4px 10px', background: '#f5f3ff', color: '#6d28d9', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '800' }}>🛣️ {shop.route.name}</span> : <span style={{ color: '#cbd5e1', fontStyle: 'italic' }}>Unmapped</span>}</td>
+                                            <td>
+                                                {shop.salesman ? (
+                                                    <div>
+                                                        <span style={{ fontWeight: '700', color: shop.salesman.role === 'shop_owner' ? '#d97706' : '#059669', display: 'block' }}>
+                                                            {shop.salesman.role === 'shop_owner' ? '👑' : '👤'} {shop.salesman.name}
+                                                            <span style={{ fontSize: '0.75rem', marginLeft: '6px', opacity: 0.8, fontWeight: '600' }}>
+                                                                ({shop.salesman.role === 'shop_owner' ? 'Owner' : 'Sales'})
+                                                            </span>
+                                                        </span>
+                                                        {shop.salesman.phone && <span style={{ fontSize: '0.7rem', color: '#64748b' }}>📞 {shop.salesman.phone}</span>}
+                                                    </div>
+                                                ) : (
+                                                    <span style={{ color: '#cbd5e1' }}>Vacant</span>
+                                                )}
+                                            </td>
+                                            <td>{shop.rep ? <span style={{ color: '#444', fontWeight: '600' }}>🛡️ {shop.rep.name}</span> : <span style={{ color: '#cbd5e1' }}>Pending Assignment</span>}</td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                                    <button className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem' }} onClick={() => handleOpenModal(shop)}>Modify</button>
+                                                    <button className="btn-cancel" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', color: '#ef4444', borderColor: '#fee2e2' }} onClick={() => handleDelete(shop.id)}>Terminate</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                )}
+            </div>
 
             {isModalOpen && (
                 <div className="modal-overlay">

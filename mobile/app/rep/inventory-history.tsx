@@ -47,7 +47,7 @@ export default function InventoryHistoryScreen() {
 
             const { data: transactions, error } = await supabase
                 .from('stock_transactions')
-                .select(`id, item_id, qty, type, created_at, items (name)`)
+                .select(`id, item_id, quantity, type, created_at, items (name)`)
                 .eq('rep_id', userRecord.id)
                 .order('created_at', { ascending: false });
 
@@ -62,7 +62,7 @@ export default function InventoryHistoryScreen() {
                 groupedByDate.get(date)?.push({
                     id: trans.id,
                     name: trans.items?.name || 'Unknown Item',
-                    qty: trans.qty,
+                    qty: trans.quantity,
                     type: trans.type,
                     time: time
                 });

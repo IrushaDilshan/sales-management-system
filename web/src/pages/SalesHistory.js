@@ -156,125 +156,127 @@ const SalesHistory = () => {
             </div>
 
             {/* Summary Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
-                <StatCard icon="📊" label="Transaction Volume" value={stats.total_sales} color="#6366f1" />
-                <StatCard icon="💹" label="Gross Revenue" value={stats.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })} suffix="Rs." color="#10b981" />
-                <StatCard icon="📥" label="Realized Income" value={stats.total_paid.toLocaleString(undefined, { minimumFractionDigits: 2 })} suffix="Rs." color="#06b6d4" />
-                <StatCard icon="💸" label="Accounts Receivable" value={stats.total_due.toLocaleString(undefined, { minimumFractionDigits: 2 })} suffix="Rs." color="#f43f5e" />
-            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+                    <StatCard icon="📊" label="Transaction Volume" value={stats.total_sales} color="#6366f1" />
+                    <StatCard icon="💹" label="Gross Revenue" value={stats.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })} suffix="Rs." color="#10b981" />
+                    <StatCard icon="📥" label="Realized Income" value={stats.total_paid.toLocaleString(undefined, { minimumFractionDigits: 2 })} suffix="Rs." color="#06b6d4" />
+                    <StatCard icon="💸" label="Accounts Receivable" value={stats.total_due.toLocaleString(undefined, { minimumFractionDigits: 2 })} suffix="Rs." color="#f43f5e" />
+                </div>
 
-            {/* Advanced Filters */}
-            <div style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', marginBottom: '2rem' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
-                    <div className="form-group">
-                        <label className="form-label" style={{ fontSize: '0.8rem' }}>Internal Search</label>
-                        <input type="text" className="form-control" placeholder="Invoice # or Customer name" value={filters.search} onChange={(e) => handleFilterChange('search', e.target.value)} />
-                    </div>
-                    <div className="form-group">
-                        <label className="form-label" style={{ fontSize: '0.8rem' }}>Operation Center</label>
-                        <select className="form-control" value={filters.outlet_id} onChange={(e) => handleFilterChange('outlet_id', e.target.value)}>
-                            <option value="all">Everywhere</option>
-                            {outlets.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-                        </select>
-                    </div>
-                    <div className="form-group">
-                        <label className="form-label" style={{ fontSize: '0.8rem' }}>Status Protocol</label>
-                        <select className="form-control" value={filters.payment_status} onChange={(e) => handleFilterChange('payment_status', e.target.value)}>
-                            <option value="all">Any Status</option>
-                            <option value="paid">Fully Settled</option>
-                            <option value="pending">Awaiting Payment</option>
-                            <option value="overdue">Overdue Arrears</option>
-                        </select>
-                    </div>
-                    <div className="form-group">
-                        <label className="form-label" style={{ fontSize: '0.8rem' }}>Payment Method</label>
-                        <select className="form-control" value={filters.payment_method} onChange={(e) => handleFilterChange('payment_method', e.target.value)}>
-                            <option value="all">All Methods</option>
-                            <option value="cash">Physical Cash</option>
-                            <option value="card">Digital Card</option>
-                            <option value="credit">Trade Credit</option>
-                        </select>
-                    </div>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem' }}>
-                    <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#64748b' }}>TEMPORAL FILTERS:</span>
-                        <input type="date" className="form-control" style={{ width: '160px' }} value={filters.date_from} onChange={(e) => handleFilterChange('date_from', e.target.value)} />
-                        <span style={{ color: '#cbd5e1' }}>→</span>
-                        <input type="date" className="form-control" style={{ width: '160px' }} value={filters.date_to} onChange={(e) => handleFilterChange('date_to', e.target.value)} />
-                    </div>
-                    <button className="btn-cancel" style={{ width: 'auto', padding: '0.5rem 1.5rem' }} onClick={clearFilters}>Purge Filters</button>
-                </div>
-            </div>
-
-            {loading ? (
-                <div style={{ textAlign: 'center', padding: '5rem' }}>
-                    <div className="loading-spinner" style={{ margin: '0 auto', borderTopColor: '#6366f1' }}></div>
-                    <p style={{ marginTop: '1rem', color: '#64748b' }}>Reconstructing transaction history...</p>
-                </div>
-            ) : (
-                <div className="modern-table-container">
-                    {sales.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '5rem' }}>
-                            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🧾</div>
-                            <h3 style={{ color: '#1e293b' }}>No archival records match</h3>
-                            <p style={{ color: '#64748b' }}>Adjust filters or verify the selected date range.</p>
+                {/* Advanced Filters */}
+                <div style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', marginBottom: '2rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
+                        <div className="form-group">
+                            <label className="form-label" style={{ fontSize: '0.8rem' }}>Internal Search</label>
+                            <input type="text" className="form-control" placeholder="Invoice # or Customer name" value={filters.search} onChange={(e) => handleFilterChange('search', e.target.value)} />
                         </div>
-                    ) : (
-                        <table className="modern-table">
-                            <thead>
-                                <tr>
-                                    <th>Ref ID</th>
-                                    <th>Registry Date</th>
-                                    <th>Center</th>
-                                    <th>Entity</th>
-                                    <th style={{ textAlign: 'right' }}>Valuation</th>
-                                    <th style={{ textAlign: 'center' }}>Method</th>
-                                    <th style={{ textAlign: 'center' }}>Classification</th>
-                                    <th className="text-right">Audit</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {sales.map(sale => (
-                                    <tr key={sale.id}>
-                                        <td><strong style={{ color: '#6366f1', letterSpacing: '0.05em' }}>{sale.invoice_number}</strong></td>
-                                        <td>
-                                            <div style={{ fontWeight: '700' }}>{new Date(sale.sale_date).toLocaleDateString()}</div>
-                                            <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{new Date(sale.sale_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                                        </td>
-                                        <td><span style={{ padding: '4px 8px', background: '#eff6ff', color: '#1e40af', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800' }}>{sale.shops?.name || 'CENTRAL'}</span></td>
-                                        <td>
-                                            <div style={{ fontWeight: '700' }}>{sale.customer_name || 'Generic Walk-in'}</div>
-                                            {sale.customers?.phone && <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>📞 {sale.customers.phone}</div>}
-                                        </td>
-                                        <td style={{ textAlign: 'right' }}>
-                                            <div style={{ fontWeight: '900', color: '#1e293b' }}>Rs. {parseFloat(sale.total_amount).toLocaleString()}</div>
-                                            {sale.amount_due > 0 && <div style={{ fontSize: '0.7rem', color: '#f43f5e', fontWeight: '700' }}>DUE: {parseFloat(sale.amount_due).toLocaleString()}</div>}
-                                        </td>
-                                        <td style={{ textAlign: 'center' }}>
-                                            <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>{sale.payment_method}</span>
-                                        </td>
-                                        <td style={{ textAlign: 'center' }}>
-                                            <span style={{
-                                                padding: '4px 12px',
-                                                borderRadius: '20px',
-                                                fontSize: '0.7rem',
-                                                fontWeight: '800',
-                                                background: sale.payment_status === 'paid' ? '#f0fdf4' : '#fffbeb',
-                                                color: sale.payment_status === 'paid' ? '#16a34a' : '#d97706',
-                                                border: `1px solid ${sale.payment_status === 'paid' ? '#dcfce7' : '#fef3c7'}`
-                                            }}>{sale.payment_status.toUpperCase()}</span>
-                                        </td>
-                                        <td style={{ textAlign: 'right' }}>
-                                            <button className="btn-secondary" style={{ padding: '0.4rem 1rem', fontSize: '0.75rem' }} onClick={() => viewSaleDetails(sale)}>Visualize</button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
+                        <div className="form-group">
+                            <label className="form-label" style={{ fontSize: '0.8rem' }}>Operation Center</label>
+                            <select className="form-control" value={filters.outlet_id} onChange={(e) => handleFilterChange('outlet_id', e.target.value)}>
+                                <option value="all">Everywhere</option>
+                                {outlets.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label" style={{ fontSize: '0.8rem' }}>Status Protocol</label>
+                            <select className="form-control" value={filters.payment_status} onChange={(e) => handleFilterChange('payment_status', e.target.value)}>
+                                <option value="all">Any Status</option>
+                                <option value="paid">Fully Settled</option>
+                                <option value="pending">Awaiting Payment</option>
+                                <option value="overdue">Overdue Arrears</option>
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label" style={{ fontSize: '0.8rem' }}>Payment Method</label>
+                            <select className="form-control" value={filters.payment_method} onChange={(e) => handleFilterChange('payment_method', e.target.value)}>
+                                <option value="all">All Methods</option>
+                                <option value="cash">Physical Cash</option>
+                                <option value="card">Digital Card</option>
+                                <option value="credit">Trade Credit</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem' }}>
+                        <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#64748b' }}>TEMPORAL FILTERS:</span>
+                            <input type="date" className="form-control" style={{ width: '160px' }} value={filters.date_from} onChange={(e) => handleFilterChange('date_from', e.target.value)} />
+                            <span style={{ color: '#cbd5e1' }}>→</span>
+                            <input type="date" className="form-control" style={{ width: '160px' }} value={filters.date_to} onChange={(e) => handleFilterChange('date_to', e.target.value)} />
+                        </div>
+                        <button className="btn-cancel" style={{ width: 'auto', padding: '0.5rem 1.5rem' }} onClick={clearFilters}>Purge Filters</button>
+                    </div>
                 </div>
-            )}
+
+                {loading ? (
+                    <div style={{ textAlign: 'center', padding: '5rem' }}>
+                        <div className="loading-spinner" style={{ margin: '0 auto', borderTopColor: '#6366f1' }}></div>
+                        <p style={{ marginTop: '1rem', color: '#64748b' }}>Reconstructing transaction history...</p>
+                    </div>
+                ) : (
+                    <div className="modern-table-container">
+                        {sales.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '5rem' }}>
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🧾</div>
+                                <h3 style={{ color: '#1e293b' }}>No archival records match</h3>
+                                <p style={{ color: '#64748b' }}>Adjust filters or verify the selected date range.</p>
+                            </div>
+                        ) : (
+                            <table className="modern-table">
+                                <thead>
+                                    <tr>
+                                        <th>Ref ID</th>
+                                        <th>Registry Date</th>
+                                        <th>Center</th>
+                                        <th>Entity</th>
+                                        <th style={{ textAlign: 'right' }}>Valuation</th>
+                                        <th style={{ textAlign: 'center' }}>Method</th>
+                                        <th style={{ textAlign: 'center' }}>Classification</th>
+                                        <th className="text-right">Audit</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {sales.map(sale => (
+                                        <tr key={sale.id}>
+                                            <td><strong style={{ color: '#6366f1', letterSpacing: '0.05em' }}>{sale.invoice_number}</strong></td>
+                                            <td>
+                                                <div style={{ fontWeight: '700' }}>{new Date(sale.sale_date).toLocaleDateString()}</div>
+                                                <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{new Date(sale.sale_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                            </td>
+                                            <td><span style={{ padding: '4px 8px', background: '#eff6ff', color: '#1e40af', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800' }}>{sale.shops?.name || 'CENTRAL'}</span></td>
+                                            <td>
+                                                <div style={{ fontWeight: '700' }}>{sale.customer_name || 'Generic Walk-in'}</div>
+                                                {sale.customers?.phone && <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>📞 {sale.customers.phone}</div>}
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div style={{ fontWeight: '900', color: '#1e293b' }}>Rs. {parseFloat(sale.total_amount).toLocaleString()}</div>
+                                                {sale.amount_due > 0 && <div style={{ fontSize: '0.7rem', color: '#f43f5e', fontWeight: '700' }}>DUE: {parseFloat(sale.amount_due).toLocaleString()}</div>}
+                                            </td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>{sale.payment_method}</span>
+                                            </td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <span style={{
+                                                    padding: '4px 12px',
+                                                    borderRadius: '20px',
+                                                    fontSize: '0.7rem',
+                                                    fontWeight: '800',
+                                                    background: sale.payment_status === 'paid' ? '#f0fdf4' : '#fffbeb',
+                                                    color: sale.payment_status === 'paid' ? '#16a34a' : '#d97706',
+                                                    border: `1px solid ${sale.payment_status === 'paid' ? '#dcfce7' : '#fef3c7'}`
+                                                }}>{sale.payment_status.toUpperCase()}</span>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <button className="btn-secondary" style={{ padding: '0.4rem 1rem', fontSize: '0.75rem' }} onClick={() => viewSaleDetails(sale)}>Visualize</button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                )}
+            </div>
 
             {/* Invoice Detail Modal */}
             {isModalOpen && selectedSale && (

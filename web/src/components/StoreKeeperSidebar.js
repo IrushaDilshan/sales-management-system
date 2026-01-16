@@ -38,21 +38,12 @@ const StoreKeeperSidebar = () => {
 
             {/* Navigation Menu */}
             <nav className="sidebar-menu">
-                <div className="menu-group">
-                    {!isCollapsed && <span className="group-label">Operations</span>}
-                    <Link to="/storekeeper/dashboard" className={isActive('/storekeeper/dashboard')}>
-                        <div className="link-icon">📊</div>
-                        {!isCollapsed && <span className="link-text">Inventory Hub</span>}
-                    </Link>
-                </div>
+
 
                 <div className="menu-group">
                     {!isCollapsed && <span className="group-label">Asset Management</span>}
 
-                    <Link to="/storekeeper/stock" className={isActive('/storekeeper/stock')}>
-                        <div className="link-icon">📈</div>
-                        {!isCollapsed && <span className="link-text">Stock Levels</span>}
-                    </Link>
+
                     <Link to="/storekeeper/inventory" className={isActive('/storekeeper/inventory')}>
                         <div className="link-icon">📋</div>
                         {!isCollapsed && <span className="link-text">Stock Ledger</span>}

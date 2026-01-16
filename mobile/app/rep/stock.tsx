@@ -49,7 +49,7 @@ export default function StockScreen() {
             if (currentUserId) {
                 const { data: repTransactions, error: stockError } = await supabase
                     .from('stock_transactions')
-                    .select('item_id, qty, type')
+                    .select('item_id, quantity, type')
                     .eq('rep_id', currentUserId);
 
                 if (stockError && stockError.code !== 'PGRST116') throw stockError;
@@ -57,7 +57,7 @@ export default function StockScreen() {
                 repTransactions?.forEach((trans: any) => {
                     const currentStock = repStockMap.get(trans.item_id) || 0;
                     if (trans.type === 'OUT') {
-                        repStockMap.set(trans.item_id, currentStock + trans.qty);
+                        repStockMap.set(trans.item_id, currentStock + trans.quantity);
                     }
                 });
             }

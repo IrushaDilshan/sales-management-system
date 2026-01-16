@@ -187,83 +187,85 @@ const Categories = () => {
                 </button>
             </div>
 
-            {loading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '3rem' }}>
-                    <div className="loading-spinner"></div>
-                </div>
-            ) : (
-                <div className="modern-table-container">
-                    {categories.length === 0 ? (
-                        <div className="empty-state">
-                            <h3>No categories found</h3>
-                            <p>Click "Add Category" to create your first product category.</p>
-                        </div>
-                    ) : (
-                        <table className="modern-table">
-                            <thead>
-                                <tr>
-                                    <th>Category Name</th>
-                                    <th>Description</th>
-                                    <th style={{ textAlign: 'center' }}>Products</th>
-                                    <th style={{ textAlign: 'center' }}>Commission %</th>
-                                    <th style={{ textAlign: 'center' }}>Status</th>
-                                    <th className="text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {categories.map((category) => (
-                                    <tr key={category.id}>
-                                        <td>
-                                            <strong>{category.name}</strong>
-                                        </td>
-                                        <td style={{ maxWidth: '300px' }}>
-                                            {category.description || '-'}
-                                        </td>
-                                        <td style={{ textAlign: 'center' }}>
-                                            <span className="badge badge-info">
-                                                {itemCounts[category.id] || 0} items
-                                            </span>
-                                        </td>
-                                        <td style={{ textAlign: 'center' }}>
-                                            {category.commission_rate}%
-                                        </td>
-                                        <td style={{ textAlign: 'center' }}>
-                                            {category.is_active ? (
-                                                <span className="badge badge-success">Active</span>
-                                            ) : (
-                                                <span className="badge badge-secondary">Inactive</span>
-                                            )}
-                                        </td>
-                                        <td style={{ textAlign: 'right' }}>
-                                            <button
-                                                className={`action-btn ${category.is_active ? 'btn-secondary' : 'btn-success'}`}
-                                                onClick={() => handleToggleActive(category)}
-                                                style={{ marginRight: '0.5rem' }}
-                                            >
-                                                {category.is_active ? 'Deactivate' : 'Activate'}
-                                            </button>
-                                            <button
-                                                className="action-btn btn-edit"
-                                                onClick={() => handleOpenModal(category)}
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                className="action-btn btn-delete"
-                                                onClick={() => handleDelete(category.id)}
-                                                disabled={itemCounts[category.id] > 0}
-                                                title={itemCounts[category.id] > 0 ? 'Cannot delete - has products assigned' : 'Delete category'}
-                                            >
-                                                Delete
-                                            </button>
-                                        </td>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
+                {loading ? (
+                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '3rem' }}>
+                        <div className="loading-spinner"></div>
+                    </div>
+                ) : (
+                    <div className="modern-table-container">
+                        {categories.length === 0 ? (
+                            <div className="empty-state">
+                                <h3>No categories found</h3>
+                                <p>Click "Add Category" to create your first product category.</p>
+                            </div>
+                        ) : (
+                            <table className="modern-table">
+                                <thead>
+                                    <tr>
+                                        <th>Category Name</th>
+                                        <th>Description</th>
+                                        <th style={{ textAlign: 'center' }}>Products</th>
+                                        <th style={{ textAlign: 'center' }}>Commission %</th>
+                                        <th style={{ textAlign: 'center' }}>Status</th>
+                                        <th className="text-right">Actions</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
-                </div>
-            )}
+                                </thead>
+                                <tbody>
+                                    {categories.map((category) => (
+                                        <tr key={category.id}>
+                                            <td>
+                                                <strong>{category.name}</strong>
+                                            </td>
+                                            <td style={{ maxWidth: '300px' }}>
+                                                {category.description || '-'}
+                                            </td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <span className="badge badge-info">
+                                                    {itemCounts[category.id] || 0} items
+                                                </span>
+                                            </td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                {category.commission_rate}%
+                                            </td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                {category.is_active ? (
+                                                    <span className="badge badge-success">Active</span>
+                                                ) : (
+                                                    <span className="badge badge-secondary">Inactive</span>
+                                                )}
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <button
+                                                    className={`action-btn ${category.is_active ? 'btn-secondary' : 'btn-success'}`}
+                                                    onClick={() => handleToggleActive(category)}
+                                                    style={{ marginRight: '0.5rem' }}
+                                                >
+                                                    {category.is_active ? 'Deactivate' : 'Activate'}
+                                                </button>
+                                                <button
+                                                    className="action-btn btn-edit"
+                                                    onClick={() => handleOpenModal(category)}
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    className="action-btn btn-delete"
+                                                    onClick={() => handleDelete(category.id)}
+                                                    disabled={itemCounts[category.id] > 0}
+                                                    title={itemCounts[category.id] > 0 ? 'Cannot delete - has products assigned' : 'Delete category'}
+                                                >
+                                                    Delete
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                )}
+            </div>
 
             {isModalOpen && (
                 <div className="modal-overlay">

@@ -160,202 +160,204 @@ const Dashboard = () => {
                 </div>
             </div>
 
-            {/* KPI Grid */}
-            <div className="kpi-grid">
-                <div className="kpi-card">
-                    <div className="kpi-icon-wrapper blue">
-                        <FiDollarSign />
+            <div style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
+                {/* KPI Grid */}
+                <div className="kpi-grid">
+                    <div className="kpi-card">
+                        <div className="kpi-icon-wrapper blue">
+                            <FiDollarSign />
+                        </div>
+                        <div className="kpi-content">
+                            <span className="kpi-label">Total Revenue ({dateRange} Days)</span>
+                            <h3 className="kpi-value">{loading ? '...' : `LKR ${stats.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}</h3>
+                            <span className="kpi-trend positive"><FiTrendingUp /> Real-time Data</span>
+                        </div>
                     </div>
-                    <div className="kpi-content">
-                        <span className="kpi-label">Total Revenue ({dateRange} Days)</span>
-                        <h3 className="kpi-value">{loading ? '...' : `LKR ${stats.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}</h3>
-                        <span className="kpi-trend positive"><FiTrendingUp /> Real-time Data</span>
-                    </div>
-                </div>
 
-                <div className="kpi-card">
-                    <div className="kpi-icon-wrapper purple">
-                        <FiTruck />
+                    <div className="kpi-card">
+                        <div className="kpi-icon-wrapper purple">
+                            <FiTruck />
+                        </div>
+                        <div className="kpi-content">
+                            <span className="kpi-label">Active Routes</span>
+                            <h3 className="kpi-value">{stats.activeRoutes}</h3>
+                            <span className="kpi-trend neutral"><FiActivity /> Operational</span>
+                        </div>
                     </div>
-                    <div className="kpi-content">
-                        <span className="kpi-label">Active Routes</span>
-                        <h3 className="kpi-value">{stats.activeRoutes}</h3>
-                        <span className="kpi-trend neutral"><FiActivity /> Operational</span>
-                    </div>
-                </div>
 
-                <div className="kpi-card">
-                    <div className="kpi-icon-wrapper green">
-                        <FiUsers />
+                    <div className="kpi-card">
+                        <div className="kpi-icon-wrapper green">
+                            <FiUsers />
+                        </div>
+                        <div className="kpi-content">
+                            <span className="kpi-label">Registered Outlets</span>
+                            <h3 className="kpi-value">{stats.totalShops}</h3>
+                            <span className="kpi-trend positive"><FiCheckCircle /> Active Network</span>
+                        </div>
                     </div>
-                    <div className="kpi-content">
-                        <span className="kpi-label">Registered Outlets</span>
-                        <h3 className="kpi-value">{stats.totalShops}</h3>
-                        <span className="kpi-trend positive"><FiCheckCircle /> Active Network</span>
-                    </div>
-                </div>
 
-                <div className="kpi-card">
-                    <div className="kpi-icon-wrapper red">
-                        <FiAlertTriangle />
-                    </div>
-                    <div className="kpi-content">
-                        <span className="kpi-label">Stock Warnings</span>
-                        <h3 className="kpi-value">{stats.lowStockItems} Items</h3>
-                        <span className="kpi-trend negative">{stats.lowStockItems > 0 ? 'Action Required' : 'Optimal Levels'}</span>
-                    </div>
-                </div>
-            </div>
-
-            {/* Charts Section */}
-            <div className="charts-row">
-                <div className="chart-card wide">
-                    <div className="card-header">
-                        <h3>Revenue Analytics</h3>
-                        <select
-                            className="chart-filter"
-                            value={dateRange}
-                            onChange={(e) => setDateRange(e.target.value)}
-                        >
-                            <option value="7">Last 7 Days</option>
-                            <option value="14">Last 14 Days</option>
-                            <option value="30">Last 30 Days</option>
-                        </select>
-                    </div>
-                    <div style={{ height: '300px', width: '100%' }}>
-                        <ResponsiveContainer>
-                            <AreaChart data={revenueData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                                <defs>
-                                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#38bdf8" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8' }} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8' }} tickFormatter={(val) => `${val / 1000}k`} />
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: '#1e293b',
-                                        borderRadius: '12px',
-                                        border: '1px solid #334155',
-                                        color: '#f8fafc',
-                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)'
-                                    }}
-                                    itemStyle={{ color: '#38bdf8' }}
-                                    formatter={(value) => `LKR ${value.toLocaleString()}`}
-                                />
-                                <CartesianGrid vertical={false} stroke="#334155" strokeDasharray="3 3" />
-                                <Area type="monotone" dataKey="revenue" stroke="#38bdf8" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-
-                <div className="chart-card narrow">
-                    <div className="card-header">
-                        <h3>Top Outlets</h3>
-                        <FiMoreVertical className="more-opt" />
-                    </div>
-                    <div style={{ height: '300px', width: '100%', position: 'relative' }}>
-                        <ResponsiveContainer>
-                            <PieChart>
-                                <Pie
-                                    data={categoryData}
-                                    innerRadius={60}
-                                    outerRadius={90}
-                                    paddingAngle={5}
-                                    dataKey="value"
-                                >
-                                    {categoryData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={['#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444'][index % 5]} stroke="rgba(0,0,0,0)" />
-                                    ))}
-                                </Pie>
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: '#1e293b',
-                                        borderRadius: '8px',
-                                        border: '1px solid #334155',
-                                        color: '#fff'
-                                    }}
-                                    formatter={(value) => `LKR ${value.toLocaleString()}`}
-                                />
-                                <Legend verticalAlign="bottom" height={36} wrapperStyle={{ color: '#94a3b8' }} />
-                            </PieChart>
-                        </ResponsiveContainer>
-                        <div className="donut-stat">
-                            <span className="donut-num" style={{ color: '#f8fafc' }}>{categoryData.length}</span>
-                            <span className="donut-label" style={{ color: '#94a3b8' }}>Leaders</span>
+                    <div className="kpi-card">
+                        <div className="kpi-icon-wrapper red">
+                            <FiAlertTriangle />
+                        </div>
+                        <div className="kpi-content">
+                            <span className="kpi-label">Stock Warnings</span>
+                            <h3 className="kpi-value">{stats.lowStockItems} Items</h3>
+                            <span className="kpi-trend negative">{stats.lowStockItems > 0 ? 'Action Required' : 'Optimal Levels'}</span>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Bottom Row */}
-            <div className="info-row">
-                <div className="info-card">
-                    <div className="card-header">
-                        <h3>Top Performing Outlets</h3>
+                {/* Charts Section */}
+                <div className="charts-row">
+                    <div className="chart-card wide">
+                        <div className="card-header">
+                            <h3>Revenue Analytics</h3>
+                            <select
+                                className="chart-filter"
+                                value={dateRange}
+                                onChange={(e) => setDateRange(e.target.value)}
+                            >
+                                <option value="7">Last 7 Days</option>
+                                <option value="14">Last 14 Days</option>
+                                <option value="30">Last 30 Days</option>
+                            </select>
+                        </div>
+                        <div style={{ height: '300px', width: '100%' }}>
+                            <ResponsiveContainer>
+                                <AreaChart data={revenueData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#38bdf8" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8' }} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8' }} tickFormatter={(val) => `${val / 1000}k`} />
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: '#1e293b',
+                                            borderRadius: '12px',
+                                            border: '1px solid #334155',
+                                            color: '#f8fafc',
+                                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)'
+                                        }}
+                                        itemStyle={{ color: '#38bdf8' }}
+                                        formatter={(value) => `LKR ${value.toLocaleString()}`}
+                                    />
+                                    <CartesianGrid vertical={false} stroke="#334155" strokeDasharray="3 3" />
+                                    <Area type="monotone" dataKey="revenue" stroke="#38bdf8" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
-                    <table className="modern-table">
-                        <thead>
-                            <tr>
-                                <th>Outlet Name</th>
-                                <th>Performance</th>
-                                <th className="text-right">Revenue</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {topEntities.map((shop, index) => (
-                                <tr key={index}>
-                                    <td>
-                                        <div className="user-cell">
-                                            <div className="user-avatar" style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa' }}>
-                                                {shop.name.charAt(0)}
-                                            </div>
-                                            <span className="user-name" style={{ color: '#f8fafc' }}>{shop.name}</span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div style={{ width: '100px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
-                                            <div style={{
-                                                width: `${(shop.revenue / (topEntities[0]?.revenue || 1)) * 100}%`,
-                                                background: '#3b82f6',
-                                                height: '100%'
-                                            }}></div>
-                                        </div>
-                                    </td>
-                                    <td className="text-right font-bold">
-                                        LKR {shop.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                                    </td>
-                                </tr>
-                            ))}
-                            {topEntities.length === 0 && (
-                                <tr>
-                                    <td colSpan="3" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No sales data found for this period.</td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+
+                    <div className="chart-card narrow">
+                        <div className="card-header">
+                            <h3>Top Outlets</h3>
+                            <FiMoreVertical className="more-opt" />
+                        </div>
+                        <div style={{ height: '300px', width: '100%', position: 'relative' }}>
+                            <ResponsiveContainer>
+                                <PieChart>
+                                    <Pie
+                                        data={categoryData}
+                                        innerRadius={60}
+                                        outerRadius={90}
+                                        paddingAngle={5}
+                                        dataKey="value"
+                                    >
+                                        {categoryData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={['#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444'][index % 5]} stroke="rgba(0,0,0,0)" />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: '#1e293b',
+                                            borderRadius: '8px',
+                                            border: '1px solid #334155',
+                                            color: '#fff'
+                                        }}
+                                        formatter={(value) => `LKR ${value.toLocaleString()}`}
+                                    />
+                                    <Legend verticalAlign="bottom" height={36} wrapperStyle={{ color: '#94a3b8' }} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                            <div className="donut-stat">
+                                <span className="donut-num" style={{ color: '#f8fafc' }}>{categoryData.length}</span>
+                                <span className="donut-label" style={{ color: '#94a3b8' }}>Leaders</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="info-card">
-                    <div className="card-header">
-                        <h3>Live System Activity</h3>
-                        <FiActivity />
+                {/* Bottom Row */}
+                <div className="info-row">
+                    <div className="info-card">
+                        <div className="card-header">
+                            <h3>Top Performing Outlets</h3>
+                        </div>
+                        <table className="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Outlet Name</th>
+                                    <th>Performance</th>
+                                    <th className="text-right">Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {topEntities.map((shop, index) => (
+                                    <tr key={index}>
+                                        <td>
+                                            <div className="user-cell">
+                                                <div className="user-avatar" style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa' }}>
+                                                    {shop.name.charAt(0)}
+                                                </div>
+                                                <span className="user-name" style={{ color: '#f8fafc' }}>{shop.name}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div style={{ width: '100px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
+                                                <div style={{
+                                                    width: `${(shop.revenue / (topEntities[0]?.revenue || 1)) * 100}%`,
+                                                    background: '#3b82f6',
+                                                    height: '100%'
+                                                }}></div>
+                                            </div>
+                                        </td>
+                                        <td className="text-right font-bold">
+                                            LKR {shop.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {topEntities.length === 0 && (
+                                    <tr>
+                                        <td colSpan="3" style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>No sales data found for this period.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
-                    <div className="alerts-list">
-                        {alerts.map(alert => (
-                            <div key={alert.id} className={`alert-item ${alert.type}`}>
-                                <div className="alert-icon">
-                                    {alert.type === 'stock' ? <FiPackage /> :
-                                        alert.type === 'route' ? <FiCheckCircle /> : <FiAlertTriangle />}
+
+                    <div className="info-card">
+                        <div className="card-header">
+                            <h3>Live System Activity</h3>
+                            <FiActivity />
+                        </div>
+                        <div className="alerts-list">
+                            {alerts.map(alert => (
+                                <div key={alert.id} className={`alert-item ${alert.type}`}>
+                                    <div className="alert-icon">
+                                        {alert.type === 'stock' ? <FiPackage /> :
+                                            alert.type === 'route' ? <FiCheckCircle /> : <FiAlertTriangle />}
+                                    </div>
+                                    <div className="alert-content">
+                                        <p className="alert-msg">{alert.msg}</p>
+                                        <span className="alert-time">{alert.time}</span>
+                                    </div>
                                 </div>
-                                <div className="alert-content">
-                                    <p className="alert-msg">{alert.msg}</p>
-                                    <span className="alert-time">{alert.time}</span>
-                                </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>

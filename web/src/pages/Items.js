@@ -243,140 +243,142 @@ const Items = () => {
                 </button>
             </div>
 
-            {/* Stats Dashboard */}
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-                gap: '1.5rem',
-                marginBottom: '2rem'
-            }}>
-                <StatCard icon="🏷️" label="Total Products" value={stats.total} color="#6366f1" />
-                <StatCard icon="📂" label="Active Categories" value={stats.categories} color="#10b981" />
-                <StatCard icon="🍎" label="Perishables" value={stats.perishables} color="#f59e0b" />
-                <StatCard icon="📈" label="Avg Retail Price" value={stats.avgPrice.toFixed(2)} suffix="Rs." color="#ec4899" />
-            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
+                {/* Stats Dashboard */}
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                    gap: '1.5rem',
+                    marginBottom: '2rem'
+                }}>
+                    <StatCard icon="🏷️" label="Total Products" value={stats.total} color="#6366f1" />
+                    <StatCard icon="📂" label="Active Categories" value={stats.categories} color="#10b981" />
+                    <StatCard icon="🍎" label="Perishables" value={stats.perishables} color="#f59e0b" />
+                    <StatCard icon="📈" label="Avg Retail Price" value={stats.avgPrice.toFixed(2)} suffix="Rs." color="#ec4899" />
+                </div>
 
-            {/* Advanced Filters */}
-            {/* Advanced Filters */}
-            <div className="registry-filter-hub" style={{
-                marginBottom: '2rem',
-                display: 'flex',
-                gap: '1.5rem',
-                flexWrap: 'wrap',
-                alignItems: 'flex-end'
-            }}>
-                <div style={{ flex: '1', minWidth: '300px' }}>
-                    <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Search Catalog</label>
-                    <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Search by product name, SKU code, or barcode..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+                {/* Advanced Filters */}
+                {/* Advanced Filters */}
+                <div className="registry-filter-hub" style={{
+                    marginBottom: '2rem',
+                    display: 'flex',
+                    gap: '1.5rem',
+                    flexWrap: 'wrap',
+                    alignItems: 'flex-end'
+                }}>
+                    <div style={{ flex: '1', minWidth: '300px' }}>
+                        <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Search Catalog</label>
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Search by product name, SKU code, or barcode..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <div style={{ width: '250px' }}>
+                        <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Product Category</label>
+                        <select
+                            className="form-control"
+                            value={filterCategory}
+                            onChange={(e) => setFilterCategory(e.target.value)}
+                        >
+                            <option value="all">All Product Lines</option>
+                            {categories.map(cat => (
+                                <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
-                <div style={{ width: '250px' }}>
-                    <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Product Category</label>
-                    <select
-                        className="form-control"
-                        value={filterCategory}
-                        onChange={(e) => setFilterCategory(e.target.value)}
-                    >
-                        <option value="all">All Product Lines</option>
-                        {categories.map(cat => (
-                            <option key={cat.id} value={cat.id}>{cat.name}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
 
-            {loading ? (
-                <div style={{ textAlign: 'center', padding: '4rem' }}>
-                    <div className="loading-spinner" style={{ margin: '0 auto' }}></div>
-                    <p style={{ marginTop: '1.5rem', color: '#64748b' }}>Awaiting cloud catalog synchronization...</p>
-                </div>
-            ) : (
-                <div className="modern-table-container">
-                    {filteredItems.length === 0 ? (
-                        <div className="empty-state">
-                            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📦</div>
-                            <h3 style={{ color: '#f8fafc' }}>No products found in catalog</h3>
-                            <p style={{ color: '#94a3b8' }}>Try adjusting filters or register a new SKU.</p>
-                        </div>
-                    ) : (
-                        <table className="modern-table">
-                            <thead>
-                                <tr>
-                                    <th>Product Identity</th>
-                                    <th>Category</th>
-                                    <th>Identifier (SKU)</th>
-                                    <th style={{ textAlign: 'right' }}>Wholesale (Rs.)</th>
-                                    <th style={{ textAlign: 'right' }}>Retail (Rs.)</th>
-                                    <th style={{ textAlign: 'center' }}>Unit</th>
-                                    <th style={{ textAlign: 'center' }}>Perishability</th>
-                                    <th className="text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredItems.map((item) => (
-                                    <tr key={item.id}>
-                                        <td>
-                                            {item.image_url && (
-                                                <img
-                                                    src={item.image_url}
-                                                    alt="Preview"
-                                                    style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', float: 'left', marginRight: '10px' }}
-                                                />
-                                            )}
-                                            <div style={{ fontWeight: '700', color: '#f8fafc' }}>{item.name}</div>
-                                            {item.description && (
-                                                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                    {item.description}
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td>
-                                            {item.product_categories ? (
-                                                <span style={{ padding: '4px 10px', background: '#e0f2fe', color: '#0369a1', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700' }}>
-                                                    {item.product_categories.name}
-                                                </span>
-                                            ) : '-'}
-                                        </td>
-                                        <td>
-                                            <code style={{ background: '#f1f5f9', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', color: '#334155' }}>
-                                                {item.sku || '-'}
-                                            </code>
-                                        </td>
-                                        <td style={{ textAlign: 'right', fontWeight: '600' }}>
-                                            {item.wholesale_price ? parseFloat(item.wholesale_price).toLocaleString(undefined, { minimumFractionDigits: 2 }) : '-'}
-                                        </td>
-                                        <td style={{ textAlign: 'right', fontWeight: '800', color: '#6366f1' }}>
-                                            {item.retail_price ? parseFloat(item.retail_price).toLocaleString(undefined, { minimumFractionDigits: 2 }) : '-'}
-                                        </td>
-                                        <td style={{ textAlign: 'center' }}>
-                                            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748b' }}>{item.unit_of_measure}</span>
-                                        </td>
-                                        <td style={{ textAlign: 'center' }}>
-                                            {item.is_perishable ? (
-                                                <span style={{ padding: '2px 8px', background: '#fffbeb', color: '#92400e', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '800' }}>⚠️ PERISHABLE</span>
-                                            ) : (
-                                                <span style={{ padding: '2px 8px', background: '#f8fafc', color: '#94a3b8', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '800' }}>STABLE</span>
-                                            )}
-                                        </td>
-                                        <td style={{ textAlign: 'right' }}>
-                                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                                                <button className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem' }} onClick={() => handleOpenModal(item)}>Edit</button>
-                                                <button className="btn-cancel" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', borderColor: '#fee2e2', color: '#ef4444' }} onClick={() => handleDelete(item.id)}>Delete</button>
-                                            </div>
-                                        </td>
+                {loading ? (
+                    <div style={{ textAlign: 'center', padding: '4rem' }}>
+                        <div className="loading-spinner" style={{ margin: '0 auto' }}></div>
+                        <p style={{ marginTop: '1.5rem', color: '#64748b' }}>Awaiting cloud catalog synchronization...</p>
+                    </div>
+                ) : (
+                    <div className="modern-table-container">
+                        {filteredItems.length === 0 ? (
+                            <div className="empty-state">
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📦</div>
+                                <h3 style={{ color: '#f8fafc' }}>No products found in catalog</h3>
+                                <p style={{ color: '#94a3b8' }}>Try adjusting filters or register a new SKU.</p>
+                            </div>
+                        ) : (
+                            <table className="modern-table">
+                                <thead>
+                                    <tr>
+                                        <th>Product Identity</th>
+                                        <th>Category</th>
+                                        <th>Identifier (SKU)</th>
+                                        <th style={{ textAlign: 'right' }}>Wholesale (Rs.)</th>
+                                        <th style={{ textAlign: 'right' }}>Retail (Rs.)</th>
+                                        <th style={{ textAlign: 'center' }}>Unit</th>
+                                        <th style={{ textAlign: 'center' }}>Perishability</th>
+                                        <th className="text-right">Actions</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
-                </div>
-            )
-            }
+                                </thead>
+                                <tbody>
+                                    {filteredItems.map((item) => (
+                                        <tr key={item.id}>
+                                            <td>
+                                                {item.image_url && (
+                                                    <img
+                                                        src={item.image_url}
+                                                        alt="Preview"
+                                                        style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', float: 'left', marginRight: '10px' }}
+                                                    />
+                                                )}
+                                                <div style={{ fontWeight: '700', color: '#f8fafc' }}>{item.name}</div>
+                                                {item.description && (
+                                                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                        {item.description}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td>
+                                                {item.product_categories ? (
+                                                    <span style={{ padding: '4px 10px', background: '#e0f2fe', color: '#0369a1', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700' }}>
+                                                        {item.product_categories.name}
+                                                    </span>
+                                                ) : '-'}
+                                            </td>
+                                            <td>
+                                                <code style={{ background: '#f1f5f9', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', color: '#334155' }}>
+                                                    {item.sku || '-'}
+                                                </code>
+                                            </td>
+                                            <td style={{ textAlign: 'right', fontWeight: '600' }}>
+                                                {item.wholesale_price ? parseFloat(item.wholesale_price).toLocaleString(undefined, { minimumFractionDigits: 2 }) : '-'}
+                                            </td>
+                                            <td style={{ textAlign: 'right', fontWeight: '800', color: '#6366f1' }}>
+                                                {item.retail_price ? parseFloat(item.retail_price).toLocaleString(undefined, { minimumFractionDigits: 2 }) : '-'}
+                                            </td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748b' }}>{item.unit_of_measure}</span>
+                                            </td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                {item.is_perishable ? (
+                                                    <span style={{ padding: '2px 8px', background: '#fffbeb', color: '#92400e', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '800' }}>⚠️ PERISHABLE</span>
+                                                ) : (
+                                                    <span style={{ padding: '2px 8px', background: '#f8fafc', color: '#94a3b8', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '800' }}>STABLE</span>
+                                                )}
+                                            </td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                                    <button className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem' }} onClick={() => handleOpenModal(item)}>Edit</button>
+                                                    <button className="btn-cancel" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', borderColor: '#fee2e2', color: '#ef4444' }} onClick={() => handleDelete(item.id)}>Delete</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                )
+                }
+            </div>
 
             {/* Modal */}
             {

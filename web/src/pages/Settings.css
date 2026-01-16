@@ -1,8 +1,10 @@
-/* Settings Page Container */
 .settings-page {
     background: var(--bg-app);
-    min-height: 100vh;
+    height: 100vh;
     padding: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 /* Header Section */

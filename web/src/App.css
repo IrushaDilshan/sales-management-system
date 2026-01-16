@@ -52,8 +52,37 @@
 }
 
 @media (max-width: 640px) {
-  .main-content {
+
+  .main-content,
+  .storekeeper-content {
     margin-left: 0;
     margin-top: auto;
+  }
+}
+
+/* Storekeeper Layout */
+.storekeeper-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.storekeeper-content {
+  flex: 1;
+  margin-left: 280px;
+  min-height: 100vh;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Collapsed Sidebar Handling for Storekeeper */
+.modern-sidebar.collapsed+.storekeeper-content,
+.modern-sidebar.collapsed~.storekeeper-content,
+.storekeeper-layout:has(.modern-sidebar.collapsed) .storekeeper-content {
+  margin-left: 88px;
+}
+
+/* Responsive for Storekeeper */
+@media (max-width: 968px) {
+  .storekeeper-content {
+    margin-left: 80px;
   }
 }
