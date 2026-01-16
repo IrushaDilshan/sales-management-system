@@ -86,13 +86,13 @@
 }
 
 /* Stats Grid */
-.stats-grid {
+.storekeeper-dashboard-page .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 1.5rem;
 }
 
-.stat-card {
+.storekeeper-dashboard-page .stat-card {
     background: white;
     padding: 1.75rem;
     border-radius: 16px;
@@ -107,7 +107,7 @@
     overflow: hidden;
 }
 
-.stat-card::before {
+.storekeeper-dashboard-page .stat-card::before {
     content: '';
     position: absolute;
     top: 0;
@@ -117,12 +117,12 @@
     background: linear-gradient(90deg, currentColor, transparent);
 }
 
-.stat-card:hover {
+.storekeeper-dashboard-page .stat-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
-.stat-icon {
+.storekeeper-dashboard-page .stat-icon {
     width: 64px;
     height: 64px;
     border-radius: 12px;
@@ -133,11 +133,11 @@
     flex-shrink: 0;
 }
 
-.stat-content {
+.storekeeper-dashboard-page .stat-content {
     flex: 1;
 }
 
-.stat-value {
+.storekeeper-dashboard-page .stat-value {
     font-size: 2.5rem;
     font-weight: 800;
     color: #1f2937;
@@ -145,26 +145,26 @@
     margin-bottom: 0.5rem;
 }
 
-.stat-title {
+.storekeeper-dashboard-page .stat-title {
     font-size: 1rem;
     font-weight: 600;
     color: #6b7280;
     margin-bottom: 0.25rem;
 }
 
-.stat-subtitle {
+.storekeeper-dashboard-page .stat-subtitle {
     font-size: 0.85rem;
     color: #9ca3af;
 }
 
 /* Quick Actions */
-.actions-grid {
+.storekeeper-dashboard-page .actions-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.5rem;
 }
 
-.quick-action-card {
+.storekeeper-dashboard-page .quick-action-card {
     background: white;
     padding: 1.75rem;
     border-radius: 16px;
@@ -177,12 +177,12 @@
     cursor: pointer;
 }
 
-.quick-action-card:hover {
+.storekeeper-dashboard-page .quick-action-card:hover {
     transform: translateX(4px);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
-.action-icon {
+.storekeeper-dashboard-page .action-icon {
     width: 56px;
     height: 56px;
     border-radius: 12px;
@@ -193,41 +193,41 @@
     flex-shrink: 0;
 }
 
-.action-content {
+.storekeeper-dashboard-page .action-content {
     flex: 1;
 }
 
-.action-content h3 {
+.storekeeper-dashboard-page .action-content h3 {
     font-size: 1.1rem;
     font-weight: 700;
     color: #1f2937;
     margin: 0 0 0.5rem 0;
 }
 
-.action-content p {
+.storekeeper-dashboard-page .action-content p {
     font-size: 0.9rem;
     color: #6b7280;
     margin: 0;
 }
 
-.action-arrow {
+.storekeeper-dashboard-page .action-arrow {
     font-size: 1.5rem;
     font-weight: 700;
     transition: transform 0.3s ease;
 }
 
-.quick-action-card:hover .action-arrow {
+.storekeeper-dashboard-page .quick-action-card:hover .action-arrow {
     transform: translateX(4px);
 }
 
 /* Alerts */
-.alerts-grid {
+.storekeeper-dashboard-page .alerts-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 1.5rem;
 }
 
-.alert-card {
+.storekeeper-dashboard-page .alert-card {
     background: white;
     padding: 1.5rem;
     border-radius: 16px;
@@ -238,15 +238,15 @@
     border-left: 4px solid;
 }
 
-.alert-card.urgent {
+.storekeeper-dashboard-page .alert-card.urgent {
     border-left-color: #ef4444;
 }
 
-.alert-card.warning {
+.storekeeper-dashboard-page .alert-card.warning {
     border-left-color: #f59e0b;
 }
 
-.alert-icon {
+.storekeeper-dashboard-page .alert-icon {
     font-size: 2rem;
     width: 48px;
     height: 48px;
@@ -257,11 +257,11 @@
     flex-shrink: 0;
 }
 
-.alert-card.urgent .alert-icon {
+.storekeeper-dashboard-page .alert-card.urgent .alert-icon {
     background: rgba(239, 68, 68, 0.1);
 }
 
-.alert-card.warning .alert-icon {
+.storekeeper-dashboard-page .alert-card.warning .alert-icon {
     background: rgba(245, 158, 11, 0.1);
 }
 

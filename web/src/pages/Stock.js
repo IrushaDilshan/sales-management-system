@@ -413,29 +413,11 @@ const Stock = () => {
     });
 
     const StatCard = ({ icon, label, value, color }) => (
-        <div style={{
-            background: 'white',
-            padding: '1.5rem',
-            borderRadius: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '1.25rem',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
-            borderLeft: `6px solid ${color}`
-        }}>
-            <div style={{
-                fontSize: '2rem',
-                background: `${color}10`,
-                width: '50px',
-                height: '50px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: '12px'
-            }}>{icon}</div>
+        <div className="stat-card" style={{ borderLeft: `4px solid ${color}` }}>
+            <div className="stat-icon" style={{ color: color }}>{icon}</div>
             <div>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>{label}</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>{value}</div>
+                <div className="stat-label">{label}</div>
+                <div className="stat-value">{value}</div>
             </div>
         </div>
     );
@@ -471,13 +453,7 @@ const Stock = () => {
             </div>
 
             {/* Advanced Filters */}
-            <div style={{
-                backgroundColor: 'white',
-                padding: '1.5rem',
-                borderRadius: '16px',
-                marginBottom: '2rem',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
-            }}>
+            <div className="registry-filter-hub" style={{ marginBottom: '2rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
                 <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
                     <div style={{ flex: '1', minWidth: '300px' }}>
                         <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Search Inventory</label>
@@ -517,7 +493,7 @@ const Stock = () => {
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '2rem', marginTop: '1.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '1.5rem' }}>
+                <div style={{ display: 'flex', gap: '2rem', marginTop: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem' }}>
                     <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontWeight: '600', color: showExpiring ? '#f59e0b' : '#64748b' }}>
                         <input
                             type="checkbox"
@@ -547,10 +523,10 @@ const Stock = () => {
             ) : (
                 <div className="modern-table-container">
                     {filteredStocks.length === 0 ? (
-                        <div style={{ padding: '5rem', textAlign: 'center' }}>
+                        <div className="empty-state">
                             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔍</div>
-                            <h3 style={{ color: '#1e293b' }}>No matching inventory records</h3>
-                            <p style={{ color: '#64748b' }}>Refine your search parameters or add new stock entry.</p>
+                            <h3 style={{ color: '#f8fafc' }}>No matching inventory records</h3>
+                            <p style={{ color: '#94a3b8' }}>Refine your search parameters or add new stock entry.</p>
                         </div>
                     ) : (
                         <table className="modern-table">
@@ -569,16 +545,16 @@ const Stock = () => {
                                 {filteredStocks.map((stock) => (
                                     <tr key={stock.id}>
                                         <td>
-                                            <div style={{ fontWeight: '700', color: '#1e293b' }}>{stock.items?.name}</div>
+                                            <div style={{ fontWeight: '700', color: '#f8fafc' }}>{stock.items?.name}</div>
                                             {stock.items?.product_categories && (
-                                                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                                     {stock.items.product_categories.name}
                                                 </div>
                                             )}
                                         </td>
                                         <td>
                                             {stock.shops ? (
-                                                <span style={{ padding: '4px 10px', background: '#eff6ff', color: '#1d4ed8', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '700' }}>
+                                                <span style={{ padding: '4px 10px', background: 'rgba(37, 99, 235, 0.2)', color: '#60a5fa', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '700' }}>
                                                     {stock.shops.name}
                                                 </span>
                                             ) : (
@@ -587,13 +563,13 @@ const Stock = () => {
                                         </td>
                                         <td>
                                             {stock.batch_number ? (
-                                                <code style={{ background: '#f8fafc', padding: '4px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#475569' }}>
+                                                <code style={{ background: 'rgba(255,255,255,0.1)', padding: '4px 8px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1' }}>
                                                     {stock.batch_number}
                                                 </code>
                                             ) : '-'}
                                         </td>
                                         <td style={{ textAlign: 'right' }}>
-                                            <div style={{ fontWeight: '800', fontSize: '1.1rem', color: isLowStock(stock.quantity, stock.minimum_stock_level) ? '#ef4444' : '#10b981' }}>
+                                            <div style={{ fontWeight: '800', fontSize: '1.1rem', color: isLowStock(stock.quantity, stock.minimum_stock_level) ? '#f87171' : '#34d399' }}>
                                                 {stock.quantity}
                                                 <span style={{ fontSize: '0.75rem', marginLeft: '4px', fontWeight: '600', color: '#94a3b8' }}>{stock.items?.unit_of_measure}</span>
                                             </div>

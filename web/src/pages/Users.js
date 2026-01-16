@@ -163,11 +163,11 @@ const Users = () => {
     });
 
     const StatCard = ({ icon, label, value, color }) => (
-        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '1.25rem', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderLeft: `6px solid ${color}` }}>
-            <div style={{ fontSize: '2rem', background: `${color}10`, width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px' }}>{icon}</div>
+        <div className="stat-card" style={{ borderLeft: `4px solid ${color}` }}>
+            <div className="stat-icon" style={{ color: color }}>{icon}</div>
             <div>
-                <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>{label}</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#1e293b' }}>{value}</div>
+                <div className="stat-label">{label}</div>
+                <div className="stat-value">{value}</div>
             </div>
         </div>
     );
@@ -268,8 +268,8 @@ const Users = () => {
                         {filteredUsers.length === 0 ? (
                             <div style={{ textAlign: 'center', padding: '5rem' }}>
                                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👤</div>
-                                <h3 style={{ color: '#1e293b' }}>No personnel discovered</h3>
-                                <p style={{ color: '#64748b' }}>Try broadening your search parameters.</p>
+                                <h3 style={{ color: '#f8fafc' }}>No personnel discovered</h3>
+                                <p style={{ color: '#94a3b8' }}>Try broadening your search parameters.</p>
                             </div>
                         ) : (
                             <table className="modern-table">
@@ -289,7 +289,7 @@ const Users = () => {
                                                     <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#6366f110', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800' }}>
                                                         {user.name?.charAt(0)}
                                                     </div>
-                                                    <div style={{ fontWeight: '800', color: '#1e293b' }}>{user.name}</div>
+                                                    <div style={{ fontWeight: '800', color: '#f8fafc' }}>{user.name}</div>
                                                 </div>
                                             </td>
                                             <td>
@@ -336,32 +336,24 @@ const Users = () => {
                         </div>
 
                         {pendingUsers.length === 0 ? (
-                            <div style={{ textAlign: 'center', padding: '3rem', background: '#f8f9fa', borderRadius: '16px' }}>
+                            <div className="empty-state">
                                 <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>✅</div>
-                                <h3 style={{ color: '#1e293b' }}>All caught up!</h3>
-                                <p style={{ color: '#64748b' }}>There are no pending requests at this time.</p>
+                                <h3 style={{ color: '#f8fafc' }}>All caught up!</h3>
+                                <p style={{ color: '#94a3b8' }}>There are no pending requests at this time.</p>
                             </div>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                 {pendingUsers.map(user => (
-                                    <div key={user.id} style={{
-                                        padding: '1.5rem',
-                                        background: 'white',
-                                        border: '1px solid #e2e8f0',
-                                        borderRadius: '16px',
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center'
-                                    }}>
+                                    <div key={user.id} className="role-option-card" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', textAlign: 'left' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                            <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#f59e0b10', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '1.2rem' }}>
+                                            <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '1.2rem' }}>
                                                 {user.name?.charAt(0)}
                                             </div>
                                             <div>
-                                                <div style={{ fontWeight: '800', color: '#1e293b', fontSize: '1.1rem' }}>{user.name}</div>
-                                                <div style={{ color: '#64748b', fontSize: '0.9rem' }}>{user.email}</div>
-                                                {user.phone && <div style={{ color: '#059669', fontSize: '0.85rem', fontWeight: 'bold' }}>📞 {user.phone}</div>}
-                                                <div style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: '4px' }}>Requested: {new Date(user.created_at).toLocaleDateString()}</div>
+                                                <div style={{ fontWeight: '800', color: '#f8fafc', fontSize: '1.1rem' }}>{user.name}</div>
+                                                <div style={{ color: '#94a3b8', fontSize: '0.9rem' }}>{user.email}</div>
+                                                {user.phone && <div style={{ color: '#10b981', fontSize: '0.85rem', fontWeight: 'bold' }}>📞 {user.phone}</div>}
+                                                <div style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '4px' }}>Requested: {new Date(user.created_at).toLocaleDateString()}</div>
                                             </div>
                                         </div>
                                         <div style={{ display: 'flex', gap: '0.75rem' }}>

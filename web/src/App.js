@@ -145,14 +145,7 @@ function App() {
           {/* Storekeeper Routes (With Storekeeper Sidebar) */}
           <Route path="/storekeeper/dashboard" element={<StoreKeeperDashboard />} />
 
-          <Route path="/storekeeper/items" element={
-            <div className="storekeeper-layout">
-              <StoreKeeperSidebar />
-              <div className="storekeeper-content">
-                <Items />
-              </div>
-            </div>
-          } />
+
 
           <Route path="/storekeeper/stock" element={
             <div className="storekeeper-layout">

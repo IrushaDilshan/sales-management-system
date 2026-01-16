@@ -93,14 +93,14 @@
     border-radius: 4px;
 }
 
-.stats-grid {
+.dashboard-container .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 2rem;
     margin-bottom: 4rem;
 }
 
-.stat-card {
+.dashboard-container .stat-card {
     background: var(--surface);
     padding: 2rem;
     border-radius: var(--radius-md);
@@ -114,13 +114,13 @@
     overflow: hidden;
 }
 
-.stat-card:hover {
+.dashboard-container .stat-card:hover {
     transform: translateY(-8px);
     box-shadow: var(--shadow-md);
     border-color: var(--primary);
 }
 
-.stat-icon {
+.dashboard-container .stat-icon {
     width: 56px;
     height: 56px;
     border-radius: 12px;
@@ -131,11 +131,11 @@
     transition: transform 0.3s;
 }
 
-.stat-card:hover .stat-icon {
+.dashboard-container .stat-card:hover .stat-icon {
     transform: scale(1.1) rotate(5deg);
 }
 
-.stat-value {
+.dashboard-container .stat-value {
     font-size: 2.5rem;
     font-weight: 900;
     color: var(--text-dark);
@@ -143,7 +143,7 @@
     line-height: 1;
 }
 
-.stat-title {
+.dashboard-container .stat-title {
     font-size: 0.9rem;
     font-weight: 700;
     color: var(--text-muted);
@@ -151,7 +151,7 @@
     letter-spacing: 0.05em;
 }
 
-.stat-footer {
+.dashboard-container .stat-footer {
     font-size: 0.85rem;
     font-weight: 600;
     display: flex;
@@ -268,13 +268,13 @@
 }
 
 /* Quick Actions */
-.actions-grid {
+.dashboard-container .actions-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 1.5rem;
 }
 
-.quick-action-card {
+.dashboard-container .quick-action-card {
     background: var(--surface);
     padding: 1.5rem 2rem;
     border-radius: var(--radius-md);
@@ -286,19 +286,19 @@
     transition: all 0.2s;
 }
 
-.quick-action-card:hover {
+.dashboard-container .quick-action-card:hover {
     background: var(--text-dark);
     border-color: var(--text-dark);
     transform: scale(1.02);
 }
 
-.quick-action-card:hover h3,
-.quick-action-card:hover p,
-.quick-action-card:hover .action-arrow {
+.dashboard-container .quick-action-card:hover h3,
+.dashboard-container .quick-action-card:hover p,
+.dashboard-container .quick-action-card:hover .action-arrow {
     color: white !important;
 }
 
-.action-icon {
+.dashboard-container .action-icon {
     width: 50px;
     height: 50px;
     border-radius: 10px;
@@ -308,24 +308,24 @@
     font-size: 1.5rem;
 }
 
-.action-content h3 {
+.dashboard-container .action-content h3 {
     font-size: 1.1rem;
     font-weight: 800;
     margin-bottom: 4px;
 }
 
-.action-content p {
+.dashboard-container .action-content p {
     font-size: 0.9rem;
     color: var(--text-muted);
 }
 
-.action-arrow {
+.dashboard-container .action-arrow {
     margin-left: auto;
     font-weight: 900;
     transition: transform 0.3s;
 }
 
-.quick-action-card:hover .action-arrow {
+.dashboard-container .quick-action-card:hover .action-arrow {
     transform: translateX(8px);
 }
 

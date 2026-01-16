@@ -194,11 +194,11 @@ const Shops = () => {
     });
 
     const StatCard = ({ icon, label, value, color }) => (
-        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '1.25rem', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderLeft: `6px solid ${color}` }}>
-            <div style={{ fontSize: '2rem', background: `${color}10`, width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px' }}>{icon}</div>
+        <div className="stat-card" style={{ borderLeft: `4px solid ${color}` }}>
+            <div className="stat-icon" style={{ color: color }}>{icon}</div>
             <div>
-                <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>{label}</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#1e293b' }}>{value}</div>
+                <div className="stat-label">{label}</div>
+                <div className="stat-value">{value}</div>
             </div>
         </div>
     );
@@ -222,7 +222,7 @@ const Shops = () => {
                 <StatCard icon="❓" label="Route Unassigned" value={stats.unassigned} color="#f43f5e" />
             </div>
 
-            <div style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', marginBottom: '2rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div className="registry-filter-hub" style={{ marginBottom: '2rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
                 <div style={{ flex: '1', minWidth: '300px' }}>
                     <label className="form-label" style={{ fontSize: '0.8rem' }}>Network Search</label>
                     <input type="text" className="form-control" placeholder="Identify by shop name, route, or assigned staff..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
@@ -247,8 +247,8 @@ const Shops = () => {
                     {filteredShops.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '5rem' }}>
                             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔦</div>
-                            <h3 style={{ color: '#1e293b' }}>No matching outlets</h3>
-                            <p style={{ color: '#64748b' }}>Try broadening your search or adjusting the route filter.</p>
+                            <h3 style={{ color: '#f8fafc' }}>No matching outlets</h3>
+                            <p style={{ color: '#94a3b8' }}>Try broadening your search or adjusting the route filter.</p>
                         </div>
                     ) : (
                         <table className="modern-table">
@@ -264,7 +264,7 @@ const Shops = () => {
                             <tbody>
                                 {filteredShops.map(shop => (
                                     <tr key={shop.id}>
-                                        <td><strong style={{ fontSize: '1.05rem', color: '#1e293b' }}>{shop.name}</strong></td>
+                                        <td><strong style={{ fontSize: '1.05rem', color: '#f8fafc' }}>{shop.name}</strong></td>
                                         <td>{shop.route ? <span style={{ padding: '4px 10px', background: '#f5f3ff', color: '#6d28d9', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '800' }}>🛣️ {shop.route.name}</span> : <span style={{ color: '#cbd5e1', fontStyle: 'italic' }}>Unmapped</span>}</td>
                                         <td>
                                             {shop.salesman ? (
@@ -337,7 +337,7 @@ const Shops = () => {
                                                 onChange={handleInputChange}
                                                 style={{ width: '1rem', height: '1rem', cursor: 'pointer' }}
                                             />
-                                            <label htmlFor="isOwner" style={{ fontSize: '0.85rem', color: '#1e293b', cursor: 'pointer', fontWeight: '600' }}>
+                                            <label htmlFor="isOwner" style={{ fontSize: '0.85rem', color: '#f8fafc', cursor: 'pointer', fontWeight: '600' }}>
                                                 Grant 'Shop Owner' Status 👑
                                             </label>
                                         </div>

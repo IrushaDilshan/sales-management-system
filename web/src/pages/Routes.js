@@ -122,11 +122,11 @@ export default function Routes() {
     };
 
     const StatCard = ({ icon, label, value, color }) => (
-        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '1.25rem', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderLeft: `6px solid ${color}` }}>
-            <div style={{ fontSize: '2rem', background: `${color}10`, width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px' }}>{icon}</div>
+        <div className="stat-card" style={{ borderLeft: `4px solid ${color}` }}>
+            <div className="stat-icon" style={{ color: color }}>{icon}</div>
             <div>
-                <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>{label}</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#1e293b' }}>{value}</div>
+                <div className="stat-label">{label}</div>
+                <div className="stat-value">{value}</div>
             </div>
         </div>
     );
@@ -158,20 +158,18 @@ export default function Routes() {
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
                     {routes.length === 0 ? (
-                        <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '5rem', background: 'white', borderRadius: '24px' }}>
+                        <div className="empty-state" style={{ gridColumn: '1/-1' }}>
                             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📍</div>
-                            <h3 style={{ color: '#1e293b' }}>No logistical routes defined</h3>
-                            <p style={{ color: '#64748b' }}>Initialize your first distribution vector to begin network mapping.</p>
+                            <h3 style={{ color: '#f8fafc' }}>No logistical routes defined</h3>
+                            <p style={{ color: '#94a3b8' }}>Initialize your first distribution vector to begin network mapping.</p>
                         </div>
                     ) : (
                         routes.map(route => (
                             <div key={route.id}
+                                className="role-option-card"
                                 style={{
-                                    background: 'white',
                                     borderRadius: '24px',
                                     padding: '0',
-                                    boxShadow: '0 10px 30px rgba(0,0,0,0.05)',
-                                    border: '1px solid #f1f5f9',
                                     display: 'flex',
                                     flexDirection: 'column',
                                     overflow: 'hidden',
@@ -181,36 +179,36 @@ export default function Routes() {
                                 }}
                                 onMouseEnter={e => {
                                     e.currentTarget.style.transform = 'translateY(-5px)';
-                                    e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.1)';
+                                    e.currentTarget.style.borderColor = '#38bdf8';
                                 }}
                                 onMouseLeave={e => {
                                     e.currentTarget.style.transform = 'none';
-                                    e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,0.05)';
+                                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
                                 }}
                             >
                                 {/* Header */}
                                 <div style={{
-                                    background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                                    background: 'rgba(255,255,255,0.03)',
                                     padding: '1.5rem',
-                                    borderBottom: '1px solid #e2e8f0',
+                                    borderBottom: '1px solid rgba(255,255,255,0.05)',
                                     display: 'flex',
                                     justifyContent: 'space-between',
                                     alignItems: 'center'
                                 }}>
                                     <div>
-                                        <div style={{ fontSize: '0.75rem', fontWeight: '800', color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.25rem' }}>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: '800', color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.25rem' }}>
                                             LOGISTICS ROUTE
                                         </div>
-                                        <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: '900', color: '#1e293b' }}>{route.name}</h3>
+                                        <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: '900', color: '#f8fafc' }}>{route.name}</h3>
                                     </div>
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                                         <button
                                             onClick={() => handleOpenModal(route)}
                                             style={{
-                                                background: 'white', border: '1px solid #e2e8f0', width: '36px', height: '36px',
+                                                background: 'rgba(255,255,255,0.1)', border: 'none', width: '36px', height: '36px',
                                                 borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center',
                                                 justifyContent: 'center', transition: '0.2s', fontSize: '1rem',
-                                                boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
+                                                color: '#f8fafc'
                                             }}
                                             title="Edit Route"
                                         >
@@ -219,10 +217,10 @@ export default function Routes() {
                                         <button
                                             onClick={() => handleDelete(route.id)}
                                             style={{
-                                                background: '#fff1f2', border: '1px solid #ffe4e6', width: '36px', height: '36px',
+                                                background: 'rgba(244, 63, 94, 0.1)', border: '1px solid rgba(244, 63, 94, 0.2)', width: '36px', height: '36px',
                                                 borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center',
                                                 justifyContent: 'center', transition: '0.2s', fontSize: '1rem',
-                                                boxShadow: '0 2px 5px rgba(244, 63, 94, 0.1)'
+                                                color: '#f87171'
                                             }}
                                             title="Delete Route"
                                         >
@@ -236,27 +234,27 @@ export default function Routes() {
                                     {/* Stats Grid */}
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                         {/* Rep Info */}
-                                        <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
+                                        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
                                             <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Field Agent</div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                                 <div style={{
                                                     width: '36px', height: '36px', borderRadius: '12px',
-                                                    background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-                                                    color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    fontWeight: '800', fontSize: '0.9rem', boxShadow: '0 4px 12px rgba(99, 102, 241, 0.2)'
+                                                    background: 'rgba(99, 102, 241, 0.2)',
+                                                    color: '#818cf8', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    fontWeight: '800', fontSize: '0.9rem'
                                                 }}>
                                                     {route.repName?.charAt(0)}
                                                 </div>
-                                                <div style={{ fontWeight: '700', color: '#334155', fontSize: '0.95rem' }}>{route.repName}</div>
+                                                <div style={{ fontWeight: '700', color: '#f8fafc', fontSize: '0.95rem' }}>{route.repName}</div>
                                             </div>
                                         </div>
 
                                         {/* Depot Count */}
-                                        <div style={{ background: '#f0fdf4', padding: '1rem', borderRadius: '16px', border: '1px solid #dcfce7' }}>
-                                            <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#166534', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Active Depots</div>
-                                            <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#15803d' }}>
+                                        <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '1rem', borderRadius: '16px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                                            <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#34d399', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Active Depots</div>
+                                            <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#34d399' }}>
                                                 {route.shopCount}
-                                                <span style={{ fontSize: '0.8rem', marginLeft: '4px', opacity: 0.7, fontWeight: '700' }}>UNITS</span>
+                                                <span style={{ fontSize: '0.8rem', marginLeft: '4px', opacity: 0.7, fontWeight: '700', color: '#6ee7b7' }}>UNITS</span>
                                             </div>
                                         </div>
                                     </div>
@@ -272,17 +270,17 @@ export default function Routes() {
                                                 <>
                                                     {route.shops.slice(0, 6).map(shop => (
                                                         <span key={shop.id} style={{
-                                                            padding: '6px 10px', background: 'white', border: '1px solid #e2e8f0',
-                                                            color: '#475569', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '600',
-                                                            boxShadow: '0 2px 4px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', gap: '6px'
+                                                            padding: '6px 10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                                                            color: '#cbd5e1', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '600',
+                                                            display: 'flex', alignItems: 'center', gap: '6px'
                                                         }}>
-                                                            <span style={{ color: '#10b981', fontSize: '0.6rem' }}>●</span> {shop.name}
+                                                            <span style={{ color: '#34d399', fontSize: '0.6rem' }}>●</span> {shop.name}
                                                         </span>
                                                     ))}
                                                     {route.shops.length > 6 && (
                                                         <span style={{
-                                                            padding: '6px 10px', background: '#f8fafc', border: '1px solid #e2e8f0',
-                                                            color: '#64748b', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700',
+                                                            padding: '6px 10px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+                                                            color: '#f8fafc', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700',
                                                             cursor: 'help'
                                                         }} title={`+ ${route.shops.slice(6).map(s => s.name).join(', ')}`}>
                                                             +{route.shops.length - 6} More
@@ -291,8 +289,8 @@ export default function Routes() {
                                                 </>
                                             ) : (
                                                 <div style={{
-                                                    width: '100%', padding: '1rem', border: '2px dashed #e2e8f0', borderRadius: '12px',
-                                                    textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem', background: '#f8fafc'
+                                                    width: '100%', padding: '1rem', border: '2px dashed rgba(255,255,255,0.1)', borderRadius: '12px',
+                                                    textAlign: 'center', color: '#64748b', fontSize: '0.8rem', background: 'rgba(0,0,0,0.2)'
                                                 }}>
                                                     No outlets mapped to this vector
                                                 </div>
@@ -331,13 +329,13 @@ export default function Routes() {
 
                             <div className="form-group" style={{ marginBottom: '2rem' }}>
                                 <label className="form-label">Cluster Outlets (Select to Map)</label>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', padding: '1rem', background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto', padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
                                     {shops.map(shop => (
-                                        <label key={shop.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: formData.selectedShops.includes(shop.id) ? '#6366f110' : 'white', border: `1px solid ${formData.selectedShops.includes(shop.id) ? '#6366f1' : '#e2e8f0'}`, borderRadius: '12px', cursor: 'pointer', transition: '0.2s' }}>
-                                            <input type="checkbox" checked={formData.selectedShops.includes(shop.id)} onChange={() => handleShopToggle(shop.id)} style={{ width: '18px', height: '18px' }} />
+                                        <label key={shop.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: formData.selectedShops.includes(shop.id) ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${formData.selectedShops.includes(shop.id) ? '#38bdf8' : 'rgba(255,255,255,0.1)'}`, borderRadius: '12px', cursor: 'pointer', transition: '0.2s' }}>
+                                            <input type="checkbox" checked={formData.selectedShops.includes(shop.id)} onChange={() => handleShopToggle(shop.id)} style={{ width: '18px', height: '18px', accentColor: '#38bdf8' }} />
                                             <div>
-                                                <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#1e293b' }}>{shop.name}</div>
-                                                {shop.route_id && shop.route_id !== formData.id && <div style={{ fontSize: '0.65rem', color: '#f43f5e', fontWeight: '700' }}>ALREADY MAPPED</div>}
+                                                <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#f8fafc' }}>{shop.name}</div>
+                                                {shop.route_id && shop.route_id !== formData.id && <div style={{ fontSize: '0.65rem', color: '#f87171', fontWeight: '700' }}>ALREADY MAPPED</div>}
                                             </div>
                                         </label>
                                     ))}

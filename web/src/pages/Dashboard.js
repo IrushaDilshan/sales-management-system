@@ -227,18 +227,25 @@ const Dashboard = () => {
                             <AreaChart data={revenueData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                 <defs>
                                     <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
-                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                        <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#38bdf8" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
-                                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} tickFormatter={(val) => `${val / 1000}k`} />
+                                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8' }} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8' }} tickFormatter={(val) => `${val / 1000}k`} />
                                 <Tooltip
-                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                    contentStyle={{
+                                        backgroundColor: '#1e293b',
+                                        borderRadius: '12px',
+                                        border: '1px solid #334155',
+                                        color: '#f8fafc',
+                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)'
+                                    }}
+                                    itemStyle={{ color: '#38bdf8' }}
                                     formatter={(value) => `LKR ${value.toLocaleString()}`}
                                 />
-                                <CartesianGrid vertical={false} stroke="#f1f5f9" />
-                                <Area type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                                <CartesianGrid vertical={false} stroke="#334155" strokeDasharray="3 3" />
+                                <Area type="monotone" dataKey="revenue" stroke="#38bdf8" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
@@ -260,16 +267,24 @@ const Dashboard = () => {
                                     dataKey="value"
                                 >
                                     {categoryData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                        <Cell key={`cell-${index}`} fill={['#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ef4444'][index % 5]} stroke="rgba(0,0,0,0)" />
                                     ))}
                                 </Pie>
-                                <Tooltip formatter={(value) => `LKR ${value.toLocaleString()}`} />
-                                <Legend verticalAlign="bottom" height={36} />
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: '#1e293b',
+                                        borderRadius: '8px',
+                                        border: '1px solid #334155',
+                                        color: '#fff'
+                                    }}
+                                    formatter={(value) => `LKR ${value.toLocaleString()}`}
+                                />
+                                <Legend verticalAlign="bottom" height={36} wrapperStyle={{ color: '#94a3b8' }} />
                             </PieChart>
                         </ResponsiveContainer>
                         <div className="donut-stat">
-                            <span className="donut-num">{categoryData.length}</span>
-                            <span className="donut-label">Leaders</span>
+                            <span className="donut-num" style={{ color: '#f8fafc' }}>{categoryData.length}</span>
+                            <span className="donut-label" style={{ color: '#94a3b8' }}>Leaders</span>
                         </div>
                     </div>
                 </div>
@@ -294,14 +309,14 @@ const Dashboard = () => {
                                 <tr key={index}>
                                     <td>
                                         <div className="user-cell">
-                                            <div className="user-avatar" style={{ background: ['#eff6ff', '#f5f3ff', '#ecfdf5', '#fffbeb'][index % 4] || '#f1f5f9' }}>
+                                            <div className="user-avatar" style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa' }}>
                                                 {shop.name.charAt(0)}
                                             </div>
-                                            <span className="user-name">{shop.name}</span>
+                                            <span className="user-name" style={{ color: '#f8fafc' }}>{shop.name}</span>
                                         </div>
                                     </td>
                                     <td>
-                                        <div style={{ width: '100px', background: '#f1f5f9', borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
+                                        <div style={{ width: '100px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
                                             <div style={{
                                                 width: `${(shop.revenue / (topEntities[0]?.revenue || 1)) * 100}%`,
                                                 background: '#3b82f6',

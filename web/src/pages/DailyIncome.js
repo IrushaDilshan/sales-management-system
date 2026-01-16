@@ -102,17 +102,7 @@ export default function DailyIncome() {
             </div>
 
             {/* Filters Section */}
-            <div className="filters-container" style={{
-                backgroundColor: 'white',
-                padding: '2rem',
-                borderRadius: '16px',
-                marginBottom: '2rem',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '1.5rem',
-                alignItems: 'end'
-            }}>
+            <div className="filters-container">
                 <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label">Filter by Retail Center</label>
                     <select
@@ -158,7 +148,7 @@ export default function DailyIncome() {
                 marginBottom: '2rem'
             }}>
                 <div className="summary-stat-card" style={{ borderLeft: '6px solid #6366f1' }}>
-                    <div className="stat-icon-mini">💰</div>
+                    <div className="stat-icon-mini" style={{ background: 'rgba(99, 102, 241, 0.1)' }}>💰</div>
                     <div className="stat-details">
                         <span className="stat-label">Total Revenue</span>
                         <h2 className="stat-value-text">{formatCurrency(getTotalSales())}</h2>
@@ -166,7 +156,7 @@ export default function DailyIncome() {
                 </div>
 
                 <div className="summary-stat-card" style={{ borderLeft: '6px solid #10b981' }}>
-                    <div className="stat-icon-mini">💵</div>
+                    <div className="stat-icon-mini" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>💵</div>
                     <div className="stat-details">
                         <span className="stat-label">Cash Collected</span>
                         <h2 className="stat-value-text" style={{ color: '#10b981' }}>{formatCurrency(getTotalCash())}</h2>
@@ -174,7 +164,7 @@ export default function DailyIncome() {
                 </div>
 
                 <div className="summary-stat-card" style={{ borderLeft: '6px solid #f59e0b' }}>
-                    <div className="stat-icon-mini">💳</div>
+                    <div className="stat-icon-mini" style={{ background: 'rgba(245, 158, 11, 0.1)' }}>💳</div>
                     <div className="stat-details">
                         <span className="stat-label">Credit Sales</span>
                         <h2 className="stat-value-text" style={{ color: '#f59e0b' }}>{formatCurrency(getTotalCredit())}</h2>
@@ -187,7 +177,7 @@ export default function DailyIncome() {
                 {loading ? (
                     <div style={{ padding: '4rem', textAlign: 'center' }}>
                         <div className="loading-spinner" style={{ margin: '0 auto' }}></div>
-                        <p style={{ marginTop: '1.5rem', color: '#64748b' }}>Generating financial insights...</p>
+                        <p style={{ marginTop: '1.5rem', color: 'var(--text-secondary)' }}>Generating financial insights...</p>
                     </div>
                 ) : (
                     <table className="modern-table">
@@ -204,30 +194,31 @@ export default function DailyIncome() {
                         <tbody>
                             {incomeData.length === 0 ? (
                                 <tr>
-                                    <td colSpan="6" style={{ textAlign: 'center', padding: '4rem', color: '#94a3b8' }}>
+                                    <td colSpan="6" style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-secondary)' }}>
                                         No financial records found for the selected period
                                     </td>
                                 </tr>
                             ) : (
                                 incomeData.map((item) => (
                                     <tr key={item.id}>
-                                        <td style={{ fontWeight: '600' }}>{new Date(item.date).toLocaleDateString(undefined, { dateStyle: 'medium' })}</td>
+                                        <td style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{new Date(item.date).toLocaleDateString(undefined, { dateStyle: 'medium' })}</td>
                                         <td>
                                             <span style={{
                                                 padding: '4px 10px',
-                                                background: '#f1f5f9',
+                                                background: 'rgba(255, 255, 255, 0.05)',
                                                 borderRadius: '6px',
                                                 fontSize: '0.85rem',
                                                 fontWeight: '600',
-                                                color: '#475569'
+                                                color: 'var(--text-secondary)',
+                                                border: '1px solid rgba(255, 255, 255, 0.05)'
                                             }}>
                                                 {item.shops?.name || 'Unknown'}
                                             </span>
                                         </td>
-                                        <td style={{ textAlign: 'right', fontWeight: '700' }}>{formatCurrency(item.total_sales)}</td>
+                                        <td style={{ textAlign: 'right', fontWeight: '700', color: 'var(--text-primary)' }}>{formatCurrency(item.total_sales)}</td>
                                         <td style={{ textAlign: 'right', color: '#10b981', fontWeight: '600' }}>{formatCurrency(item.cash_sales)}</td>
                                         <td style={{ textAlign: 'right', color: '#f59e0b', fontWeight: '600' }}>{formatCurrency(item.credit_sales)}</td>
-                                        <td style={{ fontSize: '0.9rem', color: '#64748b', fontStyle: 'italic' }}>{item.notes || 'No remarks'}</td>
+                                        <td style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>{item.notes || 'No remarks'}</td>
                                     </tr>
                                 ))
                             )}
@@ -237,8 +228,22 @@ export default function DailyIncome() {
             </div>
 
             <style>{`
+                .filters-container {
+                    background: var(--card-bg);
+                    backdrop-filter: blur(16px);
+                    padding: 2rem;
+                    border-radius: 16px;
+                    margin-bottom: 2rem;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                    gap: 1.5rem;
+                    align-items: end;
+                    border: 1px solid rgba(255,255,255,0.05);
+                }
                 .summary-stat-card {
-                    background: white;
+                    background: var(--card-bg);
+                    backdrop-filter: blur(16px);
                     padding: 1.5rem;
                     border-radius: 16px;
                     display: flex;
@@ -246,14 +251,14 @@ export default function DailyIncome() {
                     gap: 1.25rem;
                     box-shadow: 0 4px 12px rgba(0,0,0,0.03);
                     transition: transform 0.2s;
+                    border: 1px solid rgba(255,255,255,0.05);
                 }
                 .summary-stat-card:hover {
-                    transform: translateY(-4px);
-                    box-shadow: 0 10px 20px rgba(0,0,0,0.06);
+                    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+                    transform: translateY(-5px);
                 }
                 .stat-icon-mini {
                     font-size: 2rem;
-                    background: #f8fafc;
                     width: 50px;
                     height: 50px;
                     display: flex;
@@ -268,7 +273,7 @@ export default function DailyIncome() {
                 .stat-label {
                     font-size: 0.85rem;
                     font-weight: 700;
-                    color: #64748b;
+                    color: var(--text-secondary);
                     text-transform: uppercase;
                     letter-spacing: 0.05em;
                 }
@@ -276,7 +281,7 @@ export default function DailyIncome() {
                     font-size: 1.5rem;
                     font-weight: 800;
                     margin: 0;
-                    color: #1e293b;
+                    color: var(--text-primary);
                 }
                 @media print {
                     .page-header button, .filters-container {
@@ -284,10 +289,28 @@ export default function DailyIncome() {
                     }
                     .page-container {
                         padding: 0;
+                        background: white;
+                        color: black;
                     }
                     .summary-stat-card {
                         box-shadow: none;
                         border: 1px solid #e2e8f0;
+                        background: white;
+                        color: black;
+                    }
+                    .stat-value-text, .stat-label {
+                        color: black;
+                    }
+                    .modern-table {
+                        color: black;
+                    }
+                    .modern-table th {
+                        color: black;
+                        border-bottom: 1px solid #000;
+                    }
+                    .modern-table td {
+                        color: black;
+                        border-bottom: 1px solid #e2e8f0;
                     }
                 }
             `}</style>

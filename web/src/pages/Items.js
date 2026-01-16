@@ -220,29 +220,11 @@ const Items = () => {
     });
 
     const StatCard = ({ icon, label, value, color, suffix }) => (
-        <div style={{
-            background: 'white',
-            padding: '1.5rem',
-            borderRadius: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '1.25rem',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
-            borderLeft: `6px solid ${color}`
-        }}>
-            <div style={{
-                fontSize: '2rem',
-                background: `${color}10`,
-                width: '50px',
-                height: '50px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: '12px'
-            }}>{icon}</div>
+        <div className="stat-card" style={{ borderLeft: `4px solid ${color}` }}>
+            <div className="stat-icon" style={{ color: color }}>{icon}</div>
             <div>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>{label}</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>
+                <div className="stat-label">{label}</div>
+                <div className="stat-value">
                     {value} {suffix}
                 </div>
             </div>
@@ -275,12 +257,9 @@ const Items = () => {
             </div>
 
             {/* Advanced Filters */}
-            <div style={{
-                backgroundColor: 'white',
-                padding: '1.5rem',
-                borderRadius: '16px',
+            {/* Advanced Filters */}
+            <div className="registry-filter-hub" style={{
                 marginBottom: '2rem',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
                 display: 'flex',
                 gap: '1.5rem',
                 flexWrap: 'wrap',
@@ -319,10 +298,10 @@ const Items = () => {
             ) : (
                 <div className="modern-table-container">
                     {filteredItems.length === 0 ? (
-                        <div style={{ padding: '5rem', textAlign: 'center' }}>
+                        <div className="empty-state">
                             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📦</div>
-                            <h3 style={{ color: '#1e293b' }}>No products found in catalog</h3>
-                            <p style={{ color: '#64748b' }}>Try adjusting filters or register a new SKU.</p>
+                            <h3 style={{ color: '#f8fafc' }}>No products found in catalog</h3>
+                            <p style={{ color: '#94a3b8' }}>Try adjusting filters or register a new SKU.</p>
                         </div>
                     ) : (
                         <table className="modern-table">
@@ -349,7 +328,7 @@ const Items = () => {
                                                     style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', float: 'left', marginRight: '10px' }}
                                                 />
                                             )}
-                                            <div style={{ fontWeight: '700', color: '#1e293b' }}>{item.name}</div>
+                                            <div style={{ fontWeight: '700', color: '#f8fafc' }}>{item.name}</div>
                                             {item.description && (
                                                 <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                     {item.description}
@@ -406,12 +385,12 @@ const Items = () => {
                         <div className="modal-content animate-fade" style={{ maxWidth: '800px', width: '90%', borderRadius: '24px', padding: '2.5rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                                 <div>
-                                    <h2 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '800', color: '#1e293b' }}>
+                                    <h2 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '800', color: '#f8fafc' }}>
                                         {formData.id ? 'Edit Product' : 'Add New Product'}
                                     </h2>
                                     <p style={{ margin: '5px 0 0 0', color: '#64748b' }}>Manage catalog details and pricing.</p>
                                 </div>
-                                <button onClick={handleCloseModal} style={{ background: '#f1f5f9', border: 'none', width: '40px', height: '40px', borderRadius: '50%', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                                <button onClick={handleCloseModal} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', width: '40px', height: '40px', borderRadius: '50%', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
                             </div>
 
                             {error && <div style={{ background: '#fee2e2', color: '#ef4444', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', fontWeight: '600', fontSize: '0.9rem', border: '1px solid #fecaca' }}>{error}</div>}
@@ -533,16 +512,15 @@ const Items = () => {
                                             <textarea className="form-control" name="description" value={formData.description} onChange={handleInputChange} rows="3" placeholder="Brief details regarding the product specifications..." style={{ resize: 'none' }} />
                                         </div>
 
-                                        {/* Price Card */}
-                                        <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', gap: '2rem', alignItems: 'center' }}>
+                                        <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', gap: '2rem', alignItems: 'center' }}>
                                             <div className="form-group" style={{ flex: 1 }}>
-                                                <label className="form-label" style={{ color: '#6366f1' }}>Retail Price (Rs.)</label>
-                                                <input type="number" className="form-control" name="retail_price" value={formData.retail_price} onChange={handleInputChange} step="0.01" min="0" placeholder="0.00" style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b', border: 'none', background: 'transparent', padding: '0' }} />
+                                                <label className="form-label" style={{ color: '#38bdf8' }}>Retail Price (Rs.)</label>
+                                                <input type="number" className="form-control" name="retail_price" value={formData.retail_price} onChange={handleInputChange} step="0.01" min="0" placeholder="0.00" style={{ fontSize: '1.5rem', fontWeight: '800', color: '#f8fafc', border: 'none', background: 'transparent', padding: '0' }} />
                                             </div>
-                                            <div style={{ width: '1px', height: '40px', background: '#cbd5e1' }}></div>
+                                            <div style={{ width: '1px', height: '40px', background: 'rgba(255,255,255,0.1)' }}></div>
                                             <div className="form-group" style={{ flex: 1 }}>
                                                 <label className="form-label">Wholesale (Rs.)</label>
-                                                <input type="number" className="form-control" name="wholesale_price" value={formData.wholesale_price} onChange={handleInputChange} step="0.01" min="0" placeholder="0.00" style={{ fontSize: '1.1rem', fontWeight: '600', border: 'none', background: 'transparent', padding: '0', color: '#64748b' }} />
+                                                <input type="number" className="form-control" name="wholesale_price" value={formData.wholesale_price} onChange={handleInputChange} step="0.01" min="0" placeholder="0.00" style={{ fontSize: '1.1rem', fontWeight: '600', border: 'none', background: 'transparent', padding: '0', color: '#94a3b8' }} />
                                             </div>
                                         </div>
                                     </div>

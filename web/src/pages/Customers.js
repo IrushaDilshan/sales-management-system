@@ -209,29 +209,11 @@ const Customers = () => {
     };
 
     const StatCard = ({ icon, label, value, color, suffix }) => (
-        <div style={{
-            background: 'white',
-            padding: '1.5rem',
-            borderRadius: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '1.25rem',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
-            borderLeft: `6px solid ${color}`
-        }}>
-            <div style={{
-                fontSize: '2rem',
-                background: `${color}10`,
-                width: '50px',
-                height: '50px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: '12px'
-            }}>{icon}</div>
+        <div className="stat-card" style={{ borderLeft: `4px solid ${color}` }}>
+            <div className="stat-icon" style={{ color: color }}>{icon}</div>
             <div>
-                <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>{label}</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>
+                <div className="stat-label">{label}</div>
+                <div className="stat-value">
                     {suffix} {value}
                 </div>
             </div>
@@ -264,12 +246,8 @@ const Customers = () => {
             </div>
 
             {/* Filter Card */}
-            <div style={{
-                backgroundColor: 'white',
-                padding: '1.5rem',
-                borderRadius: '16px',
+            <div className="registry-filter-hub" style={{
                 marginBottom: '2rem',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
                 display: 'flex',
                 gap: '1.5rem',
                 flexWrap: 'wrap',
@@ -309,10 +287,10 @@ const Customers = () => {
             ) : (
                 <div className="modern-table-container">
                     {filteredCustomers.length === 0 ? (
-                        <div style={{ padding: '5rem', textAlign: 'center' }}>
+                        <div className="empty-state">
                             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔎</div>
-                            <h3 style={{ color: '#1e293b' }}>No entities found</h3>
-                            <p style={{ color: '#64748b' }}>Try different search terms or register a new entity.</p>
+                            <h3 style={{ color: '#f8fafc' }}>No entities found</h3>
+                            <p style={{ color: '#94a3b8' }}>Try different search terms or register a new entity.</p>
                         </div>
                     ) : (
                         <table className="modern-table">
@@ -331,9 +309,9 @@ const Customers = () => {
                                 {filteredCustomers.map((customer) => (
                                     <tr key={customer.id}>
                                         <td>
-                                            <div style={{ fontWeight: '700', color: '#1e293b' }}>{customer.name}</div>
+                                            <div style={{ fontWeight: '700', color: '#f8fafc' }}>{customer.name}</div>
                                             {customer.city && (
-                                                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                                                <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>
                                                     📍 {customer.city}
                                                 </div>
                                             )}
@@ -345,13 +323,13 @@ const Customers = () => {
                                                 fontSize: '0.75rem',
                                                 fontWeight: '700',
                                                 backgroundColor:
-                                                    customer.customer_type === 'individual' ? '#eff6ff' :
-                                                        customer.customer_type === 'retailer' ? '#ecfdf5' :
-                                                            customer.customer_type === 'government' ? '#fffbeb' : '#f5f3ff',
+                                                    customer.customer_type === 'individual' ? 'rgba(59, 130, 246, 0.2)' :
+                                                        customer.customer_type === 'retailer' ? 'rgba(16, 185, 129, 0.2)' :
+                                                            customer.customer_type === 'government' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(139, 92, 246, 0.2)',
                                                 color:
-                                                    customer.customer_type === 'individual' ? '#1d4ed8' :
-                                                        customer.customer_type === 'retailer' ? '#059669' :
-                                                            customer.customer_type === 'government' ? '#b45309' : '#6d28d9',
+                                                    customer.customer_type === 'individual' ? '#60a5fa' :
+                                                        customer.customer_type === 'retailer' ? '#34d399' :
+                                                            customer.customer_type === 'government' ? '#fbbf24' : '#a78bfa',
                                             }}>
                                                 {getCustomerTypeLabel(customer.customer_type)}
                                             </span>
@@ -372,11 +350,11 @@ const Customers = () => {
                                         </td>
                                         <td style={{ textAlign: 'right' }}>
                                             {customer.outstanding_balance > 0 ? (
-                                                <div style={{ fontWeight: '800', color: '#ef4444' }}>
+                                                <div style={{ fontWeight: '800', color: '#f87171' }}>
                                                     Rs. {parseFloat(customer.outstanding_balance).toLocaleString()}
                                                 </div>
                                             ) : (
-                                                <span style={{ color: '#10b981', fontWeight: '700' }}>CLEAR</span>
+                                                <span style={{ color: '#34d399', fontWeight: '700' }}>CLEAR</span>
                                             )}
                                         </td>
                                         <td style={{ textAlign: 'center' }}>
@@ -450,8 +428,8 @@ const Customers = () => {
                                 <textarea className="form-control" name="address" value={formData.address} onChange={handleInputChange} rows="2" placeholder="Complete mailing address" />
                             </div>
 
-                            <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', marginBottom: '1.5rem', border: '1px solid #e2e8f0' }}>
-                                <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Financial Governance</h4>
+                            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '16px', marginBottom: '1.5rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Financial Governance</h4>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                                     <div className="form-group">
                                         <label className="form-label">Credit Authorization (Rs.)</label>
