@@ -36,7 +36,10 @@ const Login = () => {
             }
 
             if (!userData || userData.length === 0) {
-                throw new Error('User not found in database. Please contact administrator to complete your account setup.');
+                console.error('MISMATCH DEBUG:');
+                console.error('Auth User ID (from login):', data.user.id);
+                console.error('Email used:', email);
+                throw new Error(`User not found in database. Auth ID: ${data.user.id}`);
             }
 
             const user = userData[0]; // Get first user
