@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -10,12 +11,9 @@ import { useFocusEffect } from '@react-navigation/native';
 export default function RepHomeDashboard() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const [userName, setUserName] = useState('Chanaka'); // Default
+    const [userName, setUserName] = useState('User');
     const [refreshing, setRefreshing] = useState(false);
-    const [stats, setStats] = useState({
-        pendingCount: 0,
-        pendingRequestCount: 0
-    });
+    const [pendingRequests, setPendingRequests] = useState(0);
     const [loading, setLoading] = useState(true);
 
     useFocusEffect(
@@ -39,14 +37,14 @@ export default function RepHomeDashboard() {
             const { data: userData } = await supabase.from('users').select('name').eq('id', user.id).single();
             if (userData?.name) setUserName(userData.name);
 
-            // Fetch Pending Request Counts
-            const { data: requests, error } = await supabase
+            // Fetch Pending Request Count
+            const { count, error } = await supabase
                 .from('requests')
-                .select('id')
+                .select('*', { count: 'exact', head: true })
                 .eq('status', 'pending');
 
-            if (!error && requests) {
-                setStats(prev => ({ ...prev, pendingRequestCount: requests.length }));
+            if (!error && count !== null) {
+                setPendingRequests(count);
             }
 
         } catch (error) { console.error(error) } finally {
@@ -55,38 +53,27 @@ export default function RepHomeDashboard() {
     };
 
     return (
-        <View style={styles.container}>
-            <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+        <View style={[styles.container, { paddingTop: insets.top }]}>
+            <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-            {/* Gradient Header */}
-            <LinearGradient
-                colors={['#8B5CF6', '#EC4899']} // Purple to Pink
-                style={[styles.header, { paddingTop: insets.top + 20 }]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0.5 }}
-            >
-                {/* Decorative Circles */}
-                <View style={styles.decorativeCircle1} />
-                <View style={styles.decorativeCircle2} />
-
-                <View style={styles.headerContent}>
-                    {/* NLDB Logo/Badge Area */}
-                    <View style={styles.brandingRow}>
-                        <Text style={styles.brandTitle}>NLDB<Text style={styles.brandSubtitle}>sales</Text></Text>
-                    </View>
-
-                    <View style={styles.greetingRow}>
-                        <Ionicons name="home" size={16} color="rgba(255,255,255,0.9)" />
-                        <Text style={styles.greetingText}>GOOD MORNING</Text>
-                    </View>
-                    <Text style={styles.userNameText}>{userName}</Text>
+            {/* Clean Header */}
+            <View style={styles.header}>
+                <View>
+                    <Text style={styles.brandText}>
+                        <Text style={{ color: '#F59E0B' }}>NLDB</Text>
+                        <Text style={{ color: '#0F172A' }}>sales</Text>
+                    </Text>
                 </View>
-            </LinearGradient>
+                <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={styles.greetingText}>Good Morning!</Text>
+                    <Text style={styles.userName}>{userName}</Text>
+                </View>
+            </View>
 
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             >
                 <View style={styles.bodyContent}>
 
@@ -116,7 +103,7 @@ export default function RepHomeDashboard() {
 
                     {/* Central Empty State / Content */}
                     <View style={styles.centerContent}>
-                        {stats.pendingRequestCount === 0 ? (
+                        {pendingRequests === 0 ? (
                             <>
                                 <View style={styles.emptyCircle}>
                                     <Ionicons name="checkmark" size={48} color="#7C3AED" />
@@ -131,12 +118,12 @@ export default function RepHomeDashboard() {
                             <>
                                 <View style={[styles.emptyCircle, { backgroundColor: '#FEF2F2' }]}>
                                     <View style={[styles.badgeCount]}>
-                                        <Text style={styles.badgeCountText}>{stats.pendingRequestCount}</Text>
+                                        <Text style={styles.badgeCountText}>{pendingRequests}</Text>
                                     </View>
                                 </View>
                                 <Text style={styles.emptyTitle}>New Requests!</Text>
                                 <Text style={styles.emptyText}>
-                                    You have {stats.pendingRequestCount} pending shop requests.{'\n'}
+                                    You have {pendingRequests} pending shop requests.{'\n'}
                                     Check them out now.
                                 </Text>
                             </>
@@ -154,79 +141,47 @@ export default function RepHomeDashboard() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FFFFFF'
+        backgroundColor: '#FCFCFD'
     },
     header: {
-        paddingHorizontal: 24,
-        paddingBottom: 40,
-        borderBottomLeftRadius: 32,
-        borderBottomRightRadius: 32,
-        marginBottom: 20
-    },
-    decorativeCircle1: {
-        position: 'absolute',
-        width: 200,
-        height: 200,
-        borderRadius: 100,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        top: -40,
-        right: -60,
-    },
-    decorativeCircle2: {
-        position: 'absolute',
-        width: 140,
-        height: 140,
-        borderRadius: 70,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        bottom: -20,
-        left: -20,
-    },
-    headerContent: {
-        zIndex: 1
-    },
-    brandingRow: {
-        marginBottom: 20, // push greeting down a bit
-        // alignSelf: 'flex-start' // Ensure it's left aligned or adjust as needed
-    },
-    brandTitle: {
-        fontSize: 24,
-        fontWeight: '800',
-        color: '#FDBA74', // Light Orange (from image tone, adapted for dark bg)
-        letterSpacing: -0.5
-    },
-    brandSubtitle: {
-        color: '#FFFFFF', // White for 'sales' on gradient, instead of dark slate
-        fontWeight: '800'
-    },
-    greetingRow: {
         flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        gap: 8,
+        paddingHorizontal: 24,
+        paddingVertical: 16,
+        backgroundColor: '#FFFFFF',
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F5F9',
         marginBottom: 10
     },
-    greetingText: {
-        color: 'rgba(255,255,255,0.9)',
-        fontSize: 13,
-        fontWeight: '700',
-        letterSpacing: 1
-    },
-    userNameText: {
-        color: '#FFFFFF',
-        fontSize: 34,
+    brandText: {
+        fontSize: 24,
         fontWeight: '800',
         letterSpacing: -0.5
+    },
+    greetingText: {
+        fontSize: 12,
+        color: '#64748B',
+        fontWeight: '500'
+    },
+    userName: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#0F172A'
     },
     scrollContent: {
         flexGrow: 1
     },
     bodyContent: {
         paddingHorizontal: 24,
+        paddingTop: 10
     },
     sectionTitle: {
         fontSize: 22,
-        fontWeight: '800',
-        color: '#0F172A',
-        marginBottom: 8
+        fontWeight: '700',
+        color: '#1a1a2e',
+        marginBottom: 8,
+        letterSpacing: -0.5
     },
     statusRow: {
         flexDirection: 'row',
@@ -309,3 +264,4 @@ const styles = StyleSheet.create({
         fontWeight: '500'
     }
 });
+

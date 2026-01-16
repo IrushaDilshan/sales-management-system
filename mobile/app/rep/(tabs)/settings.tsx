@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../../lib/supabase';
 
 export default function RepSettings() {
@@ -150,23 +151,34 @@ export default function RepSettings() {
     return (
         <View style={styles.container}>
             {/* Header */}
-            <View style={styles.header}>
-                <View>
-                    <Text style={styles.title}>Settings</Text>
-                    <Text style={styles.subtitle}>Manage your account</Text>
+            {/* Premium Hero Header - Flat Salesman Blue */}
+            <LinearGradient
+                colors={['#2196F3', '#2196F3']}
+                style={styles.heroHeader}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+            >
+                {/* Decorative Circles */}
+                <View style={styles.decorativeCircle1} />
+                <View style={styles.decorativeCircle2} />
+
+                <View style={styles.headerContent}>
+                    <View>
+                        <View style={styles.labelRow}>
+                            <Ionicons name="settings-outline" size={14} color="rgba(255, 255, 255, 0.9)" />
+                            <Text style={styles.headerLabel}>ACCOUNT</Text>
+                        </View>
+                        <Text style={styles.headerTitle}>Settings</Text>
+                        <Text style={styles.headerSubtitle}>Manage your account</Text>
+                    </View>
+                    <TouchableOpacity
+                        onPress={() => router.push('/rep/(tabs)/home')}
+                        style={styles.closeBtn}
+                    >
+                        <Ionicons name="close" size={20} color="#fff" />
+                    </TouchableOpacity>
                 </View>
-                {/* 
-                   Included this close button because user explicitly asked for "Same" 
-                   as Salesman page, even though it's a tab. 
-                   Navigates to Home tab.
-                */}
-                <TouchableOpacity
-                    onPress={() => router.push('/rep/(tabs)/home')}
-                    style={styles.backBtn}
-                >
-                    <Ionicons name="close" size={24} color="#fff" />
-                </TouchableOpacity>
-            </View>
+            </LinearGradient>
 
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
                 {/* Profile Section */}
@@ -307,33 +319,78 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#f5f5f5'
     },
-    header: {
+    heroHeader: {
+        paddingTop: 60,
+        paddingBottom: 30,
+        paddingHorizontal: 24,
+        borderBottomLeftRadius: 36,
+        borderBottomRightRadius: 36,
+        shadowColor: '#2196F3',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
+        elevation: 10,
+        overflow: 'hidden',
+        marginBottom: 20
+    },
+    decorativeCircle1: {
+        position: 'absolute',
+        width: 200,
+        height: 200,
+        borderRadius: 100,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        top: -50,
+        right: -50
+    },
+    decorativeCircle2: {
+        position: 'absolute',
+        width: 140,
+        height: 140,
+        borderRadius: 70,
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        bottom: -20,
+        left: -30
+    },
+    headerContent: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginTop: 10
+    },
+    labelRow: {
+        flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#2196F3',
-        padding: 20,
-        paddingTop: 50,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3
+        gap: 6,
+        marginBottom: 4
     },
-    title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#fff'
-    },
-    subtitle: {
-        fontSize: 14,
+    headerLabel: {
+        fontSize: 12,
         color: 'rgba(255, 255, 255, 0.9)',
+        fontWeight: '700',
+        letterSpacing: 1.2,
+        textTransform: 'uppercase'
+    },
+    headerTitle: {
+        fontSize: 40,
+        fontWeight: '900',
+        color: '#FFFFFF',
+        letterSpacing: -1.5,
+        textShadowColor: 'rgba(0, 0, 0, 0.1)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 8
+    },
+    headerSubtitle: {
+        fontSize: 15,
+        color: 'rgba(255, 255, 255, 0.9)',
+        fontWeight: '600',
+        letterSpacing: 0.3,
         marginTop: 4
     },
-    backBtn: {
+    closeBtn: {
         padding: 8,
-        borderRadius: 8,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)'
+        borderRadius: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        marginTop: 4
     },
     scrollView: {
         flex: 1

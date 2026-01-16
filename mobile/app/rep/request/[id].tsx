@@ -503,7 +503,7 @@ export default function ShopRequestDetails() {
                     style={styles.sectionHeaderContainer}
                 >
                     <LinearGradient
-                        colors={!isCollapsed ? ['#7C3AED08', '#EC489908'] : ['#F9FAFB', '#F3F4F6']}
+                        colors={!isCollapsed ? ['#2196F308', '#2196F305'] : ['#F9FAFB', '#F3F4F6']}
                         style={styles.sectionGradient}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
@@ -513,7 +513,7 @@ export default function ShopRequestDetails() {
                                 <Ionicons
                                     name={isCollapsed ? "chevron-forward" : "chevron-down"}
                                     size={16}
-                                    color={isCollapsed ? "#6B7280" : "#7C3AED"}
+                                    color={isCollapsed ? "#6B7280" : "#2196F3"}
                                 />
                             </View>
                             <View style={styles.dateContent}>
@@ -548,9 +548,9 @@ export default function ShopRequestDetails() {
 
     return (
         <View style={styles.container}>
-            {/* Premium Gradient Header */}
+            {/* Premium Gradient Header - Flat Salesman Blue */}
             <LinearGradient
-                colors={['#7C3AED', '#A78BFA', '#EC4899', '#F472B6']}
+                colors={['#2196F3', '#2196F3']}
                 style={styles.header}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -581,7 +581,7 @@ export default function ShopRequestDetails() {
                     <Ionicons
                         name="list"
                         size={16}
-                        color={activeTab === 'request' ? '#7C3AED' : '#6B7280'}
+                        color={activeTab === 'request' ? '#2196F3' : '#6B7280'}
                         style={{ marginRight: 6 }}
                     />
                     <Text style={[styles.segmentText, activeTab === 'request' && styles.segmentTextActive]}>Request</Text>
@@ -594,7 +594,7 @@ export default function ShopRequestDetails() {
                     <Ionicons
                         name="checkmark-done"
                         size={16}
-                        color={activeTab === 'history' ? '#7C3AED' : '#6B7280'}
+                        color={activeTab === 'history' ? '#2196F3' : '#6B7280'}
                         style={{ marginRight: 6 }}
                     />
                     <Text style={[styles.segmentText, activeTab === 'history' && styles.segmentTextActive]}>History</Text>
@@ -604,12 +604,12 @@ export default function ShopRequestDetails() {
             {loading ? (
                 <View style={styles.loadingContainer}>
                     <LinearGradient
-                        colors={['#7C3AED20', '#EC489920']}
+                        colors={['#2196F320', '#2196F310']}
                         style={styles.loadingCircle}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                     >
-                        <ActivityIndicator size="large" color="#7C3AED" />
+                        <ActivityIndicator size="large" color="#2196F3" />
                     </LinearGradient>
                     <Text style={styles.loadingText}>Loading requests...</Text>
                 </View>
@@ -640,7 +640,7 @@ const styles = StyleSheet.create({
         paddingBottom: 20,
         paddingHorizontal: 20,
         overflow: 'hidden',
-        shadowColor: '#7C3AED',
+        shadowColor: '#2196F3',
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.3,
         shadowRadius: 16,
@@ -732,7 +732,7 @@ const styles = StyleSheet.create({
     },
     segmentBtnActive: {
         backgroundColor: '#FFFFFF',
-        shadowColor: '#7C3AED',
+        shadowColor: '#2196F3',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.15,
         shadowRadius: 6,
@@ -744,7 +744,7 @@ const styles = StyleSheet.create({
         color: '#6B7280'
     },
     segmentTextActive: {
-        color: '#7C3AED',
+        color: '#2196F3',
         fontWeight: '800'
     },
 

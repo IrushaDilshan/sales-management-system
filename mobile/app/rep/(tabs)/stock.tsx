@@ -80,9 +80,16 @@ export default function StockScreen() {
                 // 3. Calculate rep's stock per item (only TODAY's transactions)
                 repTransactions?.forEach((trans: any) => {
                     const currentStock = repStockMap.get(trans.item_id) || 0;
-                    if (trans.type === 'OUT') {
-                        // Stock issued to rep TODAY
+                    // Handle types:
+                    // OUT = Issued from Store to Rep (+)
+                    // RETURN_IN = Returned from Salesman to Rep (+)
+                    // TRANSFER_OUT = Transferred from Rep to Shop (-)
+                    // RETURN_TO_HQ = Returned from Rep to Storekeeper (-)
+                    // SALE = (Legacy?) Stock leaving rep via sale (-)
+                    if (trans.type === 'OUT' || trans.type === 'RETURN_IN') {
                         repStockMap.set(trans.item_id, currentStock + trans.qty);
+                    } else if (['SALE', 'RETURN', 'TRANSFER_OUT', 'RETURN_TO_HQ'].includes(trans.type)) {
+                        repStockMap.set(trans.item_id, currentStock - trans.qty);
                     }
                 });
             } else {
@@ -193,9 +200,9 @@ export default function StockScreen() {
 
     return (
         <View style={styles.container}>
-            {/* Premium Hero Header */}
+            {/* Premium Hero Header - Flat Salesman Blue */}
             <LinearGradient
-                colors={['#7C3AED', '#A78BFA', '#EC4899', '#F472B6']}
+                colors={['#2196F3', '#2196F3']}
                 style={styles.heroHeader}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -229,6 +236,51 @@ export default function StockScreen() {
                         </View>
                     </TouchableOpacity>
                 </View>
+
+                {/* Actions Row */}
+                <View style={[styles.actionRow, { justifyContent: 'center', gap: 40 }]}>
+                    <TouchableOpacity
+                        style={[styles.actionBtn, { flex: 0, padding: 0, backgroundColor: 'transparent', borderWidth: 0, flexDirection: 'column' }]}
+                        onPress={() => router.push('/rep/transfer-shops' as any)}
+                        activeOpacity={0.8}
+                    >
+                        <View style={[styles.actionIcon, {
+                            width: 60,
+                            height: 60,
+                            borderRadius: 30,
+                            backgroundColor: '#FFFFFF',
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.2,
+                            shadowRadius: 8,
+                            elevation: 6
+                        }]}>
+                            <Ionicons name="storefront" size={26} color="#0284C7" />
+                        </View>
+                        <Text style={[styles.actionText, { marginTop: 8 }]}>To Shop</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.actionBtn, { flex: 0, padding: 0, backgroundColor: 'transparent', borderWidth: 0, flexDirection: 'column' }]}
+                        onPress={() => router.push('/rep/return-hq' as any)}
+                        activeOpacity={0.8}
+                    >
+                        <View style={[styles.actionIcon, {
+                            width: 60,
+                            height: 60,
+                            borderRadius: 30,
+                            backgroundColor: '#FFFFFF',
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.2,
+                            shadowRadius: 8,
+                            elevation: 6
+                        }]}>
+                            <Ionicons name="return-up-back" size={26} color="#2196F3" />
+                        </View>
+                        <Text style={[styles.actionText, { marginTop: 8 }]}>Return HQ</Text>
+                    </TouchableOpacity>
+                </View>
             </LinearGradient>
 
             {/* Content Section */}
@@ -259,12 +311,12 @@ export default function StockScreen() {
                 {loading && !refreshing ? (
                     <View style={styles.loadingContainer}>
                         <LinearGradient
-                            colors={['#7C3AED20', '#EC489920']}
+                            colors={['#2196F320', '#2196F310']}
                             style={styles.loadingCircle}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 1 }}
                         >
-                            <ActivityIndicator size="large" color="#7C3AED" />
+                            <ActivityIndicator size="large" color="#2196F3" />
                         </LinearGradient>
                         <Text style={styles.loadingText}>Loading your stock...</Text>
                     </View>
@@ -279,19 +331,19 @@ export default function StockScreen() {
                             <RefreshControl
                                 refreshing={refreshing}
                                 onRefresh={onRefresh}
-                                tintColor="#7C3AED"
-                                colors={['#7C3AED', '#EC4899']}
+                                tintColor="#2196F3"
+                                colors={['#2196F3', '#2196F3']}
                             />
                         }
                         ListEmptyComponent={
                             <View style={styles.emptyState}>
                                 <LinearGradient
-                                    colors={['#7C3AED15', '#EC489915']}
+                                    colors={['#2196F315', '#2196F305']}
                                     style={styles.emptyIconCircle}
                                     start={{ x: 0, y: 0 }}
                                     end={{ x: 1, y: 1 }}
                                 >
-                                    <Ionicons name="cube-outline" size={72} color="#7C3AED" />
+                                    <Ionicons name="cube-outline" size={72} color="#2196F3" />
                                 </LinearGradient>
                                 <Text style={styles.emptyTitle}>No Stock Available</Text>
                                 <Text style={styles.emptyText}>
@@ -299,7 +351,7 @@ export default function StockScreen() {
                                 </Text>
                                 <TouchableOpacity style={styles.emptyButton} activeOpacity={0.8}>
                                     <LinearGradient
-                                        colors={['#7C3AED', '#EC4899']}
+                                        colors={['#2196F3', '#1976D2']}
                                         style={styles.emptyButtonGradient}
                                         start={{ x: 0, y: 0 }}
                                         end={{ x: 1, y: 0 }}
@@ -324,11 +376,11 @@ const styles = StyleSheet.create({
     },
     heroHeader: {
         paddingTop: 60,
-        paddingBottom: 40,
+        paddingBottom: 24,
         paddingHorizontal: 24,
         borderBottomLeftRadius: 36,
         borderBottomRightRadius: 36,
-        shadowColor: '#7C3AED',
+        shadowColor: '#2196F3',
         shadowOffset: { width: 0, height: 12 },
         shadowOpacity: 0.4,
         shadowRadius: 24,
@@ -358,7 +410,8 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'flex-start',
         gap: 16,
-        zIndex: 1
+        zIndex: 1,
+        marginBottom: 20
     },
     titleSection: {
         flex: 1,
@@ -416,6 +469,33 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: '#FFFFFF',
         letterSpacing: 0.3
+    },
+    actionRow: {
+        flexDirection: 'row',
+        marginTop: 4,
+    },
+    actionBtn: {
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        borderRadius: 16,
+        padding: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+        gap: 10
+    },
+    actionIcon: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+    actionText: {
+        color: '#FFFFFF',
+        fontWeight: '700',
+        fontSize: 14
     },
     contentSection: {
         flex: 1,
@@ -625,7 +705,7 @@ const styles = StyleSheet.create({
     },
     emptyButton: {
         marginTop: 12,
-        shadowColor: '#7C3AED',
+        shadowColor: '#2196F3',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.25,
         shadowRadius: 12,

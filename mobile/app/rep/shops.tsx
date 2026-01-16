@@ -3,6 +3,7 @@ import { View, Text, FlatList, StyleSheet, ActivityIndicator, Alert, TouchableOp
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type ShopRequest = {
@@ -124,14 +125,15 @@ export default function ShopsListScreen() {
     const renderItem = ({ item }: { item: ShopRequest }) => (
         <TouchableOpacity
             style={styles.card}
+            activeOpacity={0.9}
             onPress={() => router.push(`/rep/request/${item.shopId}`)}
         >
             <View style={styles.cardContent}>
                 <View style={styles.iconContainer}>
-                    <Ionicons name="storefront" size={24} color="#EA580C" />
+                    <Ionicons name="storefront" size={24} color="#0284C7" />
                 </View>
                 <View style={{ flex: 1 }}>
-                    <Text style={styles.shopName}>{item.shopName}</Text>
+                    <Text style={styles.shopName} numberOfLines={1}>{item.shopName}</Text>
                     <View style={styles.badgeContainer}>
                         <View style={styles.badge}>
                             <Text style={styles.badgeText}>
@@ -141,50 +143,79 @@ export default function ShopsListScreen() {
                     </View>
                 </View>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#CBD5E1" />
+            <View style={styles.chevronBox}>
+                <Ionicons name="chevron-forward" size={20} color="#94A3B8" />
+            </View>
         </TouchableOpacity>
     );
 
+    // Stats for Header
+    const totalShops = shops.length;
+    const totalRequests = shops.reduce((acc, curr) => acc + curr.requestCount, 0);
+
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
-            <StatusBar barStyle="dark-content" />
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={24} color="#0F172A" />
-                </TouchableOpacity>
-                <Text style={styles.title}>Shop Requests</Text>
-                <View style={{ width: 40 }} />
-            </View>
+        <View style={styles.container}>
+            <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-            <View style={styles.searchContainer}>
-                <Ionicons name="search" size={20} color="#94A3B8" style={{ marginRight: 8 }} />
-                <TextInput
-                    style={styles.searchInput}
-                    placeholder="Search Shop..."
-                    placeholderTextColor="#94A3B8"
-                    value={search}
-                    onChangeText={handleSearch}
-                />
-            </View>
+            {/* Premium Hero Header - Flat Salesman Blue */}
+            <LinearGradient
+                colors={['#2196F3', '#2196F3']}
+                style={[styles.heroHeader, { paddingTop: insets.top + 20 }]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+            >
+                {/* Decorative Circles */}
+                <View style={styles.decorativeCircle1} />
+                <View style={styles.decorativeCircle2} />
 
-            {loading ? (
-                <View style={styles.centered}>
-                    <ActivityIndicator size="large" color="#2563EB" />
-                </View>
-            ) : (
-                <FlatList
-                    data={filteredShops}
-                    keyExtractor={item => item.shopId.toString()}
-                    renderItem={renderItem}
-                    contentContainerStyle={styles.list}
-                    showsVerticalScrollIndicator={false}
-                    ListEmptyComponent={
-                        <View style={styles.centered}>
-                            <Text style={styles.emptyText}>No shops with pending requests.</Text>
+                {/* Header Content */}
+                <View style={styles.headerContent}>
+                    <View style={styles.titleSection}>
+                        <View style={styles.labelRow}>
+                            <Ionicons name="storefront" size={14} color="rgba(255, 255, 255, 0.9)" />
+                            <Text style={styles.headerLabel}>MY ASSIGNED</Text>
                         </View>
-                    }
-                />
-            )}
+                        <Text style={styles.headerTitle}>Shops</Text>
+                        <Text style={styles.headerSubtitle}>
+                            {totalShops} Shop{totalShops !== 1 ? 's' : ''} • {totalRequests} Request{totalRequests !== 1 ? 's' : ''}
+                        </Text>
+                    </View>
+                </View>
+            </LinearGradient>
+
+            <View style={styles.contentContainer}>
+                {/* Search Bar */}
+                <View style={styles.searchContainer}>
+                    <Ionicons name="search" size={20} color="#94A3B8" style={{ marginRight: 10 }} />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Search shops..."
+                        placeholderTextColor="#94A3B8"
+                        value={search}
+                        onChangeText={handleSearch}
+                    />
+                </View>
+
+                {loading ? (
+                    <View style={styles.centered}>
+                        <ActivityIndicator size="large" color="#2196F3" />
+                    </View>
+                ) : (
+                    <FlatList
+                        data={filteredShops}
+                        keyExtractor={item => item.shopId.toString()}
+                        renderItem={renderItem}
+                        contentContainerStyle={styles.list}
+                        showsVerticalScrollIndicator={false}
+                        ListEmptyComponent={
+                            <View style={styles.centered}>
+                                <Ionicons name="storefront-outline" size={64} color="#E2E8F0" style={{ marginBottom: 16 }} />
+                                <Text style={styles.emptyText}>No shops found matching your criteria</Text>
+                            </View>
+                        }
+                    />
+                )}
+            </View>
         </View>
     );
 }
@@ -194,87 +225,140 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#F8FAFC',
     },
-    header: {
+    heroHeader: {
+        paddingBottom: 40,
+        paddingHorizontal: 24,
+        borderBottomLeftRadius: 36,
+        borderBottomRightRadius: 36,
+        shadowColor: '#2196F3',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
+        elevation: 10,
+        overflow: 'hidden',
+        zIndex: 10
+    },
+    decorativeCircle1: {
+        position: 'absolute',
+        width: 200,
+        height: 200,
+        borderRadius: 100,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        top: -50,
+        right: -50
+    },
+    decorativeCircle2: {
+        position: 'absolute',
+        width: 140,
+        height: 140,
+        borderRadius: 70,
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        bottom: -20,
+        left: -30
+    },
+    headerContent: {
+        marginTop: 10,
+        zIndex: 1
+    },
+    titleSection: {
+        gap: 4
+    },
+    labelRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingBottom: 20,
-        backgroundColor: '#FFFFFF',
+        gap: 6,
+        marginBottom: 4
     },
-    backBtn: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: '#F1F5F9',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    title: {
-        fontSize: 18,
+    headerLabel: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.9)',
         fontWeight: '700',
-        color: '#0F172A',
+        letterSpacing: 1.2,
+        textTransform: 'uppercase'
+    },
+    headerTitle: {
+        fontSize: 40,
+        fontWeight: '900',
+        color: '#FFFFFF',
+        letterSpacing: -1.5,
+        textShadowColor: 'rgba(0, 0, 0, 0.1)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 8
+    },
+    headerSubtitle: {
+        fontSize: 15,
+        color: 'rgba(255, 255, 255, 0.9)',
+        fontWeight: '600',
+        letterSpacing: 0.3,
+        marginTop: 4
+    },
+    contentContainer: {
+        flex: 1,
+        marginTop: -25, // Overlap the header slightly
+        paddingHorizontal: 20,
+        zIndex: 20
     },
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#FFFFFF',
         paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderRadius: 16,
-        marginHorizontal: 20,
-        marginBottom: 20,
+        paddingVertical: 14,
+        borderRadius: 20,
         shadowColor: '#64748B',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 4,
+        marginBottom: 20,
         borderWidth: 1,
-        borderColor: '#E2E8F0'
+        borderColor: '#F1F5F9'
     },
     searchInput: {
         flex: 1,
-        fontSize: 15,
+        fontSize: 16,
         color: '#0F172A',
         fontWeight: '500'
     },
     list: {
-        padding: 20,
-        paddingTop: 0
+        paddingBottom: 40,
+        gap: 12
     },
     card: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
         backgroundColor: '#FFFFFF',
         padding: 16,
-        borderRadius: 16,
-        marginBottom: 12,
-        shadowColor: '#64748B',
+        borderRadius: 20,
+        shadowColor: '#94A3B8',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2
+        shadowRadius: 6,
+        elevation: 2,
+        borderWidth: 1,
+        borderColor: '#F8FAFC'
     },
     cardContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        flex: 1
+        flex: 1,
+        gap: 16
     },
     iconContainer: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: '#FFEDD5',
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: '#E0F2FE',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 16
+        borderWidth: 1,
+        borderColor: '#BAE6FD'
     },
     shopName: {
         fontSize: 16,
         fontWeight: '700',
         color: '#0F172A',
-        marginBottom: 4
+        marginBottom: 6
     },
     badgeContainer: {
         flexDirection: 'row'
@@ -283,21 +367,29 @@ const styles = StyleSheet.create({
         backgroundColor: '#EFF6FF',
         paddingHorizontal: 10,
         paddingVertical: 4,
-        borderRadius: 8
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#DBEAFE'
     },
     badgeText: {
         color: '#2563EB',
         fontSize: 12,
         fontWeight: '700'
     },
+    chevronBox: {
+        paddingLeft: 12
+    },
     centered: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingTop: 60
+        paddingTop: 60,
+        paddingBottom: 40
     },
     emptyText: {
         color: '#94A3B8',
-        fontSize: 15
+        fontSize: 16,
+        fontWeight: '500',
+        textAlign: 'center'
     }
 });

@@ -19,6 +19,10 @@ export default function StockTransferScreen() {
     const [notes, setNotes] = useState('');
     const [searchText, setSearchText] = useState('');
 
+    // New State for Transfer Mode
+    const [transferMode, setTransferMode] = useState<'shop' | 'rep'>('shop');
+    const [repId, setRepId] = useState<string | null>(null);
+
     useEffect(() => {
         fetchInitialData();
     }, []);
@@ -33,24 +37,29 @@ export default function StockTransferScreen() {
                 return;
             }
 
+            // Fetch User's Shop AND Rep ID
             const { data: userData } = await supabase
                 .from('users')
-                .select('shop_id, shops(id, name)')
+                .select('shop_id, shops(id, name, rep_id)')
                 .eq('id', user.id)
                 .single();
 
             let myShopId = userData?.shop_id;
+            let myRepId = (userData?.shops as any)?.rep_id;
 
             if (!myShopId) {
-                const { data: firstShop } = await supabase.from('shops').select('id, name').limit(1).single();
+                // Fallback (for development/testing if user has no shop)
+                const { data: firstShop } = await supabase.from('shops').select('id, name, rep_id').limit(1).single();
                 if (firstShop) {
                     myShopId = firstShop.id;
                     setCurrentShopName(firstShop.name);
+                    myRepId = firstShop.rep_id;
                 }
             } else {
                 setCurrentShopName((userData?.shops as any).name);
             }
             setCurrentShopId(myShopId);
+            setRepId(myRepId);
 
             const { data: shopsData } = await supabase
                 .from('shops')
@@ -129,8 +138,12 @@ export default function StockTransferScreen() {
     };
 
     const handleSubmit = async () => {
-        if (!selectedShopId) {
+        if (transferMode === 'shop' && !selectedShopId) {
             return Alert.alert('Error', 'Please select a destination shop');
+        }
+
+        if (transferMode === 'rep' && !repId) {
+            return Alert.alert('Error', 'No Rep assigned to your shop');
         }
 
         const validItems = items.filter(item => (quantities[item.id] || 0) > 0);
@@ -146,26 +159,44 @@ export default function StockTransferScreen() {
             let successCount = 0;
 
             for (const item of validItems) {
-                const { data, error } = await supabase.rpc('transfer_stock', {
+                let rpcName = 'transfer_stock';
+                let params: any = {
                     p_product_id: item.id,
-                    p_from_outlet_id: currentShopId,
-                    p_to_outlet_id: selectedShopId,
                     p_quantity: quantities[item.id],
-                    p_notes: notes || 'Manual Transfer',
-                    p_user_id: user?.id
-                });
+                    p_notes: notes || (transferMode === 'rep' ? 'Return to Rep' : 'Manual Transfer')
+                    // user_id is implicit or passed if needed
+                };
 
-                if (!error && data?.success) {
+                // Add RPC-specific params
+                if (transferMode === 'shop') {
+                    rpcName = 'transfer_stock';
+                    params.p_from_outlet_id = currentShopId;
+                    params.p_to_outlet_id = selectedShopId;
+                    params.p_user_id = user?.id; // transfer_stock expects p_user_id
+                } else {
+                    rpcName = 'transfer_salesman_to_rep';
+                    params.p_salesman_id = user?.id;
+                    // transfer_salesman_to_rep signature: (p_salesman_id, p_product_id, p_quantity, p_notes)
+                    // Note: Ensure consistent param names with migration file
+                }
+
+                const { data, error } = await supabase.rpc(rpcName, params);
+
+                if (!error && (data?.success || data === true)) { // Handle different return types
                     successCount++;
+                } else {
+                    console.error("RPC Error", rpcName, error, data);
+                    if (data && !data.success) throw new Error(data.message);
+                    if (error) throw error;
                 }
             }
 
             if (successCount === validItems.length) {
-                Alert.alert('Success', 'Transfer completed successfully', [
+                Alert.alert('Success', transferMode === 'rep' ? 'Returned to Rep successfully' : 'Transfer completed successfully', [
                     { text: 'OK', onPress: () => router.back() }
                 ]);
             } else {
-                Alert.alert('Partial Success', `Transferred ${successCount} of ${validItems.length} items. Check logs.`);
+                Alert.alert('Partial Success', `Processed ${successCount} of ${validItems.length} items. Check logs.`);
                 router.back();
             }
 
@@ -191,7 +222,7 @@ export default function StockTransferScreen() {
                     <Ionicons name="arrow-back" size={24} color="#0F172A" />
                 </TouchableOpacity>
                 <View>
-                    <Text style={styles.headerTitle}>Transfer Stock</Text>
+                    <Text style={styles.headerTitle}>Stock Transfer</Text>
                     <Text style={styles.headerSubtitle}>From: {currentShopName}</Text>
                 </View>
                 <View style={{ width: 40 }} />
@@ -210,32 +241,66 @@ export default function StockTransferScreen() {
                     keyboardShouldPersistTaps="handled"
                     ListHeaderComponent={
                         <View>
-                            <View style={styles.section}>
-                                <Text style={styles.sectionTitle}>Select Destination</Text>
-                                <View style={styles.shopGrid}>
-                                    {shops.map(shop => {
-                                        const isSelected = selectedShopId === shop.id;
-                                        return (
-                                            <TouchableOpacity
-                                                key={shop.id}
-                                                style={[styles.shopCard, isSelected && styles.shopCardSelected]}
-                                                onPress={() => setSelectedShopId(shop.id)}
-                                            >
-                                                <View style={[styles.shopIcon, isSelected && { backgroundColor: '#2563EB', borderColor: '#2563EB' }]}>
-                                                    <Ionicons
-                                                        name="storefront"
-                                                        size={20}
-                                                        color={isSelected ? "#FFF" : "#64748B"}
-                                                    />
-                                                </View>
-                                                <Text style={[styles.shopName, isSelected && { color: '#2563EB', fontWeight: '700' }]}>
-                                                    {shop.name}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        );
-                                    })}
-                                </View>
+                            {/* Transfer Mode Toggle */}
+                            <View style={styles.toggleContainer}>
+                                <TouchableOpacity
+                                    style={[styles.toggleBtn, transferMode === 'shop' && styles.toggleBtnActive]}
+                                    onPress={() => setTransferMode('shop')}
+                                >
+                                    <View style={styles.toggleContent}>
+                                        <Ionicons name="storefront" size={16} color={transferMode === 'shop' ? '#FFF' : '#64748B'} />
+                                        <Text style={[styles.toggleText, transferMode === 'shop' && styles.toggleTextActive]}>To Shop</Text>
+                                    </View>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.toggleBtn, transferMode === 'rep' && styles.toggleBtnActive]}
+                                    onPress={() => setTransferMode('rep')}
+                                >
+                                    <View style={styles.toggleContent}>
+                                        <Ionicons name="person" size={16} color={transferMode === 'rep' ? '#FFF' : '#64748B'} />
+                                        <Text style={[styles.toggleText, transferMode === 'rep' && styles.toggleTextActive]}>To Rep</Text>
+                                    </View>
+                                </TouchableOpacity>
                             </View>
+
+                            {transferMode === 'shop' ? (
+                                <View style={styles.section}>
+                                    <Text style={styles.sectionTitle}>Select Destination</Text>
+                                    <View style={styles.shopGrid}>
+                                        {shops.map(shop => {
+                                            const isSelected = selectedShopId === shop.id;
+                                            return (
+                                                <TouchableOpacity
+                                                    key={shop.id}
+                                                    style={[styles.shopCard, isSelected && styles.shopCardSelected]}
+                                                    onPress={() => setSelectedShopId(shop.id)}
+                                                >
+                                                    <View style={[styles.shopIcon, isSelected && { backgroundColor: '#2563EB', borderColor: '#2563EB' }]}>
+                                                        <Ionicons
+                                                            name="storefront"
+                                                            size={20}
+                                                            color={isSelected ? "#FFF" : "#64748B"}
+                                                        />
+                                                    </View>
+                                                    <Text style={[styles.shopName, isSelected && { color: '#2563EB', fontWeight: '700' }]}>
+                                                        {shop.name}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            );
+                                        })}
+                                    </View>
+                                </View>
+                            ) : (
+                                <View style={styles.repCard}>
+                                    <View style={styles.repIcon}>
+                                        <Ionicons name="person" size={24} color="#7C3AED" />
+                                    </View>
+                                    <View>
+                                        <Text style={styles.repTitle}>Returning to Representative</Text>
+                                        <Text style={styles.repSubtitle}>Stock will be transferred to your Rep's inventory.</Text>
+                                    </View>
+                                </View>
+                            )}
 
                             <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Select Items</Text>
 
@@ -314,16 +379,22 @@ export default function StockTransferScreen() {
             {!loading && (
                 <View style={styles.footer}>
                     <TouchableOpacity
-                        style={[styles.submitBtn, (submitting || !selectedShopId || getSelectedItemsCount() == 0) && styles.submitBtnDisabled]}
+                        style={[
+                            styles.submitBtn,
+                            (submitting || (transferMode === 'shop' && !selectedShopId) || getSelectedItemsCount() == 0) && styles.submitBtnDisabled,
+                            transferMode === 'rep' && { backgroundColor: '#7C3AED', shadowColor: '#7C3AED' }
+                        ]}
                         onPress={handleSubmit}
-                        disabled={submitting || !selectedShopId || getSelectedItemsCount() == 0}
+                        disabled={submitting || (transferMode === 'shop' && !selectedShopId) || getSelectedItemsCount() == 0}
                     >
                         {submitting ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
                             <>
-                                <Text style={styles.submitText}>Transfer {getSelectedItemsCount()} Items</Text>
-                                <Ionicons name="arrow-forward-circle" size={24} color="#fff" />
+                                <Text style={styles.submitText}>
+                                    {transferMode === 'shop' ? 'Transfer' : 'Return'} {getSelectedItemsCount()} Items
+                                </Text>
+                                <Ionicons name={transferMode === 'shop' ? "arrow-forward-circle" : "return-up-back"} size={24} color="#fff" />
                             </>
                         )}
                     </TouchableOpacity>
@@ -378,6 +449,41 @@ const styles = StyleSheet.create({
         paddingTop: 10,
         paddingBottom: 100,
     },
+    toggleContainer: {
+        flexDirection: 'row',
+        backgroundColor: '#F1F5F9',
+        borderRadius: 12,
+        padding: 4,
+        marginBottom: 20
+    },
+    toggleBtn: {
+        flex: 1,
+        paddingVertical: 10,
+        borderRadius: 8,
+        alignItems: 'center'
+    },
+    toggleBtnActive: {
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2
+    },
+    toggleContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6
+    },
+    toggleText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#64748B'
+    },
+    toggleTextActive: {
+        color: '#0F172A',
+        fontWeight: '700'
+    },
     section: {
         marginBottom: 10
     },
@@ -426,6 +532,36 @@ const styles = StyleSheet.create({
         color: '#1E293B',
         fontWeight: '600',
         flex: 1
+    },
+    repCard: {
+        backgroundColor: '#F5F3FF',
+        borderRadius: 16,
+        padding: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16,
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: '#DDD6FE'
+    },
+    repIcon: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: '#EBE4FF',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    repTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#7C3AED',
+        marginBottom: 4
+    },
+    repSubtitle: {
+        fontSize: 13,
+        color: '#6D28D9',
+        maxWidth: '90%'
     },
     searchWrapper: {
         marginBottom: 16,

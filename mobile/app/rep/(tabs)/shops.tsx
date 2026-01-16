@@ -158,7 +158,7 @@ export default function ShopsListScreen() {
             {/* Shop Icon */}
             <View style={styles.shopIconWrapper}>
                 <LinearGradient
-                    colors={['#F59E0B', '#F97316']}
+                    colors={['#2196F3', '#1976D2']}
                     style={styles.shopIconGradient}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
@@ -171,7 +171,7 @@ export default function ShopsListScreen() {
             <View style={styles.shopDetails}>
                 <Text style={styles.shopName} numberOfLines={1}>{item.shopName}</Text>
                 <View style={styles.requestBadge}>
-                    <Ionicons name="receipt" size={12} color="#7C3AED" />
+                    <Ionicons name="receipt" size={12} color="#0284C7" />
                     <Text style={styles.requestText}>
                         {item.requestCount} {item.requestCount === 1 ? 'Request' : 'Requests'}
                     </Text>
@@ -190,9 +190,9 @@ export default function ShopsListScreen() {
 
     return (
         <View style={styles.container}>
-            {/* Premium Hero Header */}
+            {/* Premium Hero Header - Flat Salesman Blue */}
             <LinearGradient
-                colors={['#7C3AED', '#A78BFA', '#EC4899', '#F472B6']}
+                colors={['#2196F3', '#2196F3']}
                 style={styles.heroHeader}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -238,12 +238,12 @@ export default function ShopsListScreen() {
             {loading && !refreshing ? (
                 <View style={styles.loadingContainer}>
                     <LinearGradient
-                        colors={['#7C3AED20', '#EC489920']}
+                        colors={['#2196F320', '#2196F310']}
                         style={styles.loadingCircle}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                     >
-                        <ActivityIndicator size="large" color="#7C3AED" />
+                        <ActivityIndicator size="large" color="#2196F3" />
                     </LinearGradient>
                     <Text style={styles.loadingText}>Loading shops...</Text>
                 </View>
@@ -258,19 +258,19 @@ export default function ShopsListScreen() {
                         <RefreshControl
                             refreshing={refreshing}
                             onRefresh={onRefresh}
-                            tintColor="#7C3AED"
-                            colors={['#7C3AED', '#EC4899']}
+                            tintColor="#2196F3"
+                            colors={['#2196F3', '#0D47A1']}
                         />
                     }
                     ListEmptyComponent={
                         <View style={styles.emptyState}>
                             <LinearGradient
-                                colors={['#7C3AED15', '#EC489915']}
+                                colors={['#2196F315', '#2196F305']}
                                 style={styles.emptyIconCircle}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 1 }}
                             >
-                                <Ionicons name="storefront-outline" size={72} color="#7C3AED" />
+                                <Ionicons name="storefront-outline" size={72} color="#2196F3" />
                             </LinearGradient>
                             <Text style={styles.emptyTitle}>No Shops Found</Text>
                             <Text style={styles.emptyText}>
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         borderBottomLeftRadius: 36,
         borderBottomRightRadius: 36,
-        shadowColor: '#7C3AED',
+        shadowColor: '#2196F3',
         shadowOffset: { width: 0, height: 12 },
         shadowOpacity: 0.4,
         shadowRadius: 24,
@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
         borderColor: '#F1F5F9'
     },
     shopIconWrapper: {
-        shadowColor: '#F59E0B',
+        shadowColor: '#2196F3',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 4,
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        backgroundColor: '#EEF2FF',
+        backgroundColor: '#E0F2FE',
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 8,
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
     requestText: {
         fontSize: 12,
         fontWeight: '700',
-        color: '#7C3AED',
+        color: '#0284C7',
         letterSpacing: 0.2
     },
     loadingContainer: {
