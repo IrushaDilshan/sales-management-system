@@ -57,9 +57,12 @@ const Home = () => {
 
         return dbProducts.filter(p => {
             const catName = p.product_categories?.name || '';
-            if (catId === 'dairy') return catName === 'Milk Products';
-            if (catId === 'meat') return catName === 'Meat Products' || catName === 'Eggs';
-            if (catId === 'agro') return catName === 'Coconut Products' || catName === 'Agricultural Products';
+
+            // Exact Match against the new 3 Main Categories
+            if (catId === 'dairy') return catName === 'Milk & Dairy';
+            if (catId === 'meat') return catName === 'Poultry & Meat';
+            if (catId === 'agro') return catName === 'Agro Products';
+
             return false;
         }).map(p => ({
             name: p.name,
