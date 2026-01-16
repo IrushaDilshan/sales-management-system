@@ -403,125 +403,166 @@ const Items = () => {
             {
                 isModalOpen && (
                     <div className="modal-overlay">
-                        <div className="modal-content animate-fade" style={{ maxWidth: '600px', borderRadius: '24px', padding: '2rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                                <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800', color: '#1e293b' }}>
-                                    {formData.id ? 'Edit Product' : 'Add New Product'}
-                                </h2>
-                                <button onClick={handleCloseModal} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#94a3b8' }}>×</button>
+                        <div className="modal-content animate-fade" style={{ maxWidth: '800px', width: '90%', borderRadius: '24px', padding: '2.5rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                                <div>
+                                    <h2 style={{ margin: 0, fontSize: '1.8rem', fontWeight: '800', color: '#1e293b' }}>
+                                        {formData.id ? 'Edit Product' : 'Add New Product'}
+                                    </h2>
+                                    <p style={{ margin: '5px 0 0 0', color: '#64748b' }}>Manage catalog details and pricing.</p>
+                                </div>
+                                <button onClick={handleCloseModal} style={{ background: '#f1f5f9', border: 'none', width: '40px', height: '40px', borderRadius: '50%', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
                             </div>
 
-                            {error && <div style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', fontWeight: '600', fontSize: '0.9rem' }}>{error}</div>}
+                            {error && <div style={{ background: '#fee2e2', color: '#ef4444', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', fontWeight: '600', fontSize: '0.9rem', border: '1px solid #fecaca' }}>{error}</div>}
 
                             <form onSubmit={handleSubmit}>
-                                {/* Top Section: Image Preview & Essential Info */}
-                                <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                                    {/* Image Upload / URL Area */}
-                                    <div style={{ width: '120px', flexShrink: 0 }}>
+                                {/* Layout: Left (Image) - Right (Details) */}
+                                <div style={{ display: 'grid', gridTemplateColumns: '250px 1fr', gap: '2rem', marginBottom: '2rem' }}>
+
+                                    {/* Image Uploader Section */}
+                                    <div>
+                                        <label className="form-label" style={{ marginBottom: '0.8rem' }}>Product Image</label>
                                         <div style={{
-                                            width: '120px',
-                                            height: '120px',
-                                            borderRadius: '16px',
+                                            width: '100%',
+                                            aspectRatio: '1/1',
+                                            borderRadius: '20px',
                                             overflow: 'hidden',
-                                            background: '#f1f5f9',
+                                            background: '#f8fafc',
                                             border: '2px dashed #cbd5e1',
                                             display: 'flex',
+                                            flexDirection: 'column',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            position: 'relative'
-                                        }}>
+                                            position: 'relative',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s'
+                                        }}
+                                            onClick={() => document.getElementById('file-upload').click()}
+                                            onMouseOver={e => e.currentTarget.style.borderColor = '#6366f1'}
+                                            onMouseOut={e => e.currentTarget.style.borderColor = '#cbd5e1'}
+                                        >
                                             {formData.image_url ? (
-                                                <img src={formData.image_url} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => e.target.style.display = 'none'} />
+                                                <>
+                                                    <img src={formData.image_url} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.6)', color: 'white', padding: '8px', fontSize: '0.8rem', textAlign: 'center' }}>Click to Change</div>
+                                                </>
                                             ) : (
-                                                <span style={{ fontSize: '2rem', color: '#cbd5e1' }}>📷</span>
+                                                <>
+                                                    <span style={{ fontSize: '3rem', marginBottom: '10px' }}>☁️</span>
+                                                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#64748b' }}>Upload Photo</span>
+                                                    <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>or paste URL below</span>
+                                                </>
                                             )}
+                                            <input
+                                                id="file-upload"
+                                                type="file"
+                                                accept="image/*"
+                                                style={{ display: 'none' }}
+                                                onChange={async (e) => {
+                                                    const file = e.target.files[0];
+                                                    if (!file) return;
+
+                                                    try {
+                                                        // Simple Upload Logic
+                                                        const fileExt = file.name.split('.').pop();
+                                                        const fileName = `${Math.random()}.${fileExt}`;
+                                                        const filePath = `${fileName}`;
+
+                                                        let { error: uploadError } = await supabase.storage
+                                                            .from('products')
+                                                            .upload(filePath, file);
+
+                                                        if (uploadError) throw uploadError;
+
+                                                        const { data } = supabase.storage.from('products').getPublicUrl(filePath);
+                                                        setFormData(prev => ({ ...prev, image_url: data.publicUrl }));
+                                                    } catch (err) {
+                                                        console.error('Upload failed:', err);
+                                                        alert('Upload failed: ' + err.message);
+                                                    }
+                                                }}
+                                            />
                                         </div>
-                                        <div style={{ marginTop: '0.5rem' }}>
+                                        <div style={{ marginTop: '1rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                                <div style={{ height: '1px', background: '#e2e8f0', flex: 1 }}></div>
+                                                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>OR URL</span>
+                                                <div style={{ height: '1px', background: '#e2e8f0', flex: 1 }}></div>
+                                            </div>
                                             <input
                                                 type="text"
                                                 className="form-control"
                                                 name="image_url"
                                                 value={formData.image_url}
                                                 onChange={handleInputChange}
-                                                placeholder="Paste Image URL..."
-                                                style={{ fontSize: '0.75rem', padding: '0.4rem' }}
+                                                placeholder="https://..."
+                                                style={{ fontSize: '0.8rem', padding: '0.6rem' }}
                                             />
                                         </div>
                                     </div>
 
-                                    {/* Main Details */}
-                                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    {/* Right Side: Main Form Fields */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                         <div className="form-group">
-                                            <label className="form-label" style={{ fontSize: '0.85rem' }}>Product Name</label>
-                                            <input type="text" className="form-control" name="name" value={formData.name} onChange={handleInputChange} required placeholder="e.g. Fresh Milk 1L" style={{ fontWeight: '600' }} />
+                                            <label className="form-label">Product Name *</label>
+                                            <input type="text" className="form-control" name="name" value={formData.name} onChange={handleInputChange} required placeholder="e.g. Fresh Milk 1L" style={{ fontSize: '1.2rem', padding: '0.8rem', fontWeight: '600' }} />
                                         </div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                            <div className="form-group">
+                                                <label className="form-label">Category *</label>
+                                                <select className="form-control" name="category_id" value={formData.category_id} onChange={handleInputChange} required style={{ padding: '0.8rem' }}>
+                                                    <option value="">Select Category...</option>
+                                                    {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="form-group">
+                                                <label className="form-label">Unit</label>
+                                                <select className="form-control" name="unit_of_measure" value={formData.unit_of_measure} onChange={handleInputChange} style={{ padding: '0.8rem' }}>
+                                                    <option value="piece">Piece</option>
+                                                    <option value="kg">Kg</option>
+                                                    <option value="liter">Liter</option>
+                                                    <option value="pack">Pack</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
                                         <div className="form-group">
-                                            <label className="form-label" style={{ fontSize: '0.85rem' }}>Category</label>
-                                            <select className="form-control" name="category_id" value={formData.category_id} onChange={handleInputChange} required>
-                                                <option value="">Select Category...</option>
-                                                {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
-                                            </select>
+                                            <label className="form-label">Description</label>
+                                            <textarea className="form-control" name="description" value={formData.description} onChange={handleInputChange} rows="3" placeholder="Brief details regarding the product specifications..." style={{ resize: 'none' }} />
+                                        </div>
+
+                                        {/* Price Card */}
+                                        <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', gap: '2rem', alignItems: 'center' }}>
+                                            <div className="form-group" style={{ flex: 1 }}>
+                                                <label className="form-label" style={{ color: '#6366f1' }}>Retail Price (Rs.)</label>
+                                                <input type="number" className="form-control" name="retail_price" value={formData.retail_price} onChange={handleInputChange} step="0.01" min="0" placeholder="0.00" style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e293b', border: 'none', background: 'transparent', padding: '0' }} />
+                                            </div>
+                                            <div style={{ width: '1px', height: '40px', background: '#cbd5e1' }}></div>
+                                            <div className="form-group" style={{ flex: 1 }}>
+                                                <label className="form-label">Wholesale (Rs.)</label>
+                                                <input type="number" className="form-control" name="wholesale_price" value={formData.wholesale_price} onChange={handleInputChange} step="0.01" min="0" placeholder="0.00" style={{ fontSize: '1.1rem', fontWeight: '600', border: 'none', background: 'transparent', padding: '0', color: '#64748b' }} />
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Description (Clean & Simple) */}
-                                <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                                    <label className="form-label" style={{ fontSize: '0.85rem' }}>Short Description</label>
-                                    <textarea className="form-control" name="description" value={formData.description} onChange={handleInputChange} rows="2" placeholder="Brief details about the product..." style={{ fontSize: '0.9rem' }} />
-                                </div>
-
-                                {/* Pricing & Units Grid */}
-                                <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', marginBottom: '1.5rem', border: '1px solid #e2e8f0' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                                        <div className="form-group">
-                                            <label className="form-label" style={{ fontSize: '0.8rem', color: '#64748b' }}>Retail Price (Rs.)</label>
-                                            <input type="number" className="form-control" name="retail_price" value={formData.retail_price} onChange={handleInputChange} step="0.01" min="0" placeholder="0.00" style={{ fontSize: '1.1rem', fontWeight: '700', color: '#6366f1' }} />
-                                        </div>
-                                        <div className="form-group">
-                                            <label className="form-label" style={{ fontSize: '0.8rem', color: '#64748b' }}>Wholesale Price (Rs.)</label>
-                                            <input type="number" className="form-control" name="wholesale_price" value={formData.wholesale_price} onChange={handleInputChange} step="0.01" min="0" placeholder="0.00" />
-                                        </div>
+                                {/* Footer / Advanced */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1.5rem', borderTop: '1px solid #f1f5f9' }}>
+                                    <div>
+                                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '0.9rem', color: '#475569', padding: '0.5rem', borderRadius: '8px', userSelect: 'none' }}>
+                                            <input type="checkbox" name="is_perishable" checked={formData.is_perishable} onChange={handleInputChange} style={{ marginRight: '0.6rem', width: '18px', height: '18px', accentColor: '#f59e0b' }} />
+                                            Is this item Perishable?
+                                        </label>
                                     </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                        <div className="form-group">
-                                            <label className="form-label" style={{ fontSize: '0.8rem', color: '#64748b' }}>Unit</label>
-                                            <select className="form-control" name="unit_of_measure" value={formData.unit_of_measure} onChange={handleInputChange}>
-                                                <option value="piece">Piece</option>
-                                                <option value="kg">Kg</option>
-                                                <option value="liter">Liter</option>
-                                                <option value="pack">Pack</option>
-                                            </select>
-                                        </div>
-                                        <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end' }}>
-                                            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '0.85rem', color: '#475569', paddingBottom: '0.5rem' }}>
-                                                <input type="checkbox" name="is_perishable" checked={formData.is_perishable} onChange={handleInputChange} style={{ marginRight: '0.5rem', width: '16px', height: '16px' }} />
-                                                Perishable Item?
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
 
-                                {/* Collapsible/Hidden Advanced Fields (SKU/Barcode) - keeping them reachable but hidden by default concept, or just simplified side-by-side at bottom if essential */}
-                                <details style={{ marginBottom: '1.5rem', fontSize: '0.85rem', color: '#64748b' }}>
-                                    <summary style={{ cursor: 'pointer', padding: '0.5rem 0' }}>Advanced Options (SKU, IDs)</summary>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.5rem', padding: '1rem', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-                                        <div className="form-group">
-                                            <label className="form-label">SKU Code</label>
-                                            <input type="text" className="form-control" name="sku" value={formData.sku} onChange={handleInputChange} placeholder="Auto-generated if empty" />
-                                        </div>
-                                        <div className="form-group">
-                                            <label className="form-label">Barcode</label>
-                                            <input type="text" className="form-control" name="barcode" value={formData.barcode} onChange={handleInputChange} placeholder="Scan Barcode" />
-                                        </div>
+                                    <div style={{ display: 'flex', gap: '1rem' }}>
+                                        <button type="button" className="btn-cancel" style={{ padding: '0.8rem 1.5rem' }} onClick={handleCloseModal}>Cancel</button>
+                                        <button type="submit" className="btn-primary" style={{ padding: '0.8rem 2rem', fontSize: '1rem', boxShadow: '0 4px 12px rgba(99, 102, 241, 0.2)' }}>
+                                            {formData.id ? 'Save Changes' : 'Create Product'}
+                                        </button>
                                     </div>
-                                </details>
-
-                                <div style={{ display: 'flex', gap: '1rem' }}>
-                                    <button type="button" className="btn-cancel" style={{ flex: 1, padding: '0.8rem' }} onClick={handleCloseModal}>Cancel</button>
-                                    <button type="submit" className="btn-primary" style={{ flex: 2, padding: '0.8rem', fontSize: '1rem' }}>
-                                        {formData.id ? 'Save Changes' : 'Create Product'}
-                                    </button>
                                 </div>
                             </form>
                         </div>
