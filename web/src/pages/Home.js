@@ -58,10 +58,18 @@ const Home = () => {
         return dbProducts.filter(p => {
             const catName = p.product_categories?.name || '';
 
-            // Exact Match against the new 3 Main Categories
-            if (catId === 'dairy') return catName === 'Milk & Dairy';
-            if (catId === 'meat') return catName === 'Poultry & Meat';
-            if (catId === 'agro') return catName === 'Agro Products';
+            // Robust Matching (Handles both Old & New Category Names)
+            const lowerName = catName.toLowerCase();
+
+            if (catId === 'dairy') {
+                return lowerName.includes('milk') || lowerName.includes('dairy') || lowerName.includes('curd') || lowerName.includes('yogurt');
+            }
+            if (catId === 'meat') {
+                return lowerName.includes('meat') || lowerName.includes('poultry') || lowerName.includes('chicken') || lowerName.includes('egg') || lowerName.includes('pork');
+            }
+            if (catId === 'agro') {
+                return lowerName.includes('agro') || lowerName.includes('coconut') || lowerName.includes('agricultural') || lowerName.includes('water') || lowerName.includes('fertilizer');
+            }
 
             return false;
         }).map(p => ({
