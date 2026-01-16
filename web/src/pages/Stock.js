@@ -97,29 +97,65 @@ const Stock = () => {
     const fetchData = async () => {
         try {
             setLoading(true);
-            setDebugInfo('Fetching...');
+            setDebugInfo('Fetching stock data...');
 
-            // Simplified Query: Remove complex aliasing for now to ensure data flows
+            // Attempt 1: Full Relational Fetch (Preferred)
+            // We use maybeSingle() style check implicitly by catching the error
             const { data: stockData, error: stockError } = await supabase
                 .from('stock')
                 .select(`
                     *,
-                    items ( id, name, category_id, unit_of_measure, is_perishable, product_categories(name) ),
+                    items ( id, name, unit_of_measure, is_perishable, category_id ),
                     shops ( id, name )
                 `);
 
-            if (stockError) {
-                console.error('Fetch Error:', stockError);
-                setDebugInfo('Error: ' + stockError.message);
-                throw stockError;
+            if (!stockError && stockData) {
+                console.log('Stock Data Loaded (Relational):', stockData);
+                setDebugInfo(`Success! Loaded ${stockData.length} records (Linked Mode).`);
+                setStocks(stockData);
+                return;
             }
 
-            console.log('Stock Data Loaded:', stockData);
-            setDebugInfo(`Success! Loaded ${stockData?.length || 0} rows.`);
-            setStocks(stockData || []);
+            // Attempt 2: Switch to Fallback Mode (Raw Fetch + Manual Stitch)
+            console.warn('Relational fetch failed (Likely Schema Cache issue). Switching to Fallback Mode.', stockError?.message);
+            setDebugInfo(`Relation Error: ${stockError?.message}. Switching to Manual Stitch mode...`);
+
+            const { data: rawData, error: rawError } = await supabase
+                .from('stock')
+                .select('*');
+
+            if (rawError) throw rawError;
+
+            // Manual "Join" in React
+            if (rawData && rawData.length > 0) {
+                const itemIds = [...new Set(rawData.map(s => s.item_id).filter(Boolean))];
+                const shopIds = [...new Set(rawData.map(s => s.outlet_id).filter(Boolean))];
+
+                // Fetch related data in parallel
+                const [itemsRes, shopsRes] = await Promise.all([
+                    supabase.from('items').select('id, name, unit_of_measure, category_id').in('id', itemIds),
+                    supabase.from('shops').select('id, name').in('id', shopIds)
+                ]);
+
+                const allItems = itemsRes.data || [];
+                const allShops = shopsRes.data || [];
+
+                const stitchedData = rawData.map(s => ({
+                    ...s,
+                    items: allItems.find(i => i.id === s.item_id) || { name: 'Unknown Item' },
+                    shops: allShops.find(o => o.id === s.outlet_id) || { name: 'Unknown Shop' }
+                }));
+
+                setStocks(stitchedData);
+                setDebugInfo(`Loaded ${stitchedData.length} records (Manual Mode).`);
+            } else {
+                setStocks([]);
+                setDebugInfo('Loaded 0 records (Table is empty).');
+            }
 
         } catch (err) {
-            console.error('Error fetching stock:', err);
+            console.error('Final Fetch Error:', err);
+            setDebugInfo('Critical Error: ' + err.message);
             setError('Failed to load stock data');
         } finally {
             setLoading(false);
