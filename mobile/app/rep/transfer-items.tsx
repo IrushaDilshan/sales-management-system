@@ -335,16 +335,17 @@ const styles = StyleSheet.create({
         alignItems: 'center'
     },
     input: {
-        width: 50,
-        height: 32,
-        backgroundColor: '#F8FAFC',
-        borderRadius: 8,
+        width: 60,
+        height: 44, // Increased height
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
         borderWidth: 1,
         borderColor: '#E2E8F0',
         textAlign: 'center',
-        fontSize: 14,
+        fontSize: 16,
         color: '#0F172A',
-        fontWeight: '600'
+        fontWeight: '700',
+        paddingVertical: 0 // Crucial for Android text vertical alignment
     },
     centered: {
         flex: 1,

@@ -10,7 +10,7 @@ const Navbar = () => {
 
     return (
         <nav className="navbar">
-            <div className="navbar-brand">NLDB Manager Dashboard</div>
+            <div className="navbar-brand">NLDBSales Dashboard</div>
             <div className="navbar-links">
                 <Link to="/dashboard" className={isActive('/dashboard')}>Dashboard</Link>
                 <Link to="/users" className={isActive('/users')}>Users</Link>

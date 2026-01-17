@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Sales Management System",
-    "slug": "sales-management-system",
+    "name": "NLDBSales",
+    "slug": "nldbsales",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",

@@ -354,11 +354,13 @@
 }
 
 /* Modal */
-.modal-content {
-    background: #1e293b;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    color: white;
+/* Modal */
+.modal-content,
+.modal-overlay .modal-content {
+    background: #1e293b !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+    color: white !important;
 }
 
 .close-btn {
@@ -367,6 +369,25 @@
 
 .close-btn:hover {
     color: white;
+}
+
+/* Force dark inputs inside modals */
+.modal-content input,
+.modal-content select,
+.modal-content textarea,
+.modal-content .form-control,
+.modal-content .form-select {
+    background: rgba(15, 23, 42, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+}
+
+.modal-content input:focus,
+.modal-content select:focus,
+.modal-content textarea:focus {
+    border-color: var(--col-secondary) !important;
+    background: rgba(15, 23, 42, 0.8) !important;
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2) !important;
 }
 
 /* Role Selector / Cards in Modal */

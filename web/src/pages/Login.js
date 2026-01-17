@@ -81,8 +81,8 @@ const Login = () => {
                     <div className="logo-circle">
                         <span className="logo-icon">🐄</span>
                     </div>
-                    <h1 className="brand-title">National LiveStock Development Board</h1>
-                    <p className="brand-subtitle">Sales & Inventory Management System</p>
+                    <h1 className="brand-title">NLDBSales</h1>
+                    <p className="brand-subtitle">NLDB Sales & Inventory Management</p>
                     <div className="brand-features">
                         <div className="feature-item">
                             <span className="feature-icon">✓</span>

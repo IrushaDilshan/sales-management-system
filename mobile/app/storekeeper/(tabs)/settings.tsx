@@ -313,7 +313,7 @@ export default function StorekeeperSettings() {
                 {/* App Info */}
                 <View style={styles.appInfo}>
                     <Ionicons name="shield-checkmark" size={24} color="#9CA3AF" />
-                    <Text style={styles.appInfoText}>Sales Management System</Text>
+                    <Text style={styles.appInfoText}>NLDBSales</Text>
                     <Text style={styles.versionText}>Storekeeper Portal v1.0.0</Text>
                 </View>
 

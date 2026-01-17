@@ -121,7 +121,7 @@ export default function RepHomeDashboard() {
                 <View>
                     <Text style={styles.brandText}>
                         <Text style={{ color: '#F59E0B' }}>NLDB</Text>
-                        <Text style={{ color: '#0F172A' }}>sales</Text>
+                        <Text style={{ color: '#0F172A' }}>Sales</Text>
                     </Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>

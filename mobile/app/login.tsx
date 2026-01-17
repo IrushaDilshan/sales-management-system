@@ -207,7 +207,10 @@ export default function LoginScreen() {
                     <View style={styles.iconContainer}>
                         <Ionicons name="receipt" size={60} color="#2196F3" />
                     </View>
-                    <Text style={styles.title}>Sales Management</Text>
+                    <Text style={styles.title}>
+                        <Text style={{ color: '#F59E0B' }}>NLDB</Text>
+                        <Text style={{ color: '#1a1a2e' }}>Sales</Text>
+                    </Text>
                     <Text style={styles.subtitle}>Sign in to continue</Text>
                 </View>
 

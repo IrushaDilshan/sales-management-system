@@ -297,7 +297,7 @@ export default function RepSettings() {
 
                 {/* App Info */}
                 <View style={styles.appInfo}>
-                    <Text style={styles.appInfoText}>Sales Management System</Text>
+                    <Text style={styles.appInfoText}>NLDBSales</Text>
                     <Text style={styles.appInfoText}>Version 1.0.0</Text>
                 </View>
 

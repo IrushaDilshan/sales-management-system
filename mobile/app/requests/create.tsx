@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { View, Text, FlatList, TextInput, TouchableOpacity, Alert, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, SectionList, TextInput, TouchableOpacity, Alert, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Modal, ScrollView } from 'react-native';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
@@ -7,22 +8,299 @@ import { supabase } from '../../lib/supabase';
 export default function CreateRequestScreen() {
     const router = useRouter();
     const { shop_id, shop_name } = useLocalSearchParams();
-    const [items, setItems] = useState<any[]>([]);
+    const [sections, setSections] = useState<any[]>([]);
     const [quantities, setQuantities] = useState<{ [key: string]: number }>({}); // { itemId: quantity }
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [searchText, setSearchText] = useState('');
+    const [allItems, setAllItems] = useState<any[]>([]);
+    const [pendingRequest, setPendingRequest] = useState<any>(null);
+    const [pendingRequestItems, setPendingRequestItems] = useState<any[]>([]);
+    const [showPendingModal, setShowPendingModal] = useState(false);
+    const [loadingPendingDetails, setLoadingPendingDetails] = useState(false);
 
     useEffect(() => {
+        checkPendingRequest();
         fetchItems();
     }, []);
 
+    async function checkPendingRequest() {
+        // Handle potential array from params
+        const targetShopId = Array.isArray(shop_id) ? shop_id[0] : shop_id;
+
+        console.log('Checking pending requests for Shop ID:', targetShopId);
+
+        if (!targetShopId) {
+            console.log('No Shop ID provided to checkPendingRequest');
+            return;
+        }
+
+        try {
+            // Get today's date in YYYY-MM-DD format
+            const today = new Date();
+            const todayDateString = today.toISOString().split('T')[0]; // e.g., "2026-01-17"
+
+            console.log('Today date:', todayDateString);
+
+            const { data, error } = await supabase
+                .from('requests')
+                .select('*')
+                .eq('shop_id', targetShopId)
+                .eq('status', 'pending')
+                .limit(10); // Get multiple to check dates
+
+            if (error) {
+                console.error('Error checking pending requests:', error);
+                return;
+            }
+
+            console.log('All pending requests:', data);
+
+            // Filter for today's requests only
+            const todayRequests = data?.filter(req => {
+                const reqDate = req.created_at.split('T')[0]; // Extract date part
+                console.log('Request date:', reqDate, 'vs Today:', todayDateString);
+                return reqDate === todayDateString;
+            }) || [];
+
+            console.log('Today requests:', todayRequests);
+
+            if (todayRequests.length > 0) {
+                const pendingReq = todayRequests[0];
+                setPendingRequest(pendingReq);
+
+                Alert.alert(
+                    'Pending Order Exists',
+                    'You already created a request for this shop today. You can only create one request per day.',
+                    [
+                        {
+                            text: 'Cancel',
+                            style: 'cancel',
+                            onPress: () => router.back()
+                        },
+                        {
+                            text: 'View Request',
+                            onPress: () => viewPendingRequest(pendingReq.id)
+                        },
+                        {
+                            text: 'Delete',
+                            style: 'destructive',
+                            onPress: () => confirmDeletePendingRequest(pendingReq.id)
+                        }
+                    ]
+                );
+            }
+        } catch (err) {
+            console.error('Exception in checkPendingRequest:', err);
+        }
+    }
+
+    async function viewPendingRequest(requestId: string) {
+        setPendingRequestItems([]); // Clear old data first
+        setLoadingPendingDetails(true);
+        setShowPendingModal(true);
+
+        try {
+            console.log('=== FETCHING PENDING REQUEST DETAILS ===');
+            console.log('Request ID:', requestId);
+
+            // Fetch request items
+            const { data: requestItems, error: itemsError } = await supabase
+                .from('request_items')
+                .select('*')
+                .eq('request_id', requestId);
+
+            console.log('Request items found:', requestItems?.length || 0);
+            console.log('Request items error:', itemsError);
+
+            if (itemsError) throw itemsError;
+
+            // Get item details
+            const itemIds = [...new Set((requestItems || []).map(i => i.item_id))];
+            console.log('Item IDs to fetch:', itemIds);
+
+            const { data: items, error: itemDetailsError } = await supabase
+                .from('items')
+                .select('id, name')
+                .in('id', itemIds as any);
+
+            console.log('Items fetched:', items?.length || 0);
+            console.log('Items error:', itemDetailsError);
+
+            if (itemDetailsError) throw itemDetailsError;
+
+            const itemMap = new Map(items?.map(i => [i.id, i]));
+
+            const enrichedItems = (requestItems || []).map(ri => ({
+                ...ri,
+                itemName: itemMap.get(ri.item_id)?.name || 'Unknown Item'
+            }));
+
+            console.log('Enriched items:', enrichedItems);
+            setPendingRequestItems(enrichedItems);
+        } catch (error: any) {
+            console.error('Error fetching pending request details:', error);
+            Alert.alert('Error', 'Failed to load request details');
+            setShowPendingModal(false);
+        } finally {
+            setLoadingPendingDetails(false);
+        }
+    }
+
+    function confirmDeletePendingRequest(requestId: string) {
+        Alert.alert(
+            'Confirm Delete',
+            'Are you sure you want to delete this pending request? This action cannot be undone.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: () => deletePendingRequest(requestId)
+                }
+            ]
+        );
+    }
+
+    async function deletePendingRequest(requestId: string) {
+        try {
+            // First delete request_items
+            const { error: itemsError } = await supabase
+                .from('request_items')
+                .delete()
+                .eq('request_id', requestId);
+
+            if (itemsError) {
+                console.error('Error deleting request items:', itemsError);
+                Alert.alert('Error', 'Failed to delete the pending request. Please try again.');
+                return;
+            }
+
+            // Then delete the request itself
+            const { error: requestError } = await supabase
+                .from('requests')
+                .delete()
+                .eq('id', requestId);
+
+            if (requestError) {
+                console.error('Error deleting request:', requestError);
+                Alert.alert('Error', 'Failed to delete the pending request. Please try again.');
+                return;
+            }
+
+            setShowPendingModal(false);
+            setPendingRequest(null);
+            setPendingRequestItems([]);
+
+            Alert.alert(
+                'Success',
+                'Previous pending order has been deleted. You can now create a new order.',
+                [{ text: 'OK' }]
+            );
+        } catch (error: any) {
+            console.error('Exception deleting pending request:', error);
+            Alert.alert('Error', error.message || 'Failed to delete the pending request');
+        }
+    }
+
     async function fetchItems() {
         setLoading(true);
-        const { data } = await supabase.from('items').select('*').order('name');
-        if (data) setItems(data);
-        setLoading(false);
+        try {
+            const { data, error } = await supabase
+                .from('items')
+                .select(`
+                    *,
+                    product_categories (
+                        name
+                    )
+                `)
+                .order('category_id') // Group by category
+                .order('name'); // Then alphabetical
+
+            if (error) throw error;
+
+            if (data) {
+                console.log('Fetched Items:', data.length);
+                // Log first 3 items with images to debug
+                const itemsWithImages = data.filter(i => i.image_url);
+                console.log('Items with images:', itemsWithImages.length);
+                if (itemsWithImages.length > 0) {
+                    console.log('Sample Image URL:', itemsWithImages[0].image_url);
+                } else {
+                    console.log('No items have image_url set.');
+                }
+
+                setAllItems(data);
+                organizeData(data, '');
+            }
+        } catch (e) {
+            console.error(e);
+            Alert.alert('Error', 'Failed to load items');
+        } finally {
+            setLoading(false);
+        }
     }
+
+    useEffect(() => {
+        organizeData(allItems, searchText);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [allItems, searchText]); // Removed quantities to prevent re-sorting while typing
+
+    const organizeData = (data: any[], filter: string) => {
+        const isSearchActive = filter.length > 0;
+
+        // Filter by search text
+        let filtered = data.filter(i =>
+            i.name.toLowerCase().includes(filter.toLowerCase())
+        );
+
+        const groups: { [key: string]: any[] } = {};
+        const selectedItems: any[] = [];
+        const unselectedItems: any[] = [];
+
+        // If search is inactive, split into selected/unselected
+        if (!isSearchActive) {
+            filtered.forEach(item => {
+                if ((quantities[item.id] || 0) > 0) {
+                    selectedItems.push(item);
+                } else {
+                    unselectedItems.push(item);
+                }
+            });
+        } else {
+            // If searching, show everything in normal categories (or mixed)
+            // But user specifically asked for behavior when search is CLEARED.
+            // So during search, we just show matches normally.
+            unselectedItems.push(...filtered);
+        }
+
+        // Group the "unselected" (or all items if searching) by category
+        unselectedItems.forEach(item => {
+            const catName = item.product_categories?.name || 'Uncategorized';
+            if (!groups[catName]) groups[catName] = [];
+            groups[catName].push(item);
+        });
+
+        const sectionData = Object.keys(groups).map(key => ({
+            title: key,
+            data: groups[key]
+        }));
+
+        // Add Selected Items section at the top if distinct
+        if (!isSearchActive && selectedItems.length > 0) {
+            setSections([
+                { title: '✅ Selected Items', data: selectedItems },
+                ...sectionData
+            ]);
+        } else {
+            setSections(sectionData);
+        }
+    };
+
+    const handleSearch = (text: string) => {
+        setSearchText(text);
+        // organizeData called via useEffect
+    };
 
     const updateQuantity = (id: string, qty: string) => {
         const val = parseInt(qty);
@@ -56,7 +334,7 @@ export default function CreateRequestScreen() {
 
     const handleSubmit = async () => {
         // 1. Prepare data
-        const validItems = items.filter(item => (quantities[item.id] || 0) > 0);
+        const validItems = allItems.filter(item => (quantities[item.id] || 0) > 0);
 
         if (validItems.length === 0) {
             return Alert.alert('Error', 'Please add at least one item');
@@ -149,10 +427,10 @@ export default function CreateRequestScreen() {
                         placeholder="Search items..."
                         placeholderTextColor="#94a3b8"
                         value={searchText}
-                        onChangeText={setSearchText}
+                        onChangeText={handleSearch}
                     />
                     {searchText.length > 0 && (
-                        <TouchableOpacity onPress={() => setSearchText('')}>
+                        <TouchableOpacity onPress={() => handleSearch('')}>
                             <Ionicons name="close-circle" size={20} color="#94a3b8" />
                         </TouchableOpacity>
                     )}
@@ -165,68 +443,98 @@ export default function CreateRequestScreen() {
                     <Text style={styles.loadingText}>Loading items...</Text>
                 </View>
             ) : (
-                <>
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
                     {/* Items Summary Card */}
-                    <View style={styles.summaryCard}>
-                        <View style={styles.summaryItem}>
-                            <Ionicons name="cube-outline" size={20} color="#2196F3" />
-                            <Text style={styles.summaryLabel}>Selected Items</Text>
-                            <Text style={styles.summaryValue}>{getSelectedItemsCount()}</Text>
+                    {getSelectedItemsCount() > 0 && (
+                        <View style={styles.summaryCard}>
+                            <View style={styles.summaryItem}>
+                                <Ionicons name="cube-outline" size={20} color="#2196F3" />
+                                <Text style={styles.summaryLabel}>Selected Items</Text>
+                                <Text style={styles.summaryValue}>{getSelectedItemsCount()}</Text>
+                            </View>
                         </View>
-                        <View style={styles.summaryDivider} />
-                        <View style={styles.summaryItem}>
-                            <Ionicons name="calculator-outline" size={20} color="#2196F3" />
-                            <Text style={styles.summaryLabel}>Total Quantity</Text>
-                            <Text style={styles.summaryValue}>{getTotalItems()}</Text>
-                        </View>
-                    </View>
+                    )}
 
                     {/* Items List */}
-                    <FlatList
-                        data={items.filter(i => i.name.toLowerCase().includes(searchText.toLowerCase()))}
+                    <SectionList
+                        sections={sections}
                         keyExtractor={(item) => item.id.toString()}
                         contentContainerStyle={styles.list}
                         showsVerticalScrollIndicator={false}
+                        stickySectionHeadersEnabled={false}
+                        extraData={quantities} // Ensure list updates when quantities change
+                        renderSectionHeader={({ section: { title } }) => (
+                            <View style={styles.sectionHeader}>
+                                <Text style={styles.sectionTitle}>{title}</Text>
+                            </View>
+                        )}
                         renderItem={({ item }) => {
                             const qty = quantities[item.id] || 0;
                             return (
                                 <View style={[styles.itemCard, qty > 0 && styles.itemCardActive]}>
-                                    <View style={styles.itemLeft}>
-                                        <View style={[styles.itemIcon, qty > 0 && styles.itemIconActive]}>
-                                            <Ionicons
-                                                name={qty > 0 ? "cube" : "cube-outline"}
-                                                size={24}
-                                                color={qty > 0 ? "#2196F3" : "#94a3b8"}
+                                    <View style={styles.itemImageContainer}>
+                                        {item.image_url ? (
+                                            <Image
+                                                source={item.image_url}
+                                                style={styles.itemImage}
+                                                contentFit="cover"
+                                                transition={500}
+                                                cachePolicy="memory-disk"
                                             />
-                                        </View>
-                                        <Text style={styles.itemName}>{item.name}</Text>
+                                        ) : (
+                                            <View style={[styles.itemIcon, qty > 0 && styles.itemIconActive]}>
+                                                <Ionicons
+                                                    name={qty > 0 ? "cube" : "cube-outline"}
+                                                    size={24}
+                                                    color={qty > 0 ? "#2196F3" : "#94a3b8"}
+                                                />
+                                            </View>
+                                        )}
+                                        {qty > 0 && (
+                                            <View style={styles.activeCheck}>
+                                                <Ionicons name="checkmark" size={12} color="white" />
+                                            </View>
+                                        )}
                                     </View>
+
+                                    <View style={styles.itemContent}>
+                                        <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
+                                        <Text style={styles.itemMetas}>
+                                            {item.unit_type || 'Unit'} • {item.is_perishable ? 'Fresh' : 'Dry'}
+                                        </Text>
+                                    </View>
+
                                     <View style={styles.itemRight}>
-                                        <TouchableOpacity
-                                            style={[styles.qtyBtn, qty === 0 && styles.qtyBtnDisabled]}
-                                            onPress={() => decrementQuantity(item.id)}
-                                            disabled={qty === 0}
-                                        >
-                                            <Ionicons name="remove" size={18} color={qty === 0 ? "#cbd5e1" : "#2196F3"} />
-                                        </TouchableOpacity>
-                                        <TextInput
-                                            style={styles.qtyInput}
-                                            placeholder="0"
-                                            keyboardType="numeric"
-                                            value={qty === 0 ? '' : qty.toString()}
-                                            onChangeText={(txt) => updateQuantity(item.id, txt)}
-                                        />
-                                        <TouchableOpacity
-                                            style={styles.qtyBtn}
-                                            onPress={() => incrementQuantity(item.id)}
-                                        >
-                                            <Ionicons name="add" size={18} color="#2196F3" />
-                                        </TouchableOpacity>
+                                        <View style={styles.qtyControls}>
+                                            <TouchableOpacity
+                                                style={[styles.qtyBtn, qty === 0 && styles.qtyBtnDisabled]}
+                                                onPress={() => decrementQuantity(item.id)}
+                                                disabled={qty === 0}
+                                            >
+                                                <Ionicons name="remove" size={18} color={qty === 0 ? "#cbd5e1" : "#2196F3"} />
+                                            </TouchableOpacity>
+                                            <TextInput
+                                                style={styles.qtyInput}
+                                                placeholder="0"
+                                                keyboardType="numeric"
+                                                value={qty === 0 ? '' : qty.toString()}
+                                                onChangeText={(txt) => updateQuantity(item.id, txt)}
+                                            />
+                                            <TouchableOpacity
+                                                style={styles.qtyBtn}
+                                                onPress={() => incrementQuantity(item.id)}
+                                            >
+                                                <Ionicons name="add" size={18} color="#2196F3" />
+                                            </TouchableOpacity>
+                                        </View>
                                     </View>
                                 </View>
                             )
                         }}
                     />
+
+                    {/* Padding for footer */}
+                    <View style={{ height: 100 }} />
 
                     {/* Submit Button */}
                     <View style={styles.footer}>
@@ -239,16 +547,96 @@ export default function CreateRequestScreen() {
                                 <ActivityIndicator color="white" />
                             ) : (
                                 <>
-                                    <Ionicons name="checkmark-circle" size={24} color="white" />
-                                    <Text style={styles.submitBtnText}>
-                                        Submit Order ({getSelectedItemsCount()} items)
-                                    </Text>
+                                    <Ionicons name="cart" size={24} color="white" />
+                                    <View>
+                                        <Text style={styles.submitBtnText}>
+                                            Submit Order
+                                        </Text>
+                                        {getSelectedItemsCount() > 0 && (
+                                            <Text style={styles.submitBtnSubText}>
+                                                {getSelectedItemsCount()} items selected
+                                            </Text>
+                                        )}
+                                    </View>
+                                    <Ionicons name="arrow-forward" size={24} color="white" />
                                 </>
                             )}
                         </TouchableOpacity>
                     </View>
-                </>
+                </KeyboardAvoidingView>
             )}
+
+            {/* Pending Request Modal */}
+            <Modal
+                visible={showPendingModal}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setShowPendingModal(false)}
+            >
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 }}>
+                    <View style={{ backgroundColor: '#FFFFFF', borderRadius: 20, maxHeight: '80%', overflow: 'hidden' }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#E2E8F0' }}>
+                            <Text style={{ fontSize: 18, fontWeight: '700', color: '#0F172A' }}>Pending Request Details</Text>
+                            <TouchableOpacity
+                                onPress={() => setShowPendingModal(false)}
+                                style={{ padding: 4 }}
+                            >
+                                <Ionicons name="close-circle" size={30} color="#94a3b8" />
+                            </TouchableOpacity>
+                        </View>
+
+                        {loadingPendingDetails ? (
+                            <View style={{ padding: 40, alignItems: 'center' }}>
+                                <ActivityIndicator size="large" color="#2196F3" />
+                                <Text style={{ marginTop: 12, fontSize: 14, color: '#64748B' }}>Loading details...</Text>
+                            </View>
+                        ) : (
+                            <ScrollView style={{ maxHeight: 500 }} contentContainerStyle={{ padding: 20 }} showsVerticalScrollIndicator={false}>
+                                <View style={{ backgroundColor: '#F8FAFC', padding: 16, borderRadius: 12, marginBottom: 16 }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                                        <Ionicons name="calendar-outline" size={20} color="#64748b" />
+                                        <Text style={{ fontSize: 14, color: '#64748B', marginRight: 8 }}>Created:</Text>
+                                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#0F172A' }}>
+                                            {pendingRequest?.created_at ? new Date(pendingRequest.created_at).toLocaleDateString() : 'N/A'}
+                                        </Text>
+                                    </View>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                        <Ionicons name="cube-outline" size={20} color="#64748b" />
+                                        <Text style={{ fontSize: 14, color: '#64748B', marginRight: 8 }}>Total Items:</Text>
+                                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#0F172A' }}>{pendingRequestItems.length}</Text>
+                                    </View>
+                                </View>
+
+                                <Text style={{ fontSize: 14, fontWeight: '700', color: '#0F172A', marginBottom: 12 }}>Items ({pendingRequestItems.length})</Text>
+
+                                {pendingRequestItems.map((item, index) => (
+                                    <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFFFFF', padding: 14, borderRadius: 10, marginBottom: 8 }}>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={{ fontSize: 15, fontWeight: '600', color: '#0F172A' }}>{item.itemName}</Text>
+                                        </View>
+                                        <View style={{ backgroundColor: '#EFF6FF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}>
+                                            <Text style={{ color: '#2563EB', fontWeight: '700', fontSize: 15 }}>{item.qty}</Text>
+                                        </View>
+                                    </View>
+                                ))}
+
+                                <View style={{ height: 20 }} />
+
+                                <TouchableOpacity
+                                    style={{ backgroundColor: '#EF4444', borderRadius: 12, padding: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginBottom: 20 }}
+                                    onPress={() => {
+                                        setShowPendingModal(false);
+                                        confirmDeletePendingRequest(pendingRequest?.id);
+                                    }}
+                                >
+                                    <Ionicons name="trash-outline" size={20} color="#fff" />
+                                    <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>Delete This Request</Text>
+                                </TouchableOpacity>
+                            </ScrollView>
+                        )}
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -331,8 +719,8 @@ const styles = StyleSheet.create({
     summaryCard: {
         backgroundColor: 'white',
         marginHorizontal: 20,
-        marginTop: 20,
-        marginBottom: 16,
+        marginTop: 10,
+        marginBottom: 10,
         borderRadius: 16,
         padding: 16,
         flexDirection: 'row',
@@ -340,7 +728,9 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
         shadowRadius: 8,
-        elevation: 2
+        elevation: 2,
+        borderWidth: 1,
+        borderColor: '#e2e8f0'
     },
     summaryItem: {
         flex: 1,
@@ -368,15 +758,26 @@ const styles = StyleSheet.create({
         padding: 20,
         paddingBottom: 100
     },
+    sectionHeader: {
+        marginTop: 10,
+        marginBottom: 10,
+        paddingVertical: 5
+    },
+    sectionTitle: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: '#64748b',
+        textTransform: 'uppercase',
+        letterSpacing: 1
+    },
     itemCard: {
         backgroundColor: 'white',
-        borderRadius: 14,
-        padding: 16,
+        borderRadius: 16,
+        padding: 12,
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 12,
-        borderWidth: 2,
+        borderWidth: 1,
         borderColor: '#f1f5f9',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
@@ -386,20 +787,24 @@ const styles = StyleSheet.create({
     },
     itemCardActive: {
         borderColor: '#2196F3',
-        backgroundColor: '#f0f9ff',
+        backgroundColor: '#f8fcff',
         shadowColor: '#2196F3',
         shadowOpacity: 0.1,
-        elevation: 3
+        elevation: 2
     },
-    itemLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-        gap: 12
+    itemImageContainer: {
+        position: 'relative',
+        marginRight: 12
+    },
+    itemImage: {
+        width: 60,
+        height: 60,
+        borderRadius: 12,
+        backgroundColor: '#f1f5f9'
     },
     itemIcon: {
-        width: 48,
-        height: 48,
+        width: 60,
+        height: 60,
         borderRadius: 12,
         backgroundColor: '#f1f5f9',
         justifyContent: 'center',
@@ -408,39 +813,72 @@ const styles = StyleSheet.create({
     itemIconActive: {
         backgroundColor: '#e3f2fd'
     },
-    itemName: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#1a1a2e',
-        flex: 1
-    },
-    itemRight: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8
-    },
-    qtyBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-        backgroundColor: '#e3f2fd',
+    activeCheck: {
+        position: 'absolute',
+        top: -6,
+        right: -6,
+        backgroundColor: '#2196F3',
+        width: 18,
+        height: 18,
+        borderRadius: 9,
         justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
+        borderWidth: 1.5,
+        borderColor: 'white'
     },
-    qtyBtnDisabled: {
-        backgroundColor: '#f1f5f9'
+    itemContent: {
+        flex: 1,
+        justifyContent: 'center',
+        marginRight: 8
     },
-    qtyInput: {
-        width: 56,
-        height: 40,
-        borderWidth: 2,
-        borderColor: '#e2e8f0',
-        borderRadius: 10,
-        textAlign: 'center',
+    itemName: {
         fontSize: 16,
         fontWeight: '700',
         color: '#1a1a2e',
-        backgroundColor: '#fff'
+        marginBottom: 4,
+        lineHeight: 20
+    },
+    itemMetas: {
+        fontSize: 13,
+        color: '#64748b',
+        fontWeight: '500'
+    },
+    itemRight: {
+        alignItems: 'flex-end',
+    },
+    qtyControls: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: '#f8fafc',
+        padding: 4,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#e2e8f0'
+    },
+    qtyBtn: {
+        width: 32,
+        height: 32,
+        borderRadius: 10,
+        backgroundColor: 'white',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1
+    },
+    qtyBtnDisabled: {
+        backgroundColor: '#f1f5f9',
+        shadowOpacity: 0
+    },
+    qtyInput: {
+        width: 40,
+        textAlign: 'center',
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#1a1a2e'
     },
     footer: {
         position: 'absolute',
@@ -449,23 +887,22 @@ const styles = StyleSheet.create({
         right: 0,
         padding: 20,
         paddingBottom: 32,
-        backgroundColor: '#fff',
+        backgroundColor: 'white',
         borderTopWidth: 1,
         borderTopColor: '#e2e8f0',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
+        shadowOffset: { width: 0, height: -4 },
         shadowOpacity: 0.05,
-        shadowRadius: 8,
+        shadowRadius: 10,
         elevation: 10
     },
     submitBtn: {
         backgroundColor: '#2196F3',
-        borderRadius: 14,
+        borderRadius: 16,
         padding: 16,
         flexDirection: 'row',
-        justifyContent: 'center',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        gap: 12,
         shadowColor: '#2196F3',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
@@ -478,7 +915,127 @@ const styles = StyleSheet.create({
     },
     submitBtnText: {
         color: 'white',
-        fontSize: 17,
+        fontSize: 18,
+        fontWeight: '700'
+    },
+    submitBtnSubText: {
+        color: 'rgba(255,255,255,0.9)',
+        fontSize: 12,
+        fontWeight: '500'
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end'
+    },
+    modalContent: {
+        backgroundColor: '#FFFFFF',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: 24,
+        maxHeight: '85%'
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#1E293B'
+    },
+    closeButton: {
+        padding: 4
+    },
+    modalLoading: {
+        paddingVertical: 60,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    modalBody: {
+        flex: 1
+    },
+    pendingInfoCard: {
+        backgroundColor: '#F8FAFC',
+        padding: 16,
+        borderRadius: 12,
+        marginBottom: 20,
+        gap: 12
+    },
+    pendingInfoRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8
+    },
+    pendingInfoLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#64748B',
+        flex: 1
+    },
+    pendingInfoValue: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#1E293B'
+    },
+    modalSectionTitle: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#64748B',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginBottom: 12
+    },
+    pendingItemCard: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        padding: 14,
+        borderRadius: 12,
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: '#E2E8F0'
+    },
+    pendingItemInfo: {
+        flex: 1
+    },
+    pendingItemName: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#1E293B',
+        marginBottom: 4
+    },
+    pendingItemUnit: {
+        fontSize: 12,
+        color: '#94A3B8'
+    },
+    pendingQtyBadge: {
+        backgroundColor: '#EFF6FF',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8
+    },
+    pendingQtyText: {
+        color: '#2563EB',
+        fontWeight: '700',
+        fontSize: 15
+    },
+    deleteModalBtn: {
+        backgroundColor: '#EF4444',
+        borderRadius: 12,
+        padding: 16,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 20
+    },
+    deleteModalBtnText: {
+        color: '#FFFFFF',
+        fontSize: 16,
         fontWeight: '700'
     }
 });

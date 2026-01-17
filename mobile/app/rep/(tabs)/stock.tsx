@@ -200,85 +200,70 @@ export default function StockScreen() {
 
     return (
         <View style={styles.container}>
-            {/* Premium Hero Header - Flat Salesman Blue */}
+            {/* modern-glass-header */}
             <LinearGradient
-                colors={['#2196F3', '#2196F3']}
+                colors={['#2196F3', '#1E88E5', '#1976D2']}
                 style={styles.heroHeader}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
             >
-                {/* Decorative Circles */}
-                <View style={styles.decorativeCircle1} />
-                <View style={styles.decorativeCircle2} />
+                {/* Abstract Glass Shapes for Background Texture */}
+                <View style={styles.glassShape1} />
+                <View style={styles.glassShape2} />
+                <View style={styles.glassShape3} />
 
-                <View style={styles.headerContent}>
-                    <View style={styles.titleSection}>
-                        <View style={styles.subtitleRow}>
-                            <Ionicons name="cube" size={16} color="rgba(255, 255, 255, 0.9)" />
-                            <Text style={styles.headerSubtitle}>My Inventory</Text>
+                <View style={styles.headerTopRow}>
+                    <View style={styles.titleColumn}>
+                        <View style={styles.badgeLabelContainer}>
+                            <View style={styles.badgeIndicator} />
+                            <Text style={styles.headerOverline}>MY INVENTORY</Text>
                         </View>
-                        <Text style={styles.headerTitle}>Stock</Text>
-                        {totalItems > 0 && (
-                            <Text style={styles.itemCount}>
-                                {totalItems} {totalItems === 1 ? 'Item' : 'Items'} • {totalQuantity} Total Units
-                            </Text>
-                        )}
+                        <Text style={styles.heroTitle}>Stock</Text>
+                        <Text style={styles.stockSummaryText}>
+                            {totalItems} Items • {totalQuantity} Total Units
+                        </Text>
                     </View>
 
                     <TouchableOpacity
-                        style={styles.historyButton}
+                        style={styles.historyGlassBtn}
                         onPress={() => router.push('/rep/inventory-history')}
                         activeOpacity={0.8}
                     >
-                        <View style={styles.historyButtonInner}>
-                            <Ionicons name="time-outline" size={18} color="#FFF" />
-                            <Text style={styles.historyButtonText}>History</Text>
-                        </View>
+                        <Ionicons name="time-outline" size={20} color="#FFF" />
+                        <Text style={styles.historyBtnText}>History</Text>
                     </TouchableOpacity>
                 </View>
 
-                {/* Actions Row */}
-                <View style={[styles.actionRow, { justifyContent: 'center', gap: 40 }]}>
+                {/* Modern Glass Action Grid */}
+                <View style={styles.actionGrid}>
                     <TouchableOpacity
-                        style={[styles.actionBtn, { flex: 0, padding: 0, backgroundColor: 'transparent', borderWidth: 0, flexDirection: 'column' }]}
+                        style={styles.glassActionCard}
                         onPress={() => router.push('/rep/transfer-shops' as any)}
-                        activeOpacity={0.8}
+                        activeOpacity={0.85}
                     >
-                        <View style={[styles.actionIcon, {
-                            width: 60,
-                            height: 60,
-                            borderRadius: 30,
-                            backgroundColor: '#FFFFFF',
-                            shadowColor: '#000',
-                            shadowOffset: { width: 0, height: 4 },
-                            shadowOpacity: 0.2,
-                            shadowRadius: 8,
-                            elevation: 6
-                        }]}>
-                            <Ionicons name="storefront" size={26} color="#0284C7" />
+                        <View style={styles.actionIconContainer}>
+                            <Ionicons name="storefront" size={24} color="#0284C7" />
                         </View>
-                        <Text style={[styles.actionText, { marginTop: 8 }]}>To Shop</Text>
+                        <View>
+                            <Text style={styles.actionCardTitle}>Transfer</Text>
+                            <Text style={styles.actionCardSubtitle}>To Shop</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.5)" style={styles.actionArrow} />
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        style={[styles.actionBtn, { flex: 0, padding: 0, backgroundColor: 'transparent', borderWidth: 0, flexDirection: 'column' }]}
+                        style={styles.glassActionCard}
                         onPress={() => router.push('/rep/return-hq' as any)}
-                        activeOpacity={0.8}
+                        activeOpacity={0.85}
                     >
-                        <View style={[styles.actionIcon, {
-                            width: 60,
-                            height: 60,
-                            borderRadius: 30,
-                            backgroundColor: '#FFFFFF',
-                            shadowColor: '#000',
-                            shadowOffset: { width: 0, height: 4 },
-                            shadowOpacity: 0.2,
-                            shadowRadius: 8,
-                            elevation: 6
-                        }]}>
-                            <Ionicons name="return-up-back" size={26} color="#2196F3" />
+                        <View style={[styles.actionIconContainer, { backgroundColor: '#E0F2FE' }]}>
+                            <Ionicons name="return-up-back" size={24} color="#2563EB" />
                         </View>
-                        <Text style={[styles.actionText, { marginTop: 8 }]}>Return HQ</Text>
+                        <View>
+                            <Text style={styles.actionCardTitle}>Return</Text>
+                            <Text style={styles.actionCardSubtitle}>To HQ</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.5)" style={styles.actionArrow} />
                     </TouchableOpacity>
                 </View>
             </LinearGradient>
@@ -376,127 +361,162 @@ const styles = StyleSheet.create({
     },
     heroHeader: {
         paddingTop: 60,
-        paddingBottom: 24,
+        paddingBottom: 30,
         paddingHorizontal: 24,
         borderBottomLeftRadius: 36,
         borderBottomRightRadius: 36,
-        shadowColor: '#2196F3',
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.4,
-        shadowRadius: 24,
-        elevation: 16,
-        overflow: 'hidden'
+        overflow: 'hidden',
+        // Modern shadow
+        shadowColor: '#2563EB',
+        shadowOffset: { width: 0, height: 16 },
+        shadowOpacity: 0.35,
+        shadowRadius: 32,
+        elevation: 16
     },
-    decorativeCircle1: {
+    // Abstract Background Shapes
+    glassShape1: {
         position: 'absolute',
-        width: 200,
-        height: 200,
-        borderRadius: 100,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        top: -50,
-        right: -50
-    },
-    decorativeCircle2: {
-        position: 'absolute',
-        width: 150,
-        height: 150,
-        borderRadius: 75,
+        width: 300,
+        height: 300,
+        borderRadius: 150,
         backgroundColor: 'rgba(255, 255, 255, 0.08)',
-        bottom: -30,
+        top: -80,
+        right: -60,
+        transform: [{ scaleX: 1.2 }]
+    },
+    glassShape2: {
+        position: 'absolute',
+        width: 180,
+        height: 180,
+        borderRadius: 90,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        bottom: -20,
         left: -40
     },
-    headerContent: {
+    glassShape3: {
+        position: 'absolute',
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        top: 60,
+        left: '40%'
+    },
+
+    // Header Layout
+    headerTopRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        gap: 16,
-        zIndex: 1,
-        marginBottom: 20
+        marginBottom: 32,
+        zIndex: 10
     },
-    titleSection: {
-        flex: 1,
-        gap: 6
+    titleColumn: {
+        flex: 1
     },
-    subtitleRow: {
+    badgeLabelContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
-        marginBottom: 4
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        alignSelf: 'flex-start',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 20,
+        marginBottom: 12
     },
-    headerSubtitle: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.95)',
-        fontWeight: '600',
+    badgeIndicator: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: '#4ADE80',
+        marginRight: 6
+    },
+    headerOverline: {
+        fontSize: 11,
+        color: '#FFFFFF',
+        fontWeight: '800',
         letterSpacing: 1,
-        textTransform: 'uppercase'
+        opacity: 0.95
     },
-    headerTitle: {
-        fontSize: 40,
+    heroTitle: {
+        fontSize: 42,
         fontWeight: '900',
         color: '#FFFFFF',
-        letterSpacing: -1.5,
-        textShadowColor: 'rgba(0, 0, 0, 0.1)',
+        letterSpacing: -1,
+        lineHeight: 44,
+        textShadowColor: 'rgba(0,0,0,0.1)',
         textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 8
+        textShadowRadius: 4
     },
-    itemCount: {
-        fontSize: 13,
-        color: 'rgba(255, 255, 255, 0.85)',
-        fontWeight: '600',
-        marginTop: 4,
-        letterSpacing: 0.3
-    },
-    historyButton: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 4
-    },
-    historyButtonInner: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        backgroundColor: 'rgba(255, 255, 255, 0.25)',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderRadius: 24,
-        borderWidth: 1.5,
-        borderColor: 'rgba(255, 255, 255, 0.4)'
-    },
-    historyButtonText: {
+    stockSummaryText: {
+        color: 'rgba(255,255,255,0.8)',
         fontSize: 14,
-        fontWeight: '800',
-        color: '#FFFFFF',
-        letterSpacing: 0.3
+        marginTop: 6,
+        fontWeight: '600'
     },
-    actionRow: {
-        flexDirection: 'row',
-        marginTop: 4,
-    },
-    actionBtn: {
-        backgroundColor: 'rgba(255, 255, 255, 0.15)',
-        borderRadius: 16,
-        padding: 12,
+
+    // History Button (Glass)
+    historyGlassBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 20,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.2)',
-        gap: 10
+        borderColor: 'rgba(255,255,255,0.3)',
+        gap: 6
     },
-    actionIcon: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        alignItems: 'center',
-        justifyContent: 'center'
-    },
-    actionText: {
+    historyBtnText: {
         color: '#FFFFFF',
         fontWeight: '700',
         fontSize: 14
     },
+
+    // Action Grid
+    actionGrid: {
+        flexDirection: 'row',
+        gap: 12
+    },
+    glassActionCard: {
+        flex: 1,
+        backgroundColor: 'rgba(255,255,255,0.12)', // Translucent glass
+        borderRadius: 20,
+        padding: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+        gap: 12
+    },
+    actionIconContainer: {
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        backgroundColor: '#FFFFFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4
+    },
+    actionCardTitle: {
+        color: '#FFFFFF',
+        fontSize: 15,
+        fontWeight: '700'
+    },
+    actionCardSubtitle: {
+        color: 'rgba(255,255,255,0.7)',
+        fontSize: 12,
+        marginTop: 2,
+        fontWeight: '500'
+    },
+    actionArrow: {
+        marginLeft: 'auto'
+    },
+
     contentSection: {
         flex: 1,
         paddingTop: 28,

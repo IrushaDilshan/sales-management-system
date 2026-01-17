@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { View, Text, SectionList, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 
 type RealTimeRequest = {
     id: number;
@@ -54,9 +55,11 @@ export default function RealTimeRequests() {
     const [refreshing, setRefreshing] = useState(false);
     const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['Today', 'Yesterday'])); // Default expanded
 
-    useEffect(() => {
-        fetchRealTimeRequests();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            fetchRealTimeRequests();
+        }, [])
+    );
 
     const toggleSection = (sectionTitle: string) => {
         setExpandedSections(prev => {

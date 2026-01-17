@@ -48,7 +48,9 @@ const Sidebar = () => {
                     </div>
                     {!isCollapsed && (
                         <div className="brand-info">
-                            <h2 className="brand-name">NLDB</h2>
+                            <h2 className="brand-name">
+                                <span style={{ color: 'var(--side-primary)' }}>NLDB</span>Sales
+                            </h2>
                             <span className="brand-tagline">Manager Pro</span>
                         </div>
                     )}

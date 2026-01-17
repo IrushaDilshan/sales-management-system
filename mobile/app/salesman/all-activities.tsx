@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, RefreshControl, StatusBar } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl, StatusBar } from 'react-native';
+import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,7 +15,8 @@ type Activity = {
     amount?: number;
 };
 
-export default function HistoryTabScreen() {
+export default function AllActivitiesScreen() {
+    const router = useRouter();
     const insets = useSafeAreaInsets();
     const [activities, setActivities] = useState<Activity[]>([]);
     const [loading, setLoading] = useState(true);
@@ -39,6 +41,7 @@ export default function HistoryTabScreen() {
                 .order('created_at', { ascending: false });
 
             if (requests && requests.length > 0) {
+                // Fetch shop names separately
                 const shopIds = [...new Set(requests.map(r => r.shop_id))];
                 const { data: shops } = await supabase
                     .from('shops')
@@ -243,7 +246,11 @@ export default function HistoryTabScreen() {
         <View style={[styles.container, { paddingTop: insets.top }]}>
             <StatusBar barStyle="dark-content" />
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Activity History</Text>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                    <Ionicons name="arrow-back" size={24} color="#0F172A" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>All Activities</Text>
+                <View style={{ width: 40 }} />
             </View>
 
             {loading ? (
@@ -278,18 +285,29 @@ const styles = StyleSheet.create({
         backgroundColor: '#F8FAFC'
     },
     header: {
-        paddingHorizontal: 24,
-        paddingVertical: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingBottom: 20,
         backgroundColor: '#FFFFFF'
     },
+    backBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#F1F5F9',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
     headerTitle: {
-        fontSize: 24,
+        fontSize: 18,
         fontWeight: '700',
         color: '#0F172A'
     },
     listContent: {
         padding: 20,
-        paddingBottom: 100
+        paddingBottom: 40
     },
     activityCard: {
         flexDirection: 'row',

@@ -12,6 +12,16 @@ import organizationHq from '../assets/nldb_organization_hq_v2.png';
 import nldbCorporateBanner from '../assets/nldb-corporate-banner.png';
 import naturalHeroBg from '../assets/nldb_hero_bg.png';
 
+// Product Assets (Restored)
+import imgFreshMilk from '../assets/nldb_products/fresh_milk.jpg';
+import imgCurd from '../assets/nldb_products/curd.jpg';
+import imgYogurt from '../assets/nldb_products/set_yogurt.jpg';
+import imgGhee from '../assets/nldb_products/ghee.jpg';
+import imgDrinkingYogurt from '../assets/nldb_products/drinking_yogurt.jpg';
+import imgEggs from '../assets/nldb_products/eggs.jpg';
+import imgChicken from '../assets/nldb_products/boiler_chicken.jpg';
+import imgCoconutOil from '../assets/nldb_products/coconut_oil.jpg';
+
 const Home = () => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [activeCategory, setActiveCategory] = useState(null); // Will set to first fetched category
@@ -71,25 +81,69 @@ const Home = () => {
 
     // Helper to get products for the CURRENT active category
     const getActiveCategoryProducts = () => {
-        if (!activeCategory || !dbProducts.length) return [];
+        // 1. Identify which Category is active
+        const effectiveCategoryList = categories.length > 0 ? categories : DEMO_CATEGORIES;
+        const currentCategoryObj = effectiveCategoryList.find(c => c.id == activeCategory)
+            || effectiveCategoryList[0];
 
-        return dbProducts.filter(p => {
-            // Match by Database Category ID directly (Most Accurate)
-            if (p.category_id === activeCategory) return true;
+        if (!currentCategoryObj) return [];
 
-            // Fallback: If category_id is missing, try matching by name (Legacy safety)
-            // This is technically not needed if FKs are correct, but good for stability during migration
-            // We won't rely on it for NEW categories, only old ones.
-            return false;
-        }).map(p => ({
-            name: p.name,
-            img: p.image_url || 'https://via.placeholder.com/300?text=No+Image',
-            desc: p.description || 'No description available',
-            tag: p.is_perishable ? 'Fresh' : 'Standard',
-            price: p.retail_price,
-            categoryName: p.product_categories?.name
-        }));
+        // 2. Define a matcher function that works for both DB and Demo items
+        const filterItems = (items, isDemo) => {
+            return items.filter(p => {
+                // A. Direct ID Match (Standard)
+                if (p.category_id == currentCategoryObj.id) return true;
+
+                // B. Keyword/Demo Match
+                if (isDemo) {
+                    const cName = currentCategoryObj.name.toLowerCase();
+                    if (cName.includes('milk') || cName.includes('dairy')) return p.category_id === 101;
+                    if (cName.includes('meat') || cName.includes('poultry')) return p.category_id === 102;
+                    if (cName.includes('agro') || cName.includes('coconut')) return p.category_id === 103;
+                }
+                return false;
+            }).map(p => ({
+                name: p.name,
+                img: p.image_url || 'https://via.placeholder.com/300?text=No+Image',
+                desc: p.description || 'Premium NLDB Farm Product',
+                tag: p.is_perishable ? 'Fresh' : 'Standard',
+                price: p.retail_price,
+                categoryName: currentCategoryObj.name
+            }));
+        };
+
+        // 3. Try obtaining results from Real DB first
+        let results = [];
+        if (dbProducts.length > 0) {
+            results = filterItems(dbProducts, false);
+        }
+
+        // 4. Fallback: If DB yields NO items for this category, show Demo items
+        // This ensures tabs are never empty, effectively "filling in the gaps"
+        if (results.length === 0) {
+            results = filterItems(DEMO_PRODUCTS, true);
+        }
+
+        return results;
     };
+
+    // Fallback Demo Data (Visual Protection)
+    const DEMO_CATEGORIES = [
+        { id: 101, name: 'Milk & Dairy' },
+        { id: 102, name: 'Poultry & Meat' },
+        { id: 103, name: 'Agro Products' }
+    ];
+
+    const DEMO_PRODUCTS = [
+        { id: 1, name: 'Fresh Milk', description: 'High-quality fresh milk processed under strict hygiene.', category_id: 101, retail_price: 280.00, is_perishable: true, image_url: imgFreshMilk },
+        { id: 2, name: 'Buffalo Curd', description: 'Rich, creamy texture traditional Buffalo curd.', category_id: 101, retail_price: 450.00, is_perishable: true, image_url: imgCurd },
+        { id: 3, name: 'Set Yogurt', description: 'Premium quality yogurt with high nutritional value.', category_id: 101, retail_price: 80.00, is_perishable: true, image_url: imgYogurt },
+        { id: 4, name: 'Pure Ghee', description: 'Traditionally prepared ghee with a rich aroma.', category_id: 101, retail_price: 1500.00, is_perishable: false, image_url: imgGhee },
+        { id: 5, name: 'Drinking Yogurt', description: 'Healthy and refreshing flavored yogurt drinks.', category_id: 101, retail_price: 120.00, is_perishable: true, image_url: imgDrinkingYogurt },
+        { id: 6, name: 'Farm Fresh Eggs', description: 'Nutrient-rich brown eggs from NLDB farms.', category_id: 102, retail_price: 45.00, is_perishable: true, image_url: imgEggs },
+        { id: 7, name: 'Broiler Chicken', description: 'Hygienically processed, hormone-free chicken.', category_id: 102, retail_price: 1250.00, is_perishable: true, image_url: imgChicken },
+        { id: 8, name: 'Coconut Oil', description: '100% pure white coconut oil.', category_id: 103, retail_price: 650.00, is_perishable: false, image_url: imgCoconutOil },
+    ];
 
     const nldbOutlets = [
         { name: 'Melsiripura Sale Center', loc: 'Melsiripura', tel: '0377 294 792', type: 'Major Center' },
@@ -173,7 +227,7 @@ const Home = () => {
                 <div className="container-fluid nav-flex">
                     <div className="branding">
                         <div className="logo-main">
-                            <span className="n-accent">N</span>LDB
+                            <span className="n-accent">NLDB</span>Sales
                         </div>
                         <div className="trilingual-titles">
                             <span className="sinhala">ජාතික පශු සම්පත් සංවර්ධන මණ්ඩලය</span>
@@ -322,11 +376,11 @@ const Home = () => {
 
                     <div className="text-center">
                         <div className="category-tabs">
-                            {categories.map(cat => (
+                            {(categories.length > 0 ? categories : DEMO_CATEGORIES).map(cat => (
                                 <button
                                     key={cat.id}
                                     onClick={() => setActiveCategory(cat.id)}
-                                    className={`tab-btn ${activeCategory === cat.id ? 'active' : ''}`}
+                                    className={`tab-btn ${activeCategory === cat.id || (!activeCategory && cat.id === (categories.length > 0 ? categories[0].id : DEMO_CATEGORIES[0].id)) ? 'active' : ''}`}
                                 >
                                     {/* Simple Icon Mapping based on name keywords, or default star */}
                                     <span style={{ marginRight: '8px' }}>

@@ -144,6 +144,64 @@ export default function RequestHistoryScreen() {
         }
     };
 
+    const editPendingRequest = (item: HistoryItem) => {
+        router.push({
+            pathname: '/salesman/edit-request',
+            params: { requestId: item.id }
+        } as any);
+    };
+
+    const deletePendingRequest = async (requestId: string | number) => {
+        try {
+            // First delete request_items
+            const { error: itemsError } = await supabase
+                .from('request_items')
+                .delete()
+                .eq('request_id', requestId);
+
+            if (itemsError) {
+                console.error('Error deleting request items:', itemsError);
+                return;
+            }
+
+            // Then delete the request itself
+            const { error: requestError } = await supabase
+                .from('requests')
+                .delete()
+                .eq('id', requestId);
+
+            if (requestError) {
+                console.error('Error deleting request:', requestError);
+                return;
+            }
+
+            // Refresh the list
+            fetchHistory();
+        } catch (error: any) {
+            console.error('Exception deleting pending request:', error);
+        }
+    };
+
+    const confirmDeleteRequest = (item: HistoryItem) => {
+        if (item.type !== 'request' || item.status?.toLowerCase() !== 'pending') {
+            return;
+        }
+
+        const alert = require('react-native').Alert;
+        alert.alert(
+            'Delete Pending Request',
+            'Are you sure you want to delete this pending request?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: () => deletePendingRequest(item.id)
+                }
+            ]
+        );
+    };
+
     const onRefresh = () => {
         setRefreshing(true);
         fetchHistory();
@@ -220,12 +278,44 @@ export default function RequestHistoryScreen() {
     const formatDate = (dateString: string) => {
         if (!dateString) return 'No date';
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const itemDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+        const isToday = today.getTime() === itemDate.getTime();
+        const isYesterday = today.getTime() - itemDate.getTime() === 86400000; // 24 hours in ms
+
+        const timeStr = date.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
         });
+
+        if (isToday) {
+            return `Today, ${timeStr}`;
+        } else if (isYesterday) {
+            return `Yesterday, ${timeStr}`;
+        } else {
+            return date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+            }) + `, ${timeStr}`;
+        }
+    };
+
+    const canEditOrDelete = (item: HistoryItem) => {
+        if (item.type !== 'request' || item.status?.toLowerCase() !== 'pending') {
+            return false;
+        }
+
+        // Check if request was created today
+        const requestDate = new Date(item.date);
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const itemDay = new Date(requestDate.getFullYear(), requestDate.getMonth(), requestDate.getDate());
+
+        return today.getTime() === itemDay.getTime();
     };
 
     const renderItem = ({ item }: { item: HistoryItem }) => {
@@ -247,31 +337,59 @@ export default function RequestHistoryScreen() {
             }
         }
 
-        return (
-            <TouchableOpacity
-                style={styles.card}
-                onPress={() => fetchDetails(item)}
-                activeOpacity={0.7}
-            >
-                <View style={styles.cardHeader}>
-                    <View style={styles.cardIconRow}>
-                        <View style={[styles.iconContainer, { backgroundColor: item.type === 'movement' ? (item.subType === 'rep_transfer' ? '#DCFCE7' : '#FEE2E2') : '#EFF6FF' }]}>
-                            <Ionicons name={iconName} size={20} color={color} />
-                        </View>
-                        <View>
-                            <Text style={styles.cardTitle}>{title}</Text>
-                            <Text style={styles.cardDate}>{formatDate(item.date)}</Text>
-                        </View>
-                    </View>
-                    <View style={[styles.statusBadge, { backgroundColor: style.bg }]}>
-                        <Text style={[styles.statusText, { color: style.text }]}>{style.label}</Text>
-                    </View>
-                </View>
+        const isPending = item.type === 'request' && item.status?.toLowerCase() === 'pending';
+        const canEdit = canEditOrDelete(item);
 
-                {item.notes && (
-                    <Text style={styles.notesText} numberOfLines={1}>Note: {item.notes}</Text>
+        return (
+            <View style={styles.card}>
+                <TouchableOpacity
+                    style={styles.cardTouchable}
+                    onPress={() => fetchDetails(item)}
+                    activeOpacity={0.7}
+                >
+                    <View style={styles.cardHeader}>
+                        <View style={styles.cardIconRow}>
+                            <View style={[styles.iconContainer, { backgroundColor: item.type === 'movement' ? (item.subType === 'rep_transfer' ? '#DCFCE7' : '#FEE2E2') : '#EFF6FF' }]}>
+                                <Ionicons name={iconName} size={22} color={color} />
+                            </View>
+                            <View style={styles.cardTextContainer}>
+                                <View style={styles.titleRow}>
+                                    <Text style={styles.cardTitle}>{title}</Text>
+                                    <View style={[styles.statusBadge, { backgroundColor: style.bg }]}>
+                                        <Text style={[styles.statusText, { color: style.text }]}>{style.label}</Text>
+                                    </View>
+                                </View>
+                                <Text style={styles.cardDate}>{formatDate(item.date)}</Text>
+                            </View>
+                        </View>
+                    </View>
+
+                    {item.notes && (
+                        <Text style={styles.notesText} numberOfLines={1}>Note: {item.notes}</Text>
+                    )}
+                </TouchableOpacity>
+
+                {isPending && canEdit && (
+                    <View style={styles.cardActions}>
+                        <TouchableOpacity
+                            style={styles.editBtn}
+                            onPress={() => editPendingRequest(item)}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons name="create-outline" size={18} color="#2563EB" />
+                            <Text style={styles.editBtnText}>Edit</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.deleteBtn}
+                            onPress={() => confirmDeleteRequest(item)}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                            <Text style={styles.deleteBtnText}>Delete</Text>
+                        </TouchableOpacity>
+                    </View>
                 )}
-            </TouchableOpacity>
+            </View>
         );
     };
 
@@ -410,58 +528,135 @@ const styles = StyleSheet.create({
     },
     card: {
         backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 12,
-        shadowColor: '#64748B',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
-        borderWidth: 1,
-        borderColor: '#E2E8F0'
+        borderRadius: 18,
+        marginBottom: 14,
+        shadowColor: '#1E293B',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 4,
+        borderWidth: 0.5,
+        borderColor: '#E2E8F0',
+        overflow: 'hidden'
+    },
+    cardTouchable: {
+        padding: 18
     },
     cardHeader: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
+        marginBottom: 2
     },
     cardIconRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12
+        gap: 14,
+        flex: 1
     },
     iconContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
+        width: 46,
+        height: 46,
+        borderRadius: 14,
         justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 3,
+        elevation: 1
+    },
+    cardTextContainer: {
+        flex: 1
+    },
+    titleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 6,
+        gap: 8
     },
     cardTitle: {
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: '700',
-        color: '#1E293B',
-        marginBottom: 2
+        color: '#0F172A',
+        flex: 1
     },
     cardDate: {
-        fontSize: 12,
-        color: '#94A3B8'
+        fontSize: 13,
+        color: '#64748B',
+        fontWeight: '500'
     },
     statusBadge: {
         paddingHorizontal: 10,
         paddingVertical: 5,
-        borderRadius: 8
+        borderRadius: 8,
+        alignSelf: 'flex-start'
     },
     statusText: {
         fontSize: 11,
-        fontWeight: '700'
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5
     },
     notesText: {
         fontSize: 12,
         color: '#64748B',
         marginTop: 10,
-        fontStyle: 'italic'
+        fontStyle: 'italic',
+        paddingLeft: 60
+    },
+    cardActions: {
+        borderTopWidth: 1,
+        borderTopColor: '#F1F5F9',
+        paddingHorizontal: 18,
+        paddingVertical: 12,
+        flexDirection: 'row',
+        gap: 10,
+        backgroundColor: '#FAFBFC'
+    },
+    editBtn: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 7,
+        paddingVertical: 11,
+        borderRadius: 10,
+        backgroundColor: '#EFF6FF',
+        borderWidth: 1.5,
+        borderColor: '#BFDBFE',
+        shadowColor: '#2563EB',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 2
+    },
+    editBtnText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#2563EB'
+    },
+    deleteBtn: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 7,
+        paddingVertical: 11,
+        borderRadius: 10,
+        backgroundColor: '#FEF2F2',
+        borderWidth: 1.5,
+        borderColor: '#FEE2E2',
+        shadowColor: '#EF4444',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 2
+    },
+    deleteBtnText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#EF4444'
     },
     listContent: {
         padding: 20,
