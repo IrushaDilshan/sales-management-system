@@ -1,0 +1,611 @@
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { supabase } from '../shared/supabaseClient';
+import './Home.css';
+
+// Premium Visual Assets
+import premiumHeroBg from '../assets/nldb_hero_premium.png';
+import labResearch from '../assets/nldb_lab.png';
+import logisticsImg from '../assets/nldb_logistics.png';
+import qualityBadge from '../assets/nldb_quality_badge.png';
+import organizationHq from '../assets/nldb_organization_hq_v2.png';
+import nldbCorporateBanner from '../assets/nldb-corporate-banner.png';
+import naturalHeroBg from '../assets/nldb_hero_bg.png';
+
+// Product Assets (Restored)
+import imgFreshMilk from '../assets/nldb_products/fresh_milk.jpg';
+import imgCurd from '../assets/nldb_products/curd.jpg';
+import imgYogurt from '../assets/nldb_products/set_yogurt.jpg';
+import imgGhee from '../assets/nldb_products/ghee.jpg';
+import imgDrinkingYogurt from '../assets/nldb_products/drinking_yogurt.jpg';
+import imgEggs from '../assets/nldb_products/eggs.jpg';
+import imgChicken from '../assets/nldb_products/boiler_chicken.jpg';
+import imgCoconutOil from '../assets/nldb_products/coconut_oil.jpg';
+
+const Home = () => {
+    const [isScrolled, setIsScrolled] = useState(false);
+    const [activeCategory, setActiveCategory] = useState(null); // Will set to first fetched category
+    const [selectedProduct, setSelectedProduct] = useState(null);
+    const [dbProducts, setDbProducts] = useState([]);
+    const [categories, setCategories] = useState([]); // Dynamic Categories
+    const [loading, setLoading] = useState(true);
+
+    const [searchQuery, setSearchQuery] = useState('');
+
+    useEffect(() => {
+        const handleScroll = () => {
+            setIsScrolled(window.scrollY > 50);
+        };
+        window.addEventListener('scroll', handleScroll);
+        fetchProducts();
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    const fetchProducts = async () => {
+        try {
+            // 1. Fetch Categories first
+            const { data: catData, error: catError } = await supabase
+                .from('product_categories')
+                .select('id, name')
+                .eq('is_active', true)
+                .order('name');
+
+            if (catError) throw catError;
+
+            setCategories(catData || []);
+            if (catData && catData.length > 0) {
+                // Default to the first category if not already set
+                setActiveCategory(prev => prev || catData[0].id);
+            }
+
+            // 2. Fetch Items
+            const { data, error } = await supabase
+                .from('items')
+                .select(`
+                    *,
+                    product_categories (
+                        id,
+                        name
+                    )
+                `)
+                .order('name');
+
+            if (error) throw error;
+            setDbProducts(data || []);
+        } catch (err) {
+            console.error('Error fetching data:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Helper to get products for the CURRENT active category
+    const getActiveCategoryProducts = () => {
+        // 1. Identify which Category is active
+        const effectiveCategoryList = categories.length > 0 ? categories : DEMO_CATEGORIES;
+        const currentCategoryObj = effectiveCategoryList.find(c => c.id == activeCategory)
+            || effectiveCategoryList[0];
+
+        if (!currentCategoryObj) return [];
+
+        // 2. Define a matcher function that works for both DB and Demo items
+        const filterItems = (items, isDemo) => {
+            return items.filter(p => {
+                // A. Direct ID Match (Standard)
+                if (p.category_id == currentCategoryObj.id) return true;
+
+                // B. Keyword/Demo Match
+                if (isDemo) {
+                    const cName = currentCategoryObj.name.toLowerCase();
+                    if (cName.includes('milk') || cName.includes('dairy')) return p.category_id === 101;
+                    if (cName.includes('meat') || cName.includes('poultry')) return p.category_id === 102;
+                    if (cName.includes('agro') || cName.includes('coconut')) return p.category_id === 103;
+                }
+                return false;
+            }).map(p => ({
+                name: p.name,
+                img: p.image_url || 'https://via.placeholder.com/300?text=No+Image',
+                desc: p.description || 'Premium NLDB Farm Product',
+                tag: p.is_perishable ? 'Fresh' : 'Standard',
+                price: p.retail_price,
+                categoryName: currentCategoryObj.name
+            }));
+        };
+
+        // 3. Try obtaining results from Real DB first
+        let results = [];
+        if (dbProducts.length > 0) {
+            results = filterItems(dbProducts, false);
+        }
+
+        // 4. Fallback: If DB yields NO items for this category, show Demo items
+        // This ensures tabs are never empty, effectively "filling in the gaps"
+        if (results.length === 0) {
+            results = filterItems(DEMO_PRODUCTS, true);
+        }
+
+        return results;
+    };
+
+    // Fallback Demo Data (Visual Protection)
+    const DEMO_CATEGORIES = [
+        { id: 101, name: 'Milk & Dairy' },
+        { id: 102, name: 'Poultry & Meat' },
+        { id: 103, name: 'Agro Products' }
+    ];
+
+    const DEMO_PRODUCTS = [
+        { id: 1, name: 'Fresh Milk', description: 'High-quality fresh milk processed under strict hygiene.', category_id: 101, retail_price: 280.00, is_perishable: true, image_url: imgFreshMilk },
+        { id: 2, name: 'Buffalo Curd', description: 'Rich, creamy texture traditional Buffalo curd.', category_id: 101, retail_price: 450.00, is_perishable: true, image_url: imgCurd },
+        { id: 3, name: 'Set Yogurt', description: 'Premium quality yogurt with high nutritional value.', category_id: 101, retail_price: 80.00, is_perishable: true, image_url: imgYogurt },
+        { id: 4, name: 'Pure Ghee', description: 'Traditionally prepared ghee with a rich aroma.', category_id: 101, retail_price: 1500.00, is_perishable: false, image_url: imgGhee },
+        { id: 5, name: 'Drinking Yogurt', description: 'Healthy and refreshing flavored yogurt drinks.', category_id: 101, retail_price: 120.00, is_perishable: true, image_url: imgDrinkingYogurt },
+        { id: 6, name: 'Farm Fresh Eggs', description: 'Nutrient-rich brown eggs from NLDB farms.', category_id: 102, retail_price: 45.00, is_perishable: true, image_url: imgEggs },
+        { id: 7, name: 'Broiler Chicken', description: 'Hygienically processed, hormone-free chicken.', category_id: 102, retail_price: 1250.00, is_perishable: true, image_url: imgChicken },
+        { id: 8, name: 'Coconut Oil', description: '100% pure white coconut oil.', category_id: 103, retail_price: 650.00, is_perishable: false, image_url: imgCoconutOil },
+    ];
+
+    const nldbOutlets = [
+        { name: 'Melsiripura Sale Center', loc: 'Melsiripura', tel: '0377 294 792', type: 'Major Center' },
+        { name: 'Mahaberithenna Sale Center', loc: 'Digana', tel: '0817 294 638', type: 'Farm Outlet' },
+        { name: 'Rosita Sale Center', loc: 'Kotagala', tel: '0515 675 404', type: 'Upcountry' },
+        { name: 'Koulwewa Sale Center', loc: 'Peragaswela, Kuliyapitiya', tel: '0377 294 112', type: 'Regional' },
+        { name: 'Narangalle Sale Center', loc: 'Kithalawa', tel: '0373 157 400', type: 'North Western' },
+        { name: 'Nikawaratiya Sale Center', loc: 'Nikawaratiya', tel: '0372 260 288', type: 'Regional' },
+        { name: 'Siringapatha Sale Center', loc: 'Badalgama', tel: '0312 269 204', type: 'Western' },
+        { name: 'Martin Sale Center', loc: 'Bangadeniya', tel: '0327 294 584', type: 'Regional' },
+        { name: 'Weerawila Sale Center', loc: 'Thissamaharamaya', tel: '0473 499 997', type: 'Southern' },
+        { name: 'Welisara Sale Center', loc: 'Alpitiwala, Ragama', tel: '0114 294 489', type: 'Major' },
+        { name: 'Beligama Sale Center', loc: 'Beligamuwa', tel: '0773 782 136', type: 'Regional' },
+        { name: 'Haragama Sale Center', loc: 'Haragama, Gurudeniya', tel: '0817 294 061', type: 'Regional' },
+        { name: 'Karandagolla Sale Center', loc: 'Kundasale', tel: '081 729 42 98', type: 'Regional' },
+        { name: 'Apeksha Hospital Center', loc: 'Maharagama', tel: '0114 294 489', type: 'Special' },
+        { name: 'Maawaththa Farm Center', loc: 'Maawaththa', tel: '031 225 5232', type: 'Farm Outlet' }
+    ];
+
+    const filteredOutlets = nldbOutlets.filter(outlet =>
+        outlet.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        outlet.loc.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const handleViewMap = (outlet) => {
+        const query = encodeURIComponent(`NLDB ${outlet.name} ${outlet.loc} Sri Lanka`);
+        window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+    };
+
+    return (
+        <div className="home-white-modern">
+            {/* Modal Implementation */}
+            {selectedProduct && (
+                <div className="modal-overlay" onClick={() => setSelectedProduct(null)}>
+                    <div className="modal-content animate-fade" onClick={e => e.stopPropagation()}>
+                        <button className="modal-close" onClick={() => setSelectedProduct(null)}>&times;</button>
+                        <div className="modal-grid">
+                            <div className="modal-img-col">
+                                <img src={selectedProduct.img} alt={selectedProduct.name} />
+                            </div>
+                            <div className="modal-info-col">
+                                <div className="modal-header">
+                                    <span className="modal-tag">{selectedProduct.tag}</span>
+                                    <span className="modal-cat">{selectedProduct.categoryName}</span>
+                                </div>
+                                <h2>{selectedProduct.name}</h2>
+                                <p className="modal-desc">{selectedProduct.desc}</p>
+
+                                <div className="modal-specs">
+                                    <div className="spec-item">
+                                        <span className="spec-label">Price</span>
+                                        <span className="spec-val" style={{ color: '#059669', fontSize: '1.25rem' }}>
+                                            Rs. {selectedProduct.price ? selectedProduct.price.toFixed(2) : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="spec-item">
+                                        <span className="spec-label">Origin</span>
+                                        <span className="spec-val">NLDB Farms</span>
+                                    </div>
+                                </div>
+
+                                <div className="modal-actions">
+                                    <button
+                                        className="btn-gradient"
+                                        onClick={() => {
+                                            setSelectedProduct(null);
+                                            document.getElementById('outlets').scrollIntoView({ behavior: 'smooth' });
+                                        }}
+                                    >
+                                        Locate in Store
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Immersive Navigation */}
+            <header className={`header-modern ${isScrolled ? 'scrolled' : ''}`}>
+                <div className="container-fluid nav-flex">
+                    <div className="branding">
+                        <div className="logo-main">
+                            <span className="n-accent">NLDB</span>Sales
+                        </div>
+                        <div className="trilingual-titles">
+                            <span className="sinhala">ජාතික පශු සම්පත් සංවර්ධන මණ්ඩලය</span>
+                            <span className="english">National Livestock Development Board</span>
+                            <span className="tamil">தேசிய பண்ணை விலங்கு அபிவிருத்தி சபை</span>
+                        </div>
+                    </div>
+
+                    <nav className="main-nav">
+                        <ul>
+                            <li><a href="#about">About Us</a></li>
+                            <li><a href="#ops">Operations</a></li>
+                            <li><a href="#products">Products</a></li>
+                            <li><a href="#outlets">Our Shops</a></li>
+                            <li><a href="#contact">Contact Us</a></li>
+                            <li><Link to="/login" className="btn-portal">Command Center</Link></li>
+                        </ul>
+                    </nav>
+                </div>
+            </header>
+
+            {/* High-Impact Hero */}
+            <section className="hero-premium" style={{ backgroundImage: `url(${premiumHeroBg})` }}>
+                <div className="container">
+                    <div className="hero-content animate-fade">
+                        <div className="hero-badge-v2">
+                            <span className="dot"></span> Pioneering Sustainable Agriculture
+                        </div>
+                        <h1>Reshaping the National <br /><span className="text-green">Livestock Frontier.</span></h1>
+                        <p>
+                            Leading Sri Lanka through advanced genetic research,
+                            precision engineering, and a state-of-the-art biological
+                            infrastructure ensuring national food sovereignty.
+                        </p>
+                        <div className="hero-btns">
+                            <a href="#products" className="btn-gradient">Explore Products</a>
+                            <a href="#about" className="btn-glass">Corporate Overview</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Trust & Quality Bar */}
+            <section className="qa-banner">
+                <div className="container qa-grid">
+                    <div className="qa-item">
+                        <div className="icon">🛡️</div>
+                        <div>
+                            <strong>ISO Certified</strong>
+                            <p>Global standards in safety</p>
+                        </div>
+                    </div>
+                    <div className="qa-item">
+                        <div className="icon">🔬</div>
+                        <div>
+                            <strong>Genetic Excellence</strong>
+                            <p>Premium breeding protocols</p>
+                        </div>
+                    </div>
+                    <div className="qa-item">
+                        <div className="icon">♻️</div>
+                        <div>
+                            <strong>Eco-Focused</strong>
+                            <p>Sustainable farm management</p>
+                        </div>
+                    </div>
+                    <div className="qa-item">
+                        <div className="icon">🇱🇰</div>
+                        <div>
+                            <strong>Nation Building</strong>
+                            <p>Supporting local dairy farmers</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* The Authority - Corporate Mission */}
+            <section id="about" className="section-padding">
+                <div className="container">
+                    <div className="mission-v2">
+                        <div className="mission-text-side">
+                            <div className="section-tag">Governing Body since 1973</div>
+                            <h2 className="headline-h2">A Legacy of <span className="text-green">Integrity & Precision.</span></h2>
+                            <p className="p-large">
+                                As the national authority, NLDB bridges the gap between traditional
+                                Sri Lankan farming and high-tech digital precision. We operate 40+
+                                specialized farms focused on genetic optimization and production excellence.
+                            </p>
+                            <div className="stats-horizontal">
+                                <div className="stat-node">
+                                    <span className="sc-val">40+</span>
+                                    <span className="sc-lbl">Regional Farms</span>
+                                </div>
+                                <div className="stat-node">
+                                    <span className="sc-val">100+</span>
+                                    <span className="sc-lbl">Output Centers</span>
+                                </div>
+                                <div className="stat-node">
+                                    <span className="sc-val">5K+</span>
+                                    <span className="sc-lbl">Technical Staff</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="mission-visual-side">
+                            <img src={organizationHq} alt="NLDB HQ" />
+                            <img src={qualityBadge} alt="Quality Seal" className="badge-float" />
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Strategic Operations - The Future of Farming */}
+            <section id="ops" className="section-padding bg-light-surface">
+                <div className="container">
+                    <div className="section-title-box">
+                        <h2 className="headline-h2">Strategic <span className="text-green">Operations</span></h2>
+                        <p className="subtitle-p">Our biological and logistical infrastructure powers the nation's supply chain.</p>
+                    </div>
+
+                    <div className="ops-grid">
+                        <div className="ops-card">
+                            <img src={labResearch} alt="Genetic Research" />
+                            <div className="ops-overlay">
+                                <h3>Bio-Genetic Research</h3>
+                                <p>Optimizing high-yield breeds through advanced laboratory protocols and selective breeding.</p>
+                            </div>
+                        </div>
+                        <div className="ops-card">
+                            <img src={logisticsImg} alt="Logistics" />
+                            <div className="ops-overlay">
+                                <h3>Digital Logistics</h3>
+                                <p>Cold-chain precision ensuring farm-to-door freshness within 24 hours nationwide.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Product Registry - The High-Performance Grid */}
+            <section id="products" className="section-padding-fluid">
+                <div className="container-fluid">
+                    <div className="section-title-box">
+                        <h2 className="headline-h2">The Product <span className="text-green">Registry</span></h2>
+                        <p className="subtitle-p">A definitive collection of NLDB's premium output, refined for excellence.</p>
+                    </div>
+
+                    <div className="text-center">
+                        <div className="category-tabs">
+                            {(categories.length > 0 ? categories : DEMO_CATEGORIES).map(cat => (
+                                <button
+                                    key={cat.id}
+                                    onClick={() => setActiveCategory(cat.id)}
+                                    className={`tab-btn ${activeCategory === cat.id || (!activeCategory && cat.id === (categories.length > 0 ? categories[0].id : DEMO_CATEGORIES[0].id)) ? 'active' : ''}`}
+                                >
+                                    {/* Simple Icon Mapping based on name keywords, or default star */}
+                                    <span style={{ marginRight: '8px' }}>
+                                        {cat.name.toLowerCase().includes('milk') || cat.name.toLowerCase().includes('dairy') ? '🥛' :
+                                            cat.name.toLowerCase().includes('meat') || cat.name.toLowerCase().includes('poultry') ? '🥩' :
+                                                cat.name.toLowerCase().includes('agro') || cat.name.toLowerCase().includes('coconut') ? '🥥' :
+                                                    '📦'}
+                                    </span>
+                                    {cat.name}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="product-showcase-grid">
+                        {getActiveCategoryProducts().length > 0 ? (
+                            getActiveCategoryProducts().map((p, i) => (
+                                <div key={i} className="product-card-premium animate-fade" style={{ animationDelay: `${i * 0.1}s` }}>
+                                    <div className="p-card-img">
+                                        <img src={p.img} alt={p.name} />
+                                        <div className="p-card-availability">
+                                            <span className="dot-live"></span> Available in Outlets
+                                        </div>
+                                        <div className="p-card-overlay-modern">
+                                            <button className="btn-quick-view" onClick={() => setSelectedProduct(p)}>Quick View</button>
+                                        </div>
+                                    </div>
+                                    <div className="p-card-info">
+                                        <div className="p-card-header-flex">
+                                            <span className="p-category">{p.categoryName}</span>
+                                            <span className="p-tag">{p.tag}</span>
+                                        </div>
+                                        <h3>{p.name}</h3>
+                                        <p>{p.desc}</p>
+                                        <div className="p-card-footer-modern">
+                                            <button
+                                                className="btn-outlet-modern"
+                                                onClick={() => document.getElementById('outlets').scrollIntoView({ behavior: 'smooth' })}
+                                            >
+                                                <span>Locate Outlet</span>
+                                                <i className="arrow-icon">→</i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                                <p>No products found in this category yet.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </section>
+
+            {/* Outlet Locator Section */}
+            <section id="outlets" className="section-padding-fluid outlets-immersive-bg" style={{ backgroundImage: `url(${naturalHeroBg})` }}>
+                <div className="bg-overlay-dark"></div>
+                <div className="container-fluid relative-z">
+                    <div className="section-title-box dark-text-fix">
+                        <h2 className="headline-h2 text-white">Global <span className="text-green-bright">Outlets</span></h2>
+                        <p className="subtitle-p text-white-op">Experience farm-to-table freshness at any of our official sales centers nationwide.</p>
+                    </div>
+
+                    <div className="outlet-search-box">
+                        <div className="search-pill glass-search">
+                            <input
+                                type="text"
+                                placeholder="Search your nearest city (e.g. Narahenpita, Digana...)"
+                                className="outlet-input"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                            <button className="btn-search-outlet">Find Nearest</button>
+                        </div>
+                    </div>
+
+                    <div className="outlet-grid-premium">
+                        {filteredOutlets.length > 0 ? (
+                            filteredOutlets.map((outlet, idx) => (
+                                <div key={idx} className="outlet-card-glass animate-fade">
+                                    <div className="outlet-type-tag">{outlet.type}</div>
+                                    <div className="outlet-icon-box">
+                                        <div className="location-pin-circle">
+                                            <span className="dot-pulse"></span>
+                                            📍
+                                        </div>
+                                    </div>
+                                    <div className="outlet-info-center">
+                                        <h4>{outlet.name}</h4>
+                                        <p className="loc-detail">{outlet.loc}</p>
+                                    </div>
+                                    <div className="outlet-footer-actions">
+                                        <a href={`tel:${outlet.tel}`} className="btn-contact-mini">
+                                            <span>📞 {outlet.tel}</span>
+                                        </a>
+                                        <button
+                                            className="btn-directions-modern"
+                                            onClick={() => handleViewMap(outlet)}
+                                        >
+                                            Get Directions
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="no-results">
+                                <p className="text-white">No outlets found matching "{searchQuery}". Please check the spelling or try a different city.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </section>
+
+            {/* Massive Call to Action */}
+            <section id="contact" className="container section-padding">
+                <div className="contact-grid-modern">
+                    <div className="contact-info-panel">
+                        <div className="section-tag">National Headquarters</div>
+                        <h2 className="headline-h2">Get in <span className="text-green">Touch.</span></h2>
+                        <p className="p-large">Our team is available for corporate inquiries, farm visit requests, and official tenders.</p>
+
+                        <div className="contact-nodes">
+                            <div className="c-node">
+                                <span className="c-icon">🏢</span>
+                                <div>
+                                    <strong>Narahenpita HQ</strong>
+                                    <p>No. 40, Narahenpita Road, Colombo 05</p>
+                                </div>
+                            </div>
+                            <div className="c-node">
+                                <span className="c-icon">📞</span>
+                                <div>
+                                    <strong>Hotline</strong>
+                                    <p>+94 11 250 1701</p>
+                                </div>
+                            </div>
+                            <div className="c-node">
+                                <span className="c-icon">✉️</span>
+                                <div>
+                                    <strong>Email</strong>
+                                    <p>info@nldb.gov.lk</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="contact-action-panel">
+                        <div className="map-embed-container animate-fade">
+                            <iframe
+                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.9960470593082!2d79.878808!3d6.891075!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ae25a30109230c7%3A0xfe80b3970bc8ed86!2sNational%20Livestock%20Development%20Board%20Head%20Office!5e0!3m2!1sen!2slk!4v1767198104940!5m2!1sen!2slk"
+                                width="100%"
+                                height="100%"
+                                style={{ border: 0, borderRadius: '32px' }}
+                                allowFullScreen=""
+                                loading="lazy"
+                                referrerPolicy="no-referrer-when-downgrade"
+                                title="NLDB HQ Map"
+                            ></iframe>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Official Footer - Modernized */}
+            <footer className="footer-modern-v2">
+                <div className="container">
+                    <div className="footer-main-grid">
+                        <div className="footer-brand-module">
+                            <div className="f-logo-trilingual">
+                                <span className="si">ජාතික පශු සම්පත් සංවර්ධන මණ්ඩලය</span>
+                                <span className="ta">தேசிய கால்நடை அபிவிருத்திச் சபை</span>
+                                <span className="en">National Livestock Development Board</span>
+                            </div>
+                            <p className="f-description">
+                                A premier state organization dedicated to the elevation of the national livestock sector through scientific breeding and sustainable farming since 1973.
+                            </p>
+                            <div className="f-social-integrated">
+                                <a href="#" className="s-link">Facebook</a>
+                                <a href="#" className="s-link">Instagram</a>
+                                <a href="#" className="s-link">LinkedIn</a>
+                            </div>
+                        </div>
+
+                        <div className="footer-nav-hub">
+                            <div className="f-nav-group">
+                                <h5>The Registry</h5>
+                                <ul>
+                                    <li><a href="#products">Dairy Catalog</a></li>
+                                    <li><a href="#products">Meat Catalog</a></li>
+                                    <li><a href="#products">Agro Exports</a></li>
+                                </ul>
+                            </div>
+                            <div className="f-nav-group">
+                                <h5>Corporate</h5>
+                                <ul>
+                                    <li><a href="#about">Our Mission</a></li>
+                                    <li><a href="#ops">Operations</a></li>
+                                    <li><a href="#">Official Tenders</a></li>
+                                    <li><a href="#">Annual Reports</a></li>
+                                </ul>
+                            </div>
+                            <div className="f-nav-group">
+                                <h5>Portal</h5>
+                                <ul>
+                                    <li><Link to="/login">Employee Login</Link></li>
+                                    <li><Link to="/login">Manager Access</Link></li>
+                                    <li><Link to="/login">Storekeeping</Link></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="footer-legal-bar">
+                        <div className="legal-flex">
+                            <p>© 2025 National Livestock Development Board. All Rights Reserved.</p>
+                            <div className="legal-links">
+                                <a href="#">Privacy Policy</a>
+                                <a href="#">Terms of Service</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </div >
+    );
+};
+
+export default Home;

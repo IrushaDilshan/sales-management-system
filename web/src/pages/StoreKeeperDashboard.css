@@ -1,0 +1,523 @@
+/* Modern Page Container - Dark Premium Theme */
+:root {
+    --bg-app: #0f172a;
+    --card-bg: rgba(30, 41, 59, 0.65);
+    --card-border: 1px solid rgba(255, 255, 255, 0.08);
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+
+    --col-primary: #f59e0b;
+    /* Gold */
+    --col-secondary: #38bdf8;
+    /* Sky Blue */
+    --col-success: #34d399;
+    --col-danger: #f87171;
+    --col-purple: #a78bfa;
+
+    --grad-gold: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+    --grad-blue: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+    --grad-card: linear-gradient(to bottom right, rgba(255, 255, 255, 0.05), transparent);
+
+    --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    --shadow-glow: 0 0 15px rgba(251, 191, 36, 0.15);
+
+    --radius-lg: 20px;
+    --radius-md: 12px;
+}
+
+.storekeeper-dashboard-page {
+    /* Ensure the implicit page container in StoreKeeperDashboard uses these */
+    background-color: var(--bg-app);
+    background-image:
+        radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.08), transparent 25%),
+        radial-gradient(circle at 85% 30%, rgba(251, 191, 36, 0.08), transparent 25%);
+    /* Use min-height to cover screen */
+    min-height: 100vh;
+    color: var(--text-primary);
+}
+
+.storekeeper-container {
+    min-height: 100vh;
+    background: var(--bg-app);
+    color: var(--text-primary);
+}
+
+/* Layout */
+.storekeeper-layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+.storekeeper-content {
+    flex: 1;
+    margin-left: 280px;
+    padding: 0;
+    background: var(--bg-app);
+    height: 100vh;
+    overflow: hidden;
+    transition: margin-left 0.3s ease;
+    color: var(--text-primary);
+}
+
+/* When sidebar is collapsed */
+.storekeeper-sidebar.collapsed~.storekeeper-content {
+    margin-left: 80px;
+}
+
+/* Page Header */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    /* Fixed header bleed */
+    margin: -2.5rem -2.5rem 1.5rem -2.5rem;
+    padding: 2.5rem 2.5rem 1.5rem 2.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(15, 23, 42, 0.95);
+    /* Little more opaque */
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.page-title {
+    font-size: 2.25rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0 0 0.5rem 0;
+}
+
+.page-subtitle {
+    font-size: 1rem;
+    color: #94a3b8;
+    /* text-secondary */
+    margin: 0;
+}
+
+.header-date {
+    background: rgba(30, 41, 59, 0.65);
+    /* card-bg */
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    color: #94a3b8;
+    /* text-secondary */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    /* card-border */
+}
+
+/* Loading */
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    gap: 1rem;
+}
+
+.loading-container p {
+    color: #94a3b8;
+    font-size: 1.1rem;
+}
+
+/* Section Titles */
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #f8fafc;
+    /* text-primary */
+    margin: 0 0 1.5rem 0;
+}
+
+.stats-section,
+.actions-section,
+.alerts-section {
+    margin-bottom: 3rem;
+}
+
+/* Stats Grid */
+.storekeeper-dashboard-page .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.storekeeper-dashboard-page .stat-card {
+    background: var(--card-bg);
+    /* card-bg */
+    padding: 1.75rem;
+    border-radius: 16px;
+    display: flex;
+    gap: 1.25rem;
+    align-items: center;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    border: var(--card-border);
+}
+
+.storekeeper-dashboard-page .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, currentColor, transparent);
+}
+
+.storekeeper-dashboard-page .stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.storekeeper-dashboard-page .stat-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.storekeeper-dashboard-page .stat-content {
+    flex: 1;
+}
+
+.storekeeper-dashboard-page .stat-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #f8fafc;
+    /* text-primary */
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.storekeeper-dashboard-page .stat-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #94a3b8;
+    /* text-secondary */
+    margin-bottom: 0.25rem;
+}
+
+.storekeeper-dashboard-page .stat-subtitle {
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+/* Quick Actions */
+.storekeeper-dashboard-page .actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.storekeeper-dashboard-page .quick-action-card {
+    background: var(--card-bg);
+    padding: 1.75rem;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    border: var(--card-border);
+}
+
+.storekeeper-dashboard-page .quick-action-card:hover {
+    transform: translateX(4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.storekeeper-dashboard-page .action-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    flex-shrink: 0;
+}
+
+.storekeeper-dashboard-page .action-content {
+    flex: 1;
+}
+
+.storekeeper-dashboard-page .action-content h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #f8fafc;
+    margin: 0 0 0.5rem 0;
+}
+
+.storekeeper-dashboard-page .action-content p {
+    font-size: 0.9rem;
+    color: #94a3b8;
+    margin: 0;
+}
+
+.storekeeper-dashboard-page .action-arrow {
+    font-size: 1.5rem;
+    font-weight: 700;
+    transition: transform 0.3s ease;
+    color: #f8fafc;
+}
+
+.storekeeper-dashboard-page .quick-action-card:hover .action-arrow {
+    transform: translateX(4px);
+}
+
+/* Alerts */
+.storekeeper-dashboard-page .alerts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.storekeeper-dashboard-page .alert-card {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border-left: 4px solid;
+    border: var(--card-border);
+    border-left-width: 4px;
+    /* Ensure overwrite */
+}
+
+.storekeeper-dashboard-page .alert-card.urgent {
+    border-left-color: #ef4444;
+}
+
+.storekeeper-dashboard-page .alert-card.warning {
+    border-left-color: #f59e0b;
+}
+
+.storekeeper-dashboard-page .alert-icon {
+    font-size: 2rem;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.storekeeper-dashboard-page .alert-card.urgent .alert-icon {
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.storekeeper-dashboard-page .alert-card.warning .alert-icon {
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.alert-content {
+    flex: 1;
+}
+
+.alert-content h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #f8fafc;
+    margin: 0 0 0.25rem 0;
+}
+
+.alert-content p {
+    font-size: 0.875rem;
+    color: #94a3b8;
+    margin: 0;
+}
+
+.alert-action {
+    color: #3b82f6;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: transform 0.2s ease;
+}
+
+.alert-action:hover {
+    transform: translateX(4px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .storekeeper-nav {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1.5rem;
+    }
+
+    .nav-links {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .storekeeper-content {
+        padding: 1.5rem;
+    }
+
+    .page-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+    }
+
+    .stats-grid,
+    .actions-grid,
+    .alerts-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Animations */
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stat-card,
+.quick-action-card,
+.alert-card {
+    animation: slideUp 0.5s ease-out;
+}
+
+.stat-card:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.stat-card:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.stat-card:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+
+/* Modal Overrides for Dark Theme */
+.storekeeper-dashboard-page .modal-overlay {
+    backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10000;
+    /* Ensure on top */
+}
+
+.storekeeper-dashboard-page .modal-content {
+    background: #1e293b !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    color: #f8fafc !important;
+}
+
+.storekeeper-dashboard-page .modal-header h2 {
+    color: #f8fafc;
+}
+
+.storekeeper-dashboard-page .modal-content label {
+    color: #94a3b8;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+}
+
+.storekeeper-dashboard-page .form-input,
+.storekeeper-dashboard-page .form-select,
+.storekeeper-dashboard-page textarea {
+    background: rgba(15, 23, 42, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+    border-radius: 8px;
+}
+
+.storekeeper-dashboard-page .form-input:focus,
+.storekeeper-dashboard-page .form-select:focus,
+.storekeeper-dashboard-page textarea:focus {
+    border-color: #3b82f6 !important;
+    background: rgba(15, 23, 42, 0.8) !important;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.storekeeper-dashboard-page .btn-cancel {
+    background: transparent;
+    color: #f87171;
+    border: 1px solid rgba(248, 113, 113, 0.2);
+}
+
+.storekeeper-dashboard-page .btn-cancel:hover {
+    background: rgba(248, 113, 113, 0.1);
+    color: #f87171;
+}
+
+.storekeeper-dashboard-page .close-btn {
+    color: #94a3b8;
+}
+
+.storekeeper-dashboard-page .close-btn:hover {
+    color: white;
+}
+
+/* History Table in Modal */
+.storekeeper-dashboard-page .modal-content table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 0.5rem;
+}
+
+.storekeeper-dashboard-page .modal-content th {
+    background: transparent;
+    color: #64748b;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.storekeeper-dashboard-page .modal-content td {
+    background: rgba(255, 255, 255, 0.02);
+    color: #f8fafc;
+    border: none;
+    padding: 1rem;
+}
+
+.storekeeper-dashboard-page .modal-content tr {
+    transition: transform 0.2s;
+}
+
+/* Fix for select dropdown options usually being white in some browsers */
+.storekeeper-dashboard-page option {
+    background: #1e293b;
+    color: white;
+}
