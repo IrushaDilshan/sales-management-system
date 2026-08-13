@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import StoreKeeperSidebar from './components/StoreKeeperSidebar';
 import Dashboard from './pages/Dashboard';
@@ -30,6 +30,9 @@ function App() {
 
           {/* Public Home Page */}
           <Route path="/" element={<Home />} />
+
+          {/* Admin Redirect Route */}
+          <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
 
           {/* Manager Dashboard Routes (With Sidebar) */}
           <Route path="/dashboard" element={
@@ -143,9 +146,14 @@ function App() {
           } />
 
           {/* Storekeeper Routes (With Storekeeper Sidebar) */}
-          <Route path="/storekeeper/dashboard" element={<StoreKeeperDashboard />} />
-
-
+          <Route path="/storekeeper/dashboard" element={
+            <div className="storekeeper-layout">
+              <StoreKeeperSidebar />
+              <div className="storekeeper-content">
+                <StoreKeeperDashboard />
+              </div>
+            </div>
+          } />
 
           <Route path="/storekeeper/stock" element={
             <div className="storekeeper-layout">
