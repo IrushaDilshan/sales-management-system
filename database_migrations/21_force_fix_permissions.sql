@@ -13,6 +13,8 @@ DROP POLICY IF EXISTS "Authenticated Write Access" ON product_categories;
 DROP POLICY IF EXISTS "Enable read access for all authenticated users" ON product_categories;
 DROP POLICY IF EXISTS "Enable write access for all authenticated users" ON product_categories;
 DROP POLICY IF EXISTS "Public profiles are visible to everyone" ON product_categories;
+DROP POLICY IF EXISTS "Allow Public Read" ON product_categories;
+DROP POLICY IF EXISTS "Allow Authenticated Write" ON product_categories;
 
 -- Create SIMPLE, PERMISSIVE policies
 -- Read: Everyone (Public + Auth)
@@ -35,6 +37,8 @@ ALTER TABLE items ENABLE ROW LEVEL SECURITY;
 -- Drop ALL existing policies
 DROP POLICY IF EXISTS "Public Read Access" ON items;
 DROP POLICY IF EXISTS "Authenticated Write Access" ON items;
+DROP POLICY IF EXISTS "Allow Public Read" ON items;
+DROP POLICY IF EXISTS "Allow Authenticated Write" ON items;
 
 -- Read: Everyone
 CREATE POLICY "Allow Public Read" ON items
