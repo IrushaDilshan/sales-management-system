@@ -3,6 +3,7 @@ import { View, Text, SectionList, TextInput, TouchableOpacity, Alert, StyleSheet
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../../lib/supabase';
 
 export default function CreateRequestScreen() {
@@ -18,6 +19,14 @@ export default function CreateRequestScreen() {
     const [pendingRequestItems, setPendingRequestItems] = useState<any[]>([]);
     const [showPendingModal, setShowPendingModal] = useState(false);
     const [loadingPendingDetails, setLoadingPendingDetails] = useState(false);
+
+    // Initialize requiredDate to tomorrow
+    const [requiredDate, setRequiredDate] = useState(() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        return d;
+    });
+    const [showDatePicker, setShowDatePicker] = useState(false);
 
     useEffect(() => {
         checkPendingRequest();
@@ -365,7 +374,7 @@ export default function CreateRequestScreen() {
                     shop_id: shop_id,
                     salesman_id: salesmanId,
                     status: 'pending',
-                    date: new Date().toISOString(),
+                    required_date: requiredDate.toISOString().split('T')[0],
                     created_at: new Date().toISOString()
                 }])
                 .select()
@@ -435,6 +444,37 @@ export default function CreateRequestScreen() {
                         </TouchableOpacity>
                     )}
                 </View>
+            </View>
+
+            {/* Date Picker Section */}
+            <View style={{ paddingHorizontal: 20, paddingBottom: 15 }}>
+                <Text style={{ fontSize: 13, color: '#64748b', fontWeight: '600', marginBottom: 6, textTransform: 'uppercase' }}>
+                    Required Delivery Date
+                </Text>
+                <TouchableOpacity
+                    style={{
+                        flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc',
+                        padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0'
+                    }}
+                    onPress={() => setShowDatePicker(true)}
+                >
+                    <Ionicons name="calendar" size={20} color="#2196F3" style={{ marginRight: 10 }} />
+                    <Text style={{ fontSize: 16, color: '#0f172a', fontWeight: '500' }}>
+                        {requiredDate.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    </Text>
+                </TouchableOpacity>
+                {showDatePicker && (
+                    <DateTimePicker
+                        value={requiredDate}
+                        mode="date"
+                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                        minimumDate={new Date(new Date().getTime() + 24 * 60 * 60 * 1000)} // Tomorrow
+                        onChange={(event, selectedDate) => {
+                            setShowDatePicker(Platform.OS === 'ios');
+                            if (selectedDate) setRequiredDate(selectedDate);
+                        }}
+                    />
+                )}
             </View>
 
             {loading ? (
