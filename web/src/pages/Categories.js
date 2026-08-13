@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../shared/supabaseClient';
+import Swal from 'sweetalert2';
 import '../shared/ModernPage.css';
 
 const Categories = () => {
@@ -182,7 +183,7 @@ const Categories = () => {
             fetchCategories();
         } catch (err) {
             console.error('Error toggling category:', err);
-            alert('Failed to update category status');
+            Swal.fire('Error', 'Failed to update category status', 'error');
         }
     };
 
@@ -190,11 +191,19 @@ const Categories = () => {
         const itemCount = itemCounts[id] || 0;
 
         if (itemCount > 0) {
-            alert(`Cannot delete this category. It has ${itemCount} product(s) assigned to it. Please reassign or delete those products first.`);
+            Swal.fire('Cannot Delete', `Cannot delete this category. It has ${itemCount} product(s) assigned to it. Please reassign or delete those products first.`, 'warning');
             return;
         }
 
-        if (window.confirm('Are you sure you want to delete this category?')) {
+        const result = await Swal.fire({
+            title: 'Are you sure?',
+            text: 'Are you sure you want to delete this category?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, delete it!'
+        });
+        
+        if (result.isConfirmed) {
             try {
                 const { error } = await supabase
                     .from('product_categories')
@@ -204,9 +213,10 @@ const Categories = () => {
                 if (error) throw error;
                 fetchCategories();
                 fetchItemCounts();
+                Swal.fire('Deleted!', 'Category has been deleted.', 'success');
             } catch (err) {
                 console.error('Error deleting category:', err);
-                alert('Failed to delete category');
+                Swal.fire('Error', 'Failed to delete category', 'error');
             }
         }
     };
@@ -348,36 +358,9 @@ const Categories = () => {
                                 />
                             </div>
 
-                            <div className="form-group">
-                                <label className="form-label">Commission Rate (%)</label>
-                                <input
-                                    type="number"
-                                    className="form-input"
-                                    name="commission_rate"
-                                    value={formData.commission_rate}
-                                    onChange={handleInputChange}
-                                    step="0.1"
-                                    min="0"
-                                    max="100"
-                                    placeholder="0.0"
-                                />
-                                <small style={{ color: '#666', fontSize: '0.875rem' }}>
-                                    Commission percentage for sales representatives
-                                </small>
-                            </div>
 
-                            <div className="form-group">
-                                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                                    <input
-                                        type="checkbox"
-                                        name="is_active"
-                                        checked={formData.is_active}
-                                        onChange={handleInputChange}
-                                        style={{ marginRight: '0.5rem', width: '18px', height: '18px' }}
-                                    />
-                                    <span>Active (users can select this category)</span>
-                                </label>
-                            </div>
+
+
 
                             <div className="modal-actions">
                                 <button type="button" className="btn-cancel" onClick={handleCloseModal}>
