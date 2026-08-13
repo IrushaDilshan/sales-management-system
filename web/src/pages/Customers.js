@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../shared/supabaseClient';
+import Swal from 'sweetalert2';
 import '../shared/ModernPage.css';
 
 const Customers = () => {
@@ -173,7 +174,15 @@ const Customers = () => {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this customer?')) {
+        const result = await Swal.fire({
+            title: 'Are you sure?',
+            text: 'Are you sure you want to delete this customer?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, delete it!'
+        });
+        
+        if (result.isConfirmed) {
             try {
                 const { error } = await supabase
                     .from('customers')
@@ -182,9 +191,10 @@ const Customers = () => {
 
                 if (error) throw error;
                 fetchCustomers();
+                Swal.fire('Deleted!', 'Customer has been deleted.', 'success');
             } catch (err) {
                 console.error('Error deleting customer:', err);
-                alert('Failed to delete customer. They may have existing sales.');
+                Swal.fire('Error', 'Failed to delete customer. They may have existing sales.', 'error');
             }
         }
     };
