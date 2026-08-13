@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../shared/supabaseClient';
+import NLDBProductShowcase from '../components/NLDBProductShowcase';
 import './Home.css';
 
 // Premium Visual Assets
 import premiumHeroBg from '../assets/nldb_hero_premium.png';
-import labResearch from '../assets/nldb_lab.png';
-import logisticsImg from '../assets/nldb_logistics.png';
 import qualityBadge from '../assets/nldb_quality_badge.png';
 import organizationHq from '../assets/nldb_organization_hq_v2.png';
 import nldbCorporateBanner from '../assets/nldb-corporate-banner.png';
@@ -24,6 +23,7 @@ import imgCoconutOil from '../assets/nldb_products/coconut_oil.jpg';
 
 const Home = () => {
     const [isScrolled, setIsScrolled] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [activeCategory, setActiveCategory] = useState(null); // Will set to first fetched category
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [dbProducts, setDbProducts] = useState([]);
@@ -232,18 +232,27 @@ const Home = () => {
                         <div className="trilingual-titles">
                             <span className="sinhala">ජාතික පශු සම්පත් සංවර්ධන මණ්ඩලය</span>
                             <span className="english">National Livestock Development Board</span>
-                            <span className="tamil">தேசிய பண்ணை விலங்கு அபிவிருத்தி சபை</span>
+                            <span className="tamil">தேசிய பண்ணை விலங்கு அபிவிருத்தி සபை</span>
                         </div>
                     </div>
 
-                    <nav className="main-nav">
+                    <button 
+                        className={`mobile-nav-toggle ${isMobileMenuOpen ? 'active' : ''}`}
+                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        aria-label="Toggle navigation menu"
+                    >
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </button>
+
+                    <nav className={`main-nav ${isMobileMenuOpen ? 'mobile-active' : ''}`}>
                         <ul>
-                            <li><a href="#about">About Us</a></li>
-                            <li><a href="#ops">Operations</a></li>
-                            <li><a href="#products">Products</a></li>
-                            <li><a href="#outlets">Our Shops</a></li>
-                            <li><a href="#contact">Contact Us</a></li>
-                            <li><Link to="/login" className="btn-portal">Command Center</Link></li>
+                            <li><a href="#about" onClick={() => setIsMobileMenuOpen(false)}>About Us</a></li>
+                            <li><a href="#products" onClick={() => setIsMobileMenuOpen(false)}>Products</a></li>
+                            <li><a href="#outlets" onClick={() => setIsMobileMenuOpen(false)}>Our Shops</a></li>
+                            <li><a href="#contact" onClick={() => setIsMobileMenuOpen(false)}>Contact Us</a></li>
+                            <li><Link to="/login" className="btn-portal" onClick={() => setIsMobileMenuOpen(false)}>Command Center</Link></li>
                         </ul>
                     </nav>
                 </div>
@@ -270,39 +279,7 @@ const Home = () => {
                 </div>
             </section>
 
-            {/* Trust & Quality Bar */}
-            <section className="qa-banner">
-                <div className="container qa-grid">
-                    <div className="qa-item">
-                        <div className="icon">🛡️</div>
-                        <div>
-                            <strong>ISO Certified</strong>
-                            <p>Global standards in safety</p>
-                        </div>
-                    </div>
-                    <div className="qa-item">
-                        <div className="icon">🔬</div>
-                        <div>
-                            <strong>Genetic Excellence</strong>
-                            <p>Premium breeding protocols</p>
-                        </div>
-                    </div>
-                    <div className="qa-item">
-                        <div className="icon">♻️</div>
-                        <div>
-                            <strong>Eco-Focused</strong>
-                            <p>Sustainable farm management</p>
-                        </div>
-                    </div>
-                    <div className="qa-item">
-                        <div className="icon">🇱🇰</div>
-                        <div>
-                            <strong>Nation Building</strong>
-                            <p>Supporting local dairy farmers</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
+
 
             {/* The Authority - Corporate Mission */}
             <section id="about" className="section-padding">
@@ -339,32 +316,10 @@ const Home = () => {
                 </div>
             </section>
 
-            {/* Strategic Operations - The Future of Farming */}
-            <section id="ops" className="section-padding bg-light-surface">
-                <div className="container">
-                    <div className="section-title-box">
-                        <h2 className="headline-h2">Strategic <span className="text-green">Operations</span></h2>
-                        <p className="subtitle-p">Our biological and logistical infrastructure powers the nation's supply chain.</p>
-                    </div>
 
-                    <div className="ops-grid">
-                        <div className="ops-card">
-                            <img src={labResearch} alt="Genetic Research" />
-                            <div className="ops-overlay">
-                                <h3>Bio-Genetic Research</h3>
-                                <p>Optimizing high-yield breeds through advanced laboratory protocols and selective breeding.</p>
-                            </div>
-                        </div>
-                        <div className="ops-card">
-                            <img src={logisticsImg} alt="Logistics" />
-                            <div className="ops-overlay">
-                                <h3>Digital Logistics</h3>
-                                <p>Cold-chain precision ensuring farm-to-door freshness within 24 hours nationwide.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+
+            {/* Premium Product Showcase Component */}
+            <NLDBProductShowcase />
 
             {/* Product Registry - The High-Performance Grid */}
             <section id="products" className="section-padding-fluid">
@@ -577,7 +532,6 @@ const Home = () => {
                                 <h5>Corporate</h5>
                                 <ul>
                                     <li><a href="#about">Our Mission</a></li>
-                                    <li><a href="#ops">Operations</a></li>
                                     <li><a href="#">Official Tenders</a></li>
                                     <li><a href="#">Annual Reports</a></li>
                                 </ul>

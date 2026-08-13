@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../shared/supabaseClient';
+import Swal from 'sweetalert2';
 import '../shared/ModernPage.css';
 
 const Items = () => {
@@ -12,7 +13,7 @@ const Items = () => {
         name: '',
         description: '',
         category_id: '',
-        sku: '',
+        quantity: 0,
         barcode: '',
         wholesale_price: '',
         retail_price: '',
@@ -113,7 +114,7 @@ const Items = () => {
                 name: item.name || '',
                 description: item.description || '',
                 category_id: item.category_id || '',
-                sku: item.sku || '',
+                quantity: item.quantity || 0,
                 barcode: item.barcode || '',
                 wholesale_price: item.wholesale_price || '',
                 retail_price: item.retail_price || '',
@@ -128,7 +129,7 @@ const Items = () => {
                 name: '',
                 description: '',
                 category_id: '',
-                sku: '',
+                quantity: 0,
                 barcode: '',
                 wholesale_price: '',
                 retail_price: '',
@@ -149,7 +150,7 @@ const Items = () => {
             name: '',
             description: '',
             category_id: '',
-            sku: '',
+            quantity: 0,
             barcode: '',
             wholesale_price: '',
             retail_price: '',
@@ -176,7 +177,7 @@ const Items = () => {
                 name: formData.name,
                 description: formData.description || null,
                 category_id: formData.category_id || null, // Ensure ID is saved
-                sku: formData.sku || null,
+                quantity: formData.quantity ? parseInt(formData.quantity) : 0,
                 barcode: formData.barcode || null,
                 wholesale_price: formData.wholesale_price ? parseFloat(formData.wholesale_price) : null,
                 retail_price: formData.retail_price ? parseFloat(formData.retail_price) : null,
@@ -210,7 +211,15 @@ const Items = () => {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this item?')) {
+        const result = await Swal.fire({
+            title: 'Are you sure?',
+            text: 'Are you sure you want to delete this item?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, delete it!'
+        });
+        
+        if (result.isConfirmed) {
             try {
                 const { error } = await supabase
                     .from('items')
@@ -219,9 +228,10 @@ const Items = () => {
 
                 if (error) throw error;
                 fetchItems();
+                Swal.fire('Deleted!', 'Item has been deleted.', 'success');
             } catch (err) {
                 console.error('Error deleting item:', err);
-                alert('Failed to delete item');
+                Swal.fire('Error', 'Failed to delete item', 'error');
             }
         }
     };
@@ -230,7 +240,6 @@ const Items = () => {
         const matchesCategory = filterCategory === 'all' || item.category_id?.toString() === filterCategory;
         const matchesSearch = searchTerm === '' ||
             item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             item.barcode?.toLowerCase().includes(searchTerm.toLowerCase());
         return matchesCategory && matchesSearch;
     });
@@ -325,7 +334,7 @@ const Items = () => {
                                     <tr>
                                         <th>Product Identity</th>
                                         <th>Category</th>
-                                        <th>Identifier (SKU)</th>
+                                        <th>Quantity Available</th>
                                         <th style={{ textAlign: 'right' }}>Wholesale (Rs.)</th>
                                         <th style={{ textAlign: 'right' }}>Retail (Rs.)</th>
                                         <th style={{ textAlign: 'center' }}>Unit</th>
@@ -348,7 +357,7 @@ const Items = () => {
                                                         <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>📦</div>
                                                     )}
                                                     <div>
-                                                        <div style={{ fontWeight: '700', color: '#f8fafc' }}>{item.name}</div>
+                                                        <div style={{ fontWeight: '700', color: '#0f172a' }}>{item.name}</div>
                                                         {item.description && (
                                                             <div style={{ fontSize: '0.75rem', color: '#64748b', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                                 {item.description}
@@ -359,15 +368,15 @@ const Items = () => {
                                             </td>
                                             <td>
                                                 {item.product_categories ? (
-                                                    <span style={{ padding: '4px 10px', background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+                                                    <span style={{ padding: '4px 10px', background: 'rgba(56, 189, 248, 0.1)', color: '#0284c7', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700', border: '1px solid rgba(56, 189, 248, 0.2)', whiteSpace: 'nowrap', display: 'inline-block' }}>
                                                         {item.product_categories.name}
                                                     </span>
                                                 ) : '-'}
                                             </td>
                                             <td>
-                                                <code style={{ background: '#1e293b', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', color: '#cbd5e1', border: '1px solid #334155' }}>
-                                                    {item.sku || 'N/A'}
-                                                </code>
+                                                <span style={{ fontWeight: '700', color: '#0f172a' }}>
+                                                    {item.quantity || 0} <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{item.unit_of_measure}</span>
+                                                </span>
                                             </td>
                                             <td style={{ textAlign: 'right', fontWeight: '600', color: '#94a3b8' }}>
                                                 {item.wholesale_price ? parseFloat(item.wholesale_price).toLocaleString(undefined, { minimumFractionDigits: 2 }) : '-'}
@@ -380,9 +389,13 @@ const Items = () => {
                                             </td>
                                             <td style={{ textAlign: 'center' }}>
                                                 {item.is_perishable ? (
-                                                    <span style={{ padding: '2px 8px', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '800', border: '1px solid rgba(245, 158, 11, 0.2)' }}>⚠️ PERISHABLE</span>
+                                                    <span style={{ padding: '4px 10px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '700', border: '1px solid rgba(239, 68, 68, 0.2)', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
+                                                        <span style={{ fontSize: '0.9rem' }}>⏳</span> Perishable
+                                                    </span>
                                                 ) : (
-                                                    <span style={{ padding: '2px 8px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderRadius: '12px', fontSize: '0.7rem', fontWeight: '800', border: '1px solid rgba(16, 185, 129, 0.2)' }}>STABLE</span>
+                                                    <span style={{ padding: '4px 10px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '700', border: '1px solid rgba(16, 185, 129, 0.2)', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
+                                                        <span style={{ fontSize: '0.9rem' }}>✅</span> Non-Perishable
+                                                    </span>
                                                 )}
                                             </td>
                                             <td style={{ textAlign: 'right' }}>
@@ -401,19 +414,19 @@ const Items = () => {
                 }
             </div>
 
-            {/* Premium Dark Modal */}
+            {/* Premium Light Modal */}
             {isModalOpen && (
                 <div className="modal-overlay">
-                    <div className="modal-content animate-fade" style={{ maxWidth: '850px', width: '90%', borderRadius: '24px', padding: '0', background: '#0f172a', border: '1px solid #334155', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
+                    <div className="modal-content animate-fade" style={{ maxWidth: '850px', width: '90%', borderRadius: '24px', padding: '0', background: '#ffffff', border: '1px solid #cbd5e1', boxShadow: '0 20px 25px -5px rgba(15, 23, 42, 0.08)' }}>
                         {/* Header */}
-                        <div style={{ padding: '2rem 2.5rem', borderBottom: '1px solid #1e293b', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#1e293b' }}>
+                        <div style={{ padding: '2rem 2.5rem', borderBottom: '1px solid #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
                             <div>
-                                <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800', color: '#f8fafc' }}>
+                                <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800', color: '#0f172a' }}>
                                     {formData.id ? 'Edit Product Details' : 'Register New Product'}
                                 </h2>
-                                <p style={{ margin: '4px 0 0 0', color: '#94a3b8', fontSize: '0.9rem' }}>Fill in the SKU details below to update the master catalog.</p>
+                                <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.9rem' }}>Fill in the SKU details below to update the master catalog.</p>
                             </div>
-                            <button onClick={handleCloseModal} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', width: '36px', height: '36px', borderRadius: '50%', fontSize: '1.5rem', cursor: 'pointer', color: '#cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>×</button>
+                            <button onClick={handleCloseModal} style={{ background: '#f1f5f9', border: 'none', width: '36px', height: '36px', borderRadius: '50%', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>×</button>
                         </div>
 
                         {/* Body */}
@@ -429,14 +442,14 @@ const Items = () => {
 
                                     {/* Left: Image */}
                                     <div>
-                                        <label className="form-label" style={{ marginBottom: '0.8rem', color: '#94a3b8', fontSize: '0.8rem', fontWeight: '600', textTransform: 'uppercase' }}>PRODUCT IMAGE</label>
+                                        <label className="form-label" style={{ marginBottom: '0.8rem', color: '#64748b', fontSize: '0.8rem', fontWeight: '600', textTransform: 'uppercase' }}>PRODUCT IMAGE</label>
                                         <div
                                             style={{
                                                 width: '100%',
                                                 aspectRatio: '1/1',
                                                 borderRadius: '16px',
-                                                background: formData.image_url ? `url(${formData.image_url}) center/cover` : '#1e293b',
-                                                border: '2px dashed #475569',
+                                                background: formData.image_url ? `url(${formData.image_url}) center/cover` : '#f8fafc',
+                                                border: '2px dashed #cbd5e1',
                                                 display: 'flex',
                                                 flexDirection: 'column',
                                                 alignItems: 'center',
@@ -451,7 +464,7 @@ const Items = () => {
                                             {!formData.image_url && (
                                                 <>
                                                     <span style={{ fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.5 }}>📷</span>
-                                                    <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Upload Photo</span>
+                                                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Upload Photo</span>
                                                 </>
                                             )}
                                             {formData.image_url && (
@@ -472,14 +485,14 @@ const Items = () => {
                                             value={formData.image_url}
                                             onChange={handleInputChange}
                                             placeholder="Or paste URL..."
-                                            style={{ marginTop: '1rem', width: '100%', background: '#0f172a', border: '1px solid #334155', color: '#cbd5e1', padding: '0.8rem', borderRadius: '8px', fontSize: '0.8rem' }}
+                                            style={{ marginTop: '1rem', width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', color: '#0f172a', padding: '0.8rem', borderRadius: '8px', fontSize: '0.8rem' }}
                                         />
                                     </div>
 
                                     {/* Right: Inputs */}
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                         <div className="form-group">
-                                            <label className="form-label" style={{ marginBottom: '0.5rem', color: '#94a3b8', fontSize: '0.8rem', fontWeight: '600', textTransform: 'uppercase' }}>PRODUCT NAME</label>
+                                            <label className="form-label" style={{ marginBottom: '0.5rem', color: '#64748b', fontSize: '0.8rem', fontWeight: '600', textTransform: 'uppercase' }}>PRODUCT NAME</label>
                                             <input
                                                 type="text"
                                                 name="name"
@@ -489,9 +502,9 @@ const Items = () => {
                                                 placeholder="e.g. Full Cream Milk Powder"
                                                 style={{
                                                     width: '100%',
-                                                    background: '#1e293b',
-                                                    border: '1px solid #334155',
-                                                    color: '#f8fafc',
+                                                    background: '#ffffff',
+                                                    border: '1px solid #cbd5e1',
+                                                    color: '#0f172a',
                                                     padding: '1rem',
                                                     borderRadius: '8px',
                                                     fontSize: '1.1rem',
@@ -501,9 +514,9 @@ const Items = () => {
                                             />
                                         </div>
 
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
                                             <div className="form-group">
-                                                <label className="form-label" style={{ marginBottom: '0.5rem', color: '#94a3b8', fontSize: '0.8rem', fontWeight: '600', textTransform: 'uppercase' }}>CATEGORY</label>
+                                                <label className="form-label" style={{ marginBottom: '0.5rem', color: '#64748b', fontSize: '0.8rem', fontWeight: '600', textTransform: 'uppercase' }}>CATEGORY</label>
                                                 <select
                                                     name="category_id"
                                                     value={formData.category_id}
@@ -511,9 +524,9 @@ const Items = () => {
                                                     required
                                                     style={{
                                                         width: '100%',
-                                                        background: '#1e293b',
-                                                        border: '1px solid #334155',
-                                                        color: '#f8fafc',
+                                                        background: '#ffffff',
+                                                        border: '1px solid #cbd5e1',
+                                                        color: '#0f172a',
                                                         padding: '0.8rem',
                                                         borderRadius: '8px',
                                                         height: '50px',
@@ -521,23 +534,23 @@ const Items = () => {
                                                         cursor: 'pointer'
                                                     }}
                                                 >
-                                                    <option value="" style={{ color: '#94a3b8' }}>Select Category...</option>
+                                                    <option value="" style={{ color: '#64748b' }}>Select Category...</option>
                                                     {categories.map(cat => (
                                                         <option key={cat.id} value={cat.id} style={{ color: '#000', backgroundColor: '#fff' }}>{cat.name}</option>
                                                     ))}
                                                 </select>
                                             </div>
                                             <div className="form-group">
-                                                <label className="form-label" style={{ marginBottom: '0.5rem', color: '#94a3b8', fontSize: '0.8rem', fontWeight: '600', textTransform: 'uppercase' }}>UNIT</label>
+                                                <label className="form-label" style={{ marginBottom: '0.5rem', color: '#64748b', fontSize: '0.8rem', fontWeight: '600', textTransform: 'uppercase' }}>UNIT</label>
                                                 <select
                                                     name="unit_of_measure"
                                                     value={formData.unit_of_measure}
                                                     onChange={handleInputChange}
                                                     style={{
                                                         width: '100%',
-                                                        background: '#1e293b',
-                                                        border: '1px solid #334155',
-                                                        color: '#f8fafc',
+                                                        background: '#ffffff',
+                                                        border: '1px solid #cbd5e1',
+                                                        color: '#0f172a',
                                                         padding: '0.8rem',
                                                         borderRadius: '8px',
                                                         height: '50px',
@@ -553,12 +566,32 @@ const Items = () => {
                                                     <option value="pot">Pot</option>
                                                 </select>
                                             </div>
+                                            <div className="form-group">
+                                                <label className="form-label" style={{ marginBottom: '0.5rem', color: '#64748b', fontSize: '0.8rem', fontWeight: '600', textTransform: 'uppercase' }}>QUANTITY</label>
+                                                <input
+                                                    type="number"
+                                                    name="quantity"
+                                                    value={formData.quantity}
+                                                    onChange={handleInputChange}
+                                                    required
+                                                    style={{
+                                                        width: '100%',
+                                                        background: '#ffffff',
+                                                        border: '1px solid #cbd5e1',
+                                                        color: '#0f172a',
+                                                        padding: '0.8rem',
+                                                        borderRadius: '8px',
+                                                        height: '50px',
+                                                        fontSize: '1rem'
+                                                    }}
+                                                />
+                                            </div>
                                         </div>
 
                                         {/* Price Box */}
-                                        <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '1.5rem', display: 'flex', gap: '2rem' }}>
+                                        <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '1.5rem', display: 'flex', gap: '2rem' }}>
                                             <div className="form-group" style={{ flex: 1 }}>
-                                                <label className="form-label" style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.75rem', color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase' }}>RETAIL PRICE (Rs.)</label>
+                                                <label className="form-label" style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.75rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>RETAIL PRICE (Rs.)</label>
                                                 <input
                                                     type="number"
                                                     name="retail_price"
@@ -571,15 +604,15 @@ const Items = () => {
                                                         border: 'none',
                                                         fontSize: '2rem',
                                                         fontWeight: '800',
-                                                        color: '#6366f1',
+                                                        color: '#10b981',
                                                         height: '50px',
                                                         outline: 'none'
                                                     }}
                                                 />
                                             </div>
-                                            <div style={{ width: '1px', background: '#334155', alignSelf: 'stretch' }}></div>
+                                            <div style={{ width: '1px', background: '#cbd5e1', alignSelf: 'stretch' }}></div>
                                             <div className="form-group" style={{ flex: 1 }}>
-                                                <label className="form-label" style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.75rem', color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase' }}>WHOLESALE PRICE (Rs.)</label>
+                                                <label className="form-label" style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.75rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>WHOLESALE PRICE (Rs.)</label>
                                                 <input
                                                     type="number"
                                                     name="wholesale_price"
@@ -592,7 +625,7 @@ const Items = () => {
                                                         border: 'none',
                                                         fontSize: '2rem',
                                                         fontWeight: '800',
-                                                        color: '#cbd5e1',
+                                                        color: '#0f172a',
                                                         height: '50px',
                                                         outline: 'none'
                                                     }}
@@ -600,24 +633,15 @@ const Items = () => {
                                             </div>
                                         </div>
 
-                                        {/* Toggles */}
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-                                            <label style={{ display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer', background: '#1e293b', padding: '1rem', borderRadius: '8px', border: formData.is_perishable ? '1px solid #f59e0b' : '1px solid #334155', transition: 'all 0.2s', userSelect: 'none' }}>
-                                                <div style={{ width: '24px', height: '24px', borderRadius: '6px', border: '2px solid #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', background: formData.is_perishable ? '#f59e0b' : 'transparent', borderColor: formData.is_perishable ? '#f59e0b' : '#475569' }}>
-                                                    {formData.is_perishable && <span style={{ color: 'white', fontSize: '14px' }}>✓</span>}
-                                                </div>
-                                                <input type="checkbox" name="is_perishable" checked={formData.is_perishable} onChange={handleInputChange} style={{ display: 'none' }} />
-                                                <span style={{ color: formData.is_perishable ? '#f59e0b' : '#cbd5e1', fontWeight: '600' }}>Perishable Item (Short Shelf Life)</span>
-                                            </label>
-                                        </div>
+
 
                                     </div>
                                 </div>
 
                                 {/* Footer Action */}
-                                <div style={{ borderTop: '1px solid #1e293b', marginTop: '2.5rem', paddingTop: '1.5rem', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                                    <button type="button" className="btn-cancel" onClick={handleCloseModal} style={{ padding: '1rem 2rem', background: 'transparent', border: '1px solid #334155', color: '#cbd5e1', borderRadius: '8px', cursor: 'pointer' }}>Cancel</button>
-                                    <button type="submit" className="btn-primary" style={{ padding: '1rem 3rem', fontSize: '1rem', background: '#f59e0b', color: '#1e293b', fontWeight: '800', border: 'none', borderRadius: '8px', boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)', cursor: 'pointer' }}>
+                                <div style={{ borderTop: '1px solid #cbd5e1', marginTop: '2.5rem', paddingTop: '1.5rem', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                                    <button type="button" className="btn-cancel" onClick={handleCloseModal} style={{ padding: '1rem 2rem', background: 'transparent', border: '1px solid #cbd5e1', color: '#64748b', borderRadius: '8px', cursor: 'pointer' }}>Cancel</button>
+                                    <button type="submit" className="btn-primary" style={{ padding: '1rem 3rem', fontSize: '1rem', background: 'var(--grad-gold)', color: 'white', fontWeight: '800', border: 'none', borderRadius: '8px', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)', cursor: 'pointer' }}>
                                         {formData.id ? 'SAVE CHANGES' : 'CREATE PRODUCT'}
                                     </button>
                                 </div>
