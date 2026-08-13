@@ -13,16 +13,15 @@ const RepDashboard = () => {
         assignedShops: 0
     });
 
-    useEffect(() => {
-        fetchDashboardData();
-    }, []);
+    const [filterDate, setFilterDate] = useState(() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        return d.toISOString().split('T')[0];
+    });
 
     useEffect(() => {
-        const interval = setInterval(() => {
-            fetchDashboardData(true);
-        }, 60000);
-        return () => clearInterval(interval);
-    }, []);
+        fetchDashboardData();
+    }, [filterDate]);
 
     const fetchDashboardData = async (silent = false) => {
         if (!silent) setLoading(true);
@@ -49,7 +48,10 @@ const RepDashboard = () => {
                 return;
             }
 
-            const { data: requestsData } = await supabase.from('requests').select('id, status').in('shop_id', myShopIds);
+            const { data: requestsData } = await supabase.from('requests')
+                .select('id, status')
+                .in('shop_id', myShopIds)
+                .eq('required_date', filterDate);
             const pendingReqs = requestsData?.filter(r => r.status === 'pending') || [];
 
             const reqIds = pendingReqs.map(r => r.id);
@@ -108,7 +110,16 @@ const RepDashboard = () => {
                     <h1 className="page-title">Field Operations Control</h1>
                     <p className="page-subtitle">National Livestock Development Board - Representative Terminal</p>
                 </div>
-                <div style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b' }}>REQUIRED DATE</label>
+                        <input 
+                            type="date" 
+                            style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', color: '#0f172a', fontWeight: 'bold' }}
+                            value={filterDate}
+                            onChange={(e) => setFilterDate(e.target.value)}
+                        />
+                    </div>
                     {lastUpdated && <span style={{ padding: '0.5rem 1rem', background: '#f1f5f9', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', color: '#64748b', display: 'flex', alignItems: 'center' }}>SYNC: {lastUpdated.toLocaleTimeString()}</span>}
                     <button className="btn-primary" onClick={() => fetchDashboardData()}>Refresh Registry</button>
                     <button className="btn-cancel" style={{ width: 'auto' }} onClick={() => { supabase.auth.signOut(); window.location.href = '/login'; }}>Logout</button>
@@ -134,8 +145,8 @@ const RepDashboard = () => {
 
                 <div className="modern-table-container" style={{ padding: '2rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                        <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '900' }}>Live Fulfillment Summary</h2>
-                        <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Consolidated requirement across all managed routes</div>
+                        <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '900' }}>Fulfillment Summary for {filterDate}</h2>
+                        <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Consolidated requirement across all managed routes for the selected date</div>
                     </div>
 
                     {loading ? (
