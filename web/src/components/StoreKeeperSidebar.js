@@ -45,6 +45,15 @@ const StoreKeeperSidebar = () => {
                 <div className="menu-group">
                     {!isCollapsed && <span className="group-label">Asset Management</span>}
 
+                    <Link to="/storekeeper/dashboard" className={isActive('/storekeeper/dashboard')}>
+                        <div className="link-icon">📊</div>
+                        {!isCollapsed && <span className="link-text">Dashboard</span>}
+                    </Link>
+
+                    <Link to="/storekeeper/stock" className={isActive('/storekeeper/stock')}>
+                        <div className="link-icon">📦</div>
+                        {!isCollapsed && <span className="link-text">Stock Surveillance</span>}
+                    </Link>
 
                     <Link to="/storekeeper/inventory" className={isActive('/storekeeper/inventory')}>
                         <div className="link-icon">📋</div>
