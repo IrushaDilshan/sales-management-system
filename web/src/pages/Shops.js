@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../shared/supabaseClient';
+import Swal from 'sweetalert2';
 import '../shared/ModernPage.css';
 
 const Shops = () => {
@@ -174,13 +175,23 @@ const Shops = () => {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Terminate this outlet registration? Internal records will be archived.')) {
+        const result = await Swal.fire({
+            title: 'Terminate Outlet?',
+            text: 'Terminate this outlet registration? Internal records will be archived.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, terminate it!'
+        });
+        
+        if (result.isConfirmed) {
             try {
                 await supabase.from('users').update({ shop_id: null }).eq('shop_id', id);
                 await supabase.from('shops').delete().eq('id', id);
                 fetchData();
+                Swal.fire('Terminated!', 'Outlet has been successfully terminated.', 'success');
             } catch (err) {
                 console.error('Error deleting shop:', err);
+                Swal.fire('Error', 'Failed to terminate outlet', 'error');
             }
         }
     };
@@ -267,8 +278,8 @@ const Shops = () => {
                                 <tbody>
                                     {filteredShops.map(shop => (
                                         <tr key={shop.id}>
-                                            <td><strong style={{ fontSize: '1.05rem', color: '#f8fafc' }}>{shop.name}</strong></td>
-                                            <td>{shop.route ? <span style={{ padding: '4px 10px', background: '#f5f3ff', color: '#6d28d9', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '800' }}>🛣️ {shop.route.name}</span> : <span style={{ color: '#cbd5e1', fontStyle: 'italic' }}>Unmapped</span>}</td>
+                                            <td><strong style={{ fontSize: '1.05rem', color: '#1e293b' }}>{shop.name}</strong></td>
+                                            <td>{shop.route ? <span style={{ padding: '4px 10px', background: '#f5f3ff', color: '#6d28d9', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '800' }}>🛣️ {shop.route.name}</span> : <span style={{ color: '#94a3b8', fontStyle: 'italic', fontWeight: '600' }}>Unmapped</span>}</td>
                                             <td>
                                                 {shop.salesman ? (
                                                     <div>
@@ -281,10 +292,10 @@ const Shops = () => {
                                                         {shop.salesman.phone && <span style={{ fontSize: '0.7rem', color: '#64748b' }}>📞 {shop.salesman.phone}</span>}
                                                     </div>
                                                 ) : (
-                                                    <span style={{ color: '#cbd5e1' }}>Vacant</span>
+                                                    <span style={{ color: '#94a3b8', fontWeight: '600' }}>Vacant</span>
                                                 )}
                                             </td>
-                                            <td>{shop.rep ? <span style={{ color: '#444', fontWeight: '600' }}>🛡️ {shop.rep.name}</span> : <span style={{ color: '#cbd5e1' }}>Pending Assignment</span>}</td>
+                                            <td>{shop.rep ? <span style={{ color: '#444', fontWeight: '600' }}>🛡️ {shop.rep.name}</span> : <span style={{ color: '#94a3b8', fontWeight: '600' }}>Pending Assignment</span>}</td>
                                             <td style={{ textAlign: 'right' }}>
                                                 <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
                                                     <button className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem' }} onClick={() => handleOpenModal(shop)}>Modify</button>
@@ -313,48 +324,18 @@ const Shops = () => {
                                 <label className="form-label">Official Outlet Name *</label>
                                 <input type="text" className="form-control" name="name" value={formData.name} onChange={handleInputChange} required placeholder="NLDB Registered Shop Name" />
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                                <div className="form-group">
-                                    <label className="form-label">Territory Route Mapping</label>
-                                    <select className="form-control" name="route_id" value={formData.route_id} onChange={handleInputChange}>
-                                        <option value="">-- No Route (Standalone) --</option>
-                                        {routes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label className="form-label">Resident Salesman Assignment</label>
-                                    <select className="form-control" name="salesman_id" value={formData.salesman_id} onChange={handleInputChange}>
+                            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                                <label className="form-label">Resident Salesman Assignment</label>
+                                <select className="form-control" name="salesman_id" value={formData.salesman_id} onChange={handleInputChange}>
                                         <option value="">-- Leave Vacant --</option>
                                         {salesmen.map(s => (
                                             <option key={s.id} value={s.id}>
-                                                {s.role === 'pending' ? '⏳ ' : ''}{s.name} ({s.role === 'pending' ? 'Pending Approval' : s.role}) {s.phone ? `- 📞 ${s.phone}` : ''}
+                                                {s.name} ({s.role === 'shop_owner' ? 'Owner' : 'Sales'}) {s.email ? `- ${s.email}` : ''}
                                             </option>
                                         ))}
-                                    </select>
-                                    {formData.salesman_id && (
-                                        <div style={{ marginTop: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                            <input
-                                                type="checkbox"
-                                                id="isOwner"
-                                                name="is_owner"
-                                                checked={formData.is_owner}
-                                                onChange={handleInputChange}
-                                                style={{ width: '1rem', height: '1rem', cursor: 'pointer' }}
-                                            />
-                                            <label htmlFor="isOwner" style={{ fontSize: '0.85rem', color: '#f8fafc', cursor: 'pointer', fontWeight: '600' }}>
-                                                Grant 'Shop Owner' Status 👑
-                                            </label>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="form-group" style={{ marginBottom: '2rem' }}>
-                                <label className="form-label">Supervising Field Representative</label>
-                                <select className="form-control" name="rep_id" value={formData.rep_id} onChange={handleInputChange}>
-                                    <option value="">-- Default to Route Rep --</option>
-                                    {reps.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                 </select>
                             </div>
+
                             <div style={{ display: 'flex', gap: '1rem' }}>
                                 <button type="button" className="btn-cancel" style={{ flex: 1 }} onClick={handleCloseModal}>Abort</button>
                                 <button type="submit" className="btn-primary" style={{ flex: 2 }}>{formData.id ? 'Execute Modification' : 'Initialize Registration'}</button>
