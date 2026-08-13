@@ -1,14 +1,14 @@
 :root {
-    --side-bg: #0f172a;
-    /* Deep Slate */
-    --side-primary: #f59e0b;
-    /* Gold/Amber */
-    --side-accent: #38bdf8;
-    /* Sky Blue */
-    --side-text: #94a3b8;
-    --side-text-active: #ffffff;
-    --side-hover-bg: rgba(255, 255, 255, 0.05);
-    --side-border: rgba(255, 255, 255, 0.08);
+    --side-bg: #ffffff;
+    /* Pure White Sidebar */
+    --side-primary: #10b981;
+    /* Emerald Green */
+    --side-accent: #06b6d4;
+    /* Sky Blue/Teal */
+    --side-text: #64748b;
+    --side-text-active: #10b981;
+    --side-hover-bg: #f1f5f9;
+    --side-border: #e2e8f0;
 }
 
 .modern-sidebar {
@@ -61,7 +61,7 @@
 }
 
 .brand-name {
-    color: white;
+    color: #0f172a;
     font-size: 1.5rem;
     font-weight: 800;
     margin: 0;
@@ -151,8 +151,8 @@
 }
 
 .sidebar-link.active {
-    background: linear-gradient(90deg, var(--side-primary), transparent);
-    color: white;
+    background: rgba(16, 185, 129, 0.08);
+    color: var(--side-primary);
     position: relative;
     border-left: 4px solid var(--side-primary);
     border-radius: 4px 12px 12px 4px;
@@ -187,7 +187,8 @@
     gap: 12px;
     margin-bottom: 20px;
     padding: 8px;
-    background: rgba(255, 255, 255, 0.03);
+    background: #f8fafc;
+    border: 1px solid var(--side-border);
     border-radius: 12px;
 }
 
@@ -211,7 +212,7 @@
 }
 
 .u-name {
-    color: white;
+    color: #0f172a;
     font-weight: 700;
     font-size: 0.95rem;
     line-height: 1.2;
