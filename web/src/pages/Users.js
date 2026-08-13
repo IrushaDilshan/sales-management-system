@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../shared/supabaseClient';
+import Swal from 'sweetalert2';
 import '../shared/ModernPage.css';
 
 const Users = () => {
@@ -65,7 +66,7 @@ const Users = () => {
             setFormData({
                 name: user.name,
                 email: user.email || '',
-                role: user.role === 'pending' ? 'salesman' : user.role // Default to salesman if pending
+                role: (user.role === 'pending' || user.role === 'archived') ? 'salesman' : user.role // Default to salesman if pending or archived
             });
         } else {
             setCurrentUser(null);
@@ -99,15 +100,19 @@ const Users = () => {
 
         try {
             if (currentUser) {
-                const { error } = await supabase
+                const { data, error } = await supabase
                     .from('users')
                     .update({
                         name: formData.name,
                         role: formData.role
                     })
-                    .eq('id', currentUser.id);
+                    .eq('id', currentUser.id)
+                    .select();
 
                 if (error) throw error;
+                if (!data || data.length === 0) {
+                    throw new Error("Action denied. You do not have permission to modify this record or RLS policies blocked the update.");
+                }
                 setSuccess('Personnel profile updated successfully.');
             } else {
                 const { error } = await supabase
@@ -129,34 +134,121 @@ const Users = () => {
         }
     };
 
-    const handleDeleteUser = async (id) => {
-        if (!window.confirm('Strike this individual from the active personnel registry?')) return;
+    const handleDeleteUser = async (id, isReject = false) => {
+        const result = await Swal.fire({
+            title: isReject ? 'Reject Request?' : 'Revoke Access?',
+            text: isReject ? 'Reject and delete this request?' : 'Strike this individual from the active personnel registry?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: isReject ? 'Yes, reject' : 'Yes, revoke'
+        });
+        
+        if (!result.isConfirmed) return;
 
         try {
-            const { error } = await supabase
+            // Soft delete by updating the role to 'archived'
+            const { data, error } = await supabase
                 .from('users')
-                .delete()
-                .eq('id', id);
+                .update({ role: 'archived' })
+                .eq('id', id)
+                .select();
 
             if (error) throw error;
-            setSuccess('Personnel entry archived/removed.');
+            
+            // Check if RLS or other constraints silently prevented the update
+            if (!data || data.length === 0) {
+                throw new Error("Action denied. You do not have permission to modify this record.");
+            }
+
+            setSuccess('Personnel entry successfully archived and access revoked.');
             fetchUsers();
         } catch (err) {
-            console.error('Delete error:', err);
-            setError('Failed to archive personnel entry.');
+            console.error('Archive error:', err);
+            setError('Failed to archive personnel entry. ' + (err.message || ''));
+        }
+    };
+
+    const handleRestoreAccess = async (user) => {
+        const result = await Swal.fire({
+            title: 'Restore Access?',
+            text: `Restore ${user.name} as a Salesman? You can edit their specific role afterwards.`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Restore'
+        });
+        
+        if (!result.isConfirmed) return;
+
+        try {
+            const { data, error } = await supabase
+                .from('users')
+                .update({ role: 'salesman' })
+                .eq('id', user.id)
+                .select();
+
+            if (error) throw error;
+            
+            if (!data || data.length === 0) {
+                throw new Error("Action denied. You do not have permission to modify this record.");
+            }
+
+            setSuccess('Personnel access restored successfully.');
+            fetchUsers();
+        } catch (err) {
+            console.error('Restore error:', err);
+            setError('Failed to restore access. ' + (err.message || ''));
+        }
+    };
+
+    const handleHardDeleteUser = async (id, email) => {
+        const result = await Swal.fire({
+            title: 'WARNING: WIPE USER?',
+            html: `This will completely destroy this user and free up their email (<b>${email}</b>) for re-registration. It cannot be undone.<br/><br/>Type "<b>DELETE</b>" to confirm:`,
+            icon: 'error',
+            input: 'text',
+            inputPlaceholder: 'DELETE',
+            showCancelButton: true,
+            confirmButtonText: 'Wipe User'
+        });
+        
+        if (result.value !== "DELETE") {
+            if (result.isConfirmed) {
+                Swal.fire('Cancelled', 'You must type exactly "DELETE" to confirm.', 'info');
+            }
+            return;
+        }
+
+        try {
+            const { error } = await supabase.rpc('delete_user_completely', { target_user_id: id });
+            
+            if (error) {
+                if (error.message.includes('function delete_user_completely does not exist')) {
+                    throw new Error("The database function is missing. You need to run the setup SQL script in Supabase first.");
+                }
+                throw error;
+            }
+
+            setSuccess(`User ${email} has been completely wiped from the system.`);
+            fetchUsers();
+        } catch (err) {
+            console.error('Hard delete error:', err);
+            setError('Failed to completely delete user. ' + (err.message || ''));
         }
     };
 
     const pendingUsers = users.filter(user => user.role === 'pending');
-    const activeUsers = users.filter(user => user.role !== 'pending');
+    const activeUsers = users.filter(user => user.role !== 'pending' && user.role !== 'archived');
+    const archivedUsers = users.filter(user => user.role === 'archived');
 
-    const filteredUsers = activeUsers.filter(user => {
+    const baseUsers = roleFilter === 'archived' ? archivedUsers : activeUsers;
+
+    const filteredUsers = baseUsers.filter(user => {
         const query = searchQuery.toLowerCase().trim();
         const matchesSearch = !query ||
             user.name?.toLowerCase().includes(query) ||
             user.role?.toLowerCase().includes(query);
 
-        const matchesRole = roleFilter === 'all' ||
+        const matchesRole = roleFilter === 'all' || roleFilter === 'archived' ||
             user.role?.toLowerCase() === roleFilter.toLowerCase();
 
         return matchesSearch && matchesRole;
@@ -233,7 +325,8 @@ const Users = () => {
                             { id: 'admin', label: 'Admins' },
                             { id: 'storekeeper', label: 'Stock' },
                             { id: 'rep', label: 'Field' },
-                            { id: 'salesman', label: 'Sales' }
+                            { id: 'salesman', label: 'Sales' },
+                            { id: 'archived', label: 'Archived (Offboarded)' }
                         ].map(chip => (
                             <div
                                 key={chip.id}
@@ -243,7 +336,7 @@ const Users = () => {
                                 {chip.label}
                                 {chip.id !== 'all' && (
                                     <span className="count">
-                                        {activeUsers.filter(u => u.role === chip.id).length}
+                                        {chip.id === 'archived' ? archivedUsers.length : activeUsers.filter(u => u.role === chip.id).length}
                                     </span>
                                 )}
                             </div>
@@ -269,8 +362,8 @@ const Users = () => {
                             {filteredUsers.length === 0 ? (
                                 <div style={{ textAlign: 'center', padding: '5rem' }}>
                                     <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👤</div>
-                                    <h3 style={{ color: '#f8fafc' }}>No personnel discovered</h3>
-                                    <p style={{ color: '#94a3b8' }}>Try broadening your search parameters.</p>
+                                    <h3 style={{ color: '#1e293b' }}>No personnel discovered</h3>
+                                    <p style={{ color: '#64748b' }}>Try broadening your search parameters.</p>
                                 </div>
                             ) : (
                                 <table className="modern-table">
@@ -290,7 +383,7 @@ const Users = () => {
                                                         <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#6366f110', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800' }}>
                                                             {user.name?.charAt(0)}
                                                         </div>
-                                                        <div style={{ fontWeight: '800', color: '#f8fafc' }}>{user.name}</div>
+                                                        <div style={{ fontWeight: '800', color: '#1e293b' }}>{user.name}</div>
                                                     </div>
                                                 </td>
                                                 <td>
@@ -311,8 +404,18 @@ const Users = () => {
                                                 </td>
                                                 <td style={{ textAlign: 'right' }}>
                                                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                                                        <button className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem' }} onClick={() => handleOpenModal(user)}>Edit Core</button>
-                                                        <button className="btn-cancel" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', color: '#ef4444' }} onClick={() => handleDeleteUser(user.id)}>Revoke Access</button>
+                                                        {user.role === 'archived' ? (
+                                                            <>
+                                                                <button className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', color: '#10b981', borderColor: '#a7f3d0' }} onClick={() => handleRestoreAccess(user)}>Restore Access</button>
+                                                                <button className="btn-cancel" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', color: '#991b1b', borderColor: '#fca5a5' }} onClick={() => handleHardDeleteUser(user.id, user.email)} title="Permanently wipe user and data">Wipe</button>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <button className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem' }} onClick={() => handleOpenModal(user)}>Edit Core</button>
+                                                                <button className="btn-cancel" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', color: '#ef4444' }} onClick={() => handleDeleteUser(user.id)}>Revoke Access</button>
+                                                                <button className="btn-cancel" style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', color: '#991b1b', borderColor: '#fca5a5' }} onClick={() => handleHardDeleteUser(user.id, user.email)} title="Permanently wipe user and data">Wipe</button>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>
@@ -340,8 +443,8 @@ const Users = () => {
                         {pendingUsers.length === 0 ? (
                             <div className="empty-state">
                                 <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>✅</div>
-                                <h3 style={{ color: '#f8fafc' }}>All caught up!</h3>
-                                <p style={{ color: '#94a3b8' }}>There are no pending requests at this time.</p>
+                                <h3 style={{ color: '#1e293b' }}>All caught up!</h3>
+                                <p style={{ color: '#64748b' }}>There are no pending requests at this time.</p>
                             </div>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -352,8 +455,8 @@ const Users = () => {
                                                 {user.name?.charAt(0)}
                                             </div>
                                             <div>
-                                                <div style={{ fontWeight: '800', color: '#f8fafc', fontSize: '1.1rem' }}>{user.name}</div>
-                                                <div style={{ color: '#94a3b8', fontSize: '0.9rem' }}>{user.email}</div>
+                                                <div style={{ fontWeight: '800', color: '#1e293b', fontSize: '1.1rem' }}>{user.name}</div>
+                                                <div style={{ color: '#64748b', fontSize: '0.9rem' }}>{user.email}</div>
                                                 {user.phone && <div style={{ color: '#10b981', fontSize: '0.85rem', fontWeight: 'bold' }}>📞 {user.phone}</div>}
                                                 <div style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '4px' }}>Requested: {new Date(user.created_at).toLocaleDateString()}</div>
                                             </div>
@@ -362,11 +465,7 @@ const Users = () => {
                                             <button
                                                 className="btn-cancel"
                                                 style={{ padding: '0.6rem 1rem' }}
-                                                onClick={() => {
-                                                    if (window.confirm('Reject and delete this request?')) {
-                                                        handleDeleteUser(user.id);
-                                                    }
-                                                }}
+                                                onClick={() => handleDeleteUser(user.id, true)}
                                             >
                                                 Reject
                                             </button>
@@ -404,8 +503,8 @@ const Users = () => {
                                     <input type="text" className="form-control" name="name" value={formData.name} onChange={handleInputChange} required placeholder="NLDB Employee Full Name" />
                                 </div>
                                 <div className="form-group" style={{ marginBottom: '2rem' }}>
-                                    <label className="form-label">Operations Role Mapping *</label>
-                                    <div className="role-selector-grid">
+                                    <label className="form-label" style={{ marginBottom: '1rem', display: 'block', fontWeight: '700', color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Operations Role Mapping *</label>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                         {[
                                             { id: 'admin', label: 'Admin', icon: '🛡️', desc: 'Full Access' },
                                             { id: 'storekeeper', label: 'Stock', icon: '📦', desc: 'Warehouse' },
@@ -414,13 +513,48 @@ const Users = () => {
                                         ].map(role => (
                                             <div
                                                 key={role.id}
-                                                className={`role-option-card ${formData.role === role.id ? 'selected' : ''}`}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '1rem',
+                                                    padding: '1rem',
+                                                    borderRadius: '12px',
+                                                    cursor: 'pointer',
+                                                    border: formData.role === role.id ? '2px solid #10b981' : '1px solid #e2e8f0',
+                                                    background: formData.role === role.id ? '#ecfdf5' : '#ffffff',
+                                                    transition: 'all 0.2s ease',
+                                                    boxShadow: formData.role === role.id ? '0 4px 12px rgba(16, 185, 129, 0.15)' : 'none'
+                                                }}
                                                 onClick={() => setFormData(prev => ({ ...prev, role: role.id }))}
+                                                onMouseEnter={(e) => {
+                                                    if (formData.role !== role.id) {
+                                                        e.currentTarget.style.border = '1px solid #cbd5e1';
+                                                        e.currentTarget.style.background = '#f8fafc';
+                                                    }
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    if (formData.role !== role.id) {
+                                                        e.currentTarget.style.border = '1px solid #e2e8f0';
+                                                        e.currentTarget.style.background = '#ffffff';
+                                                    }
+                                                }}
                                             >
-                                                <span className="role-icon-lg">{role.icon}</span>
+                                                <div style={{
+                                                    fontSize: '1.5rem',
+                                                    width: '44px',
+                                                    height: '44px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    background: formData.role === role.id ? '#ffffff' : '#f1f5f9',
+                                                    borderRadius: '10px',
+                                                    boxShadow: formData.role === role.id ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
+                                                }}>
+                                                    {role.icon}
+                                                </div>
                                                 <div>
-                                                    <div className="role-label-sm">{role.label}</div>
-                                                    <div className="role-desc-xs">{role.desc}</div>
+                                                    <div style={{ fontWeight: '800', color: formData.role === role.id ? '#065f46' : '#1e293b', fontSize: '1.05rem', marginBottom: '2px' }}>{role.label}</div>
+                                                    <div style={{ fontSize: '0.8rem', color: formData.role === role.id ? '#059669' : '#64748b', fontWeight: '500' }}>{role.desc}</div>
                                                 </div>
                                             </div>
                                         ))}

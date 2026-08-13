@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../shared/supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
 import '../shared/ModernPage.css';
 import './Settings.css';
 
@@ -128,13 +129,21 @@ const Settings = () => {
     };
 
     const handleLogout = async () => {
-        if (window.confirm('Are you sure you want to logout?')) {
+        const result = await Swal.fire({
+            title: 'Logout?',
+            text: 'Are you sure you want to logout?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, logout'
+        });
+        
+        if (result.isConfirmed) {
             try {
                 await supabase.auth.signOut();
                 navigate('/login');
             } catch (err) {
                 console.error('Error logging out:', err);
-                alert('Failed to logout');
+                Swal.fire('Error', 'Failed to logout', 'error');
             }
         }
     };

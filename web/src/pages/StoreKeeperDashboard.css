@@ -1,523 +1,350 @@
-/* Modern Page Container - Dark Premium Theme */
-:root {
-    --bg-app: #0f172a;
-    --card-bg: rgba(30, 41, 59, 0.65);
-    --card-border: 1px solid rgba(255, 255, 255, 0.08);
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
-
-    --col-primary: #f59e0b;
-    /* Gold */
-    --col-secondary: #38bdf8;
-    /* Sky Blue */
-    --col-success: #34d399;
-    --col-danger: #f87171;
-    --col-purple: #a78bfa;
-
-    --grad-gold: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
-    --grad-blue: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
-    --grad-card: linear-gradient(to bottom right, rgba(255, 255, 255, 0.05), transparent);
-
-    --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-    --shadow-glow: 0 0 15px rgba(251, 191, 36, 0.15);
-
-    --radius-lg: 20px;
-    --radius-md: 12px;
+.storekeeper-dashboard-wrapper {
+    padding: 2rem;
+    max-width: 1600px;
+    margin: 0 auto;
+    animation: fadeIn 0.4s ease-out;
 }
 
-.storekeeper-dashboard-page {
-    /* Ensure the implicit page container in StoreKeeperDashboard uses these */
-    background-color: var(--bg-app);
-    background-image:
-        radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.08), transparent 25%),
-        radial-gradient(circle at 85% 30%, rgba(251, 191, 36, 0.08), transparent 25%);
-    /* Use min-height to cover screen */
-    min-height: 100vh;
-    color: var(--text-primary);
-}
-
-.storekeeper-container {
-    min-height: 100vh;
-    background: var(--bg-app);
-    color: var(--text-primary);
-}
-
-/* Layout */
-.storekeeper-layout {
-    display: flex;
-    min-height: 100vh;
-}
-
-.storekeeper-content {
-    flex: 1;
-    margin-left: 280px;
-    padding: 0;
-    background: var(--bg-app);
-    height: 100vh;
-    overflow: hidden;
-    transition: margin-left 0.3s ease;
-    color: var(--text-primary);
-}
-
-/* When sidebar is collapsed */
-.storekeeper-sidebar.collapsed~.storekeeper-content {
-    margin-left: 80px;
-}
-
-/* Page Header */
-.page-header {
+.sk-header-container {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    /* Fixed header bleed */
-    margin: -2.5rem -2.5rem 1.5rem -2.5rem;
-    padding: 2.5rem 2.5rem 1.5rem 2.5rem;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: rgba(15, 23, 42, 0.95);
-    /* Little more opaque */
-    backdrop-filter: blur(16px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    align-items: flex-end;
+    margin-bottom: 2.5rem;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    padding: 2rem;
+    border-radius: 24px;
+    box-shadow: 0 10px 40px -10px rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(226, 232, 240, 0.8);
 }
 
-.page-title {
-    font-size: 2.25rem;
-    font-weight: 800;
-    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+.sk-header-text h1 {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: #0f172a;
+    margin: 0 0 0.5rem 0;
+    letter-spacing: -1px;
+    background: linear-gradient(to right, #1e1b4b, #4338ca);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin: 0 0 0.5rem 0;
 }
 
-.page-subtitle {
-    font-size: 1rem;
-    color: #94a3b8;
-    /* text-secondary */
-    margin: 0;
-}
-
-.header-date {
-    background: rgba(30, 41, 59, 0.65);
-    /* card-bg */
-    padding: 1rem 1.5rem;
-    border-radius: 12px;
-    font-size: 0.95rem;
-    color: #94a3b8;
-    /* text-secondary */
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    /* card-border */
-}
-
-/* Loading */
-.loading-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 400px;
-    gap: 1rem;
-}
-
-.loading-container p {
-    color: #94a3b8;
+.sk-header-text p {
+    color: #64748b;
     font-size: 1.1rem;
+    margin: 0;
+    font-weight: 500;
 }
 
-/* Section Titles */
-.section-title {
-    font-size: 1.5rem;
+.sk-date-badge {
+    background: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 99px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
     font-weight: 700;
-    color: #f8fafc;
-    /* text-primary */
-    margin: 0 0 1.5rem 0;
+    color: #334155;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
 }
 
-.stats-section,
-.actions-section,
-.alerts-section {
+.pulse-dot {
+    width: 10px;
+    height: 10px;
+    background: #10b981;
+    border-radius: 50%;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+    70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+/* KPI Cards Grid */
+.sk-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
     margin-bottom: 3rem;
 }
 
-/* Stats Grid */
-.storekeeper-dashboard-page .stats-grid {
+.sk-kpi-card {
+    background: white;
+    border-radius: 24px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.03);
+    border: 1px solid #f1f5f9;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.sk-kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 4px;
+}
+.sk-kpi-card.blue::before { background: #3b82f6; }
+.sk-kpi-card.amber::before { background: #f59e0b; }
+.sk-kpi-card.red::before { background: #ef4444; }
+.sk-kpi-card.emerald::before { background: #10b981; }
+
+.sk-kpi-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px -10px rgba(0,0,0,0.08);
+}
+
+.sk-kpi-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+}
+
+.sk-kpi-card.blue .sk-kpi-icon { background: #eff6ff; color: #3b82f6; }
+.sk-kpi-card.amber .sk-kpi-icon { background: #fffbeb; color: #f59e0b; }
+.sk-kpi-card.red .sk-kpi-icon { background: #fef2f2; color: #ef4444; }
+.sk-kpi-card.emerald .sk-kpi-icon { background: #ecfdf5; color: #10b981; }
+
+.sk-kpi-content {
+    flex: 1;
+}
+
+.sk-kpi-label {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+    color: #64748b;
+    margin-bottom: 0.25rem;
+}
+
+.sk-kpi-value {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #0f172a;
+    margin: 0;
+    line-height: 1.1;
+}
+
+/* Main Content Grid */
+.sk-content-grid {
+    display: grid;
+    grid-template-columns: 2.5fr 1.2fr;
+    gap: 2.5rem;
+}
+
+@media (max-width: 1100px) {
+    .sk-content-grid { grid-template-columns: 1fr; }
+}
+
+.sk-section-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.sk-section-title svg {
+    color: #6366f1;
+}
+
+/* Quick Actions */
+.sk-actions-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 1.5rem;
 }
 
-.storekeeper-dashboard-page .stat-card {
-    background: var(--card-bg);
-    /* card-bg */
-    padding: 1.75rem;
-    border-radius: 16px;
-    display: flex;
-    gap: 1.25rem;
-    align-items: center;
+.sk-action-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 24px;
     text-decoration: none;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    cursor: pointer;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
-    border: var(--card-border);
 }
 
-.storekeeper-dashboard-page .stat-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, currentColor, transparent);
+.sk-action-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px -10px rgba(99, 102, 241, 0.15);
+    border-color: #c7d2fe;
 }
 
-.storekeeper-dashboard-page .stat-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
-
-.storekeeper-dashboard-page .stat-icon {
-    width: 64px;
-    height: 64px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2rem;
-    flex-shrink: 0;
-}
-
-.storekeeper-dashboard-page .stat-content {
-    flex: 1;
-}
-
-.storekeeper-dashboard-page .stat-value {
-    font-size: 2.5rem;
-    font-weight: 800;
-    color: #f8fafc;
-    /* text-primary */
-    line-height: 1;
-    margin-bottom: 0.5rem;
-}
-
-.storekeeper-dashboard-page .stat-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #94a3b8;
-    /* text-secondary */
-    margin-bottom: 0.25rem;
-}
-
-.storekeeper-dashboard-page .stat-subtitle {
-    font-size: 0.85rem;
-    color: #64748b;
-}
-
-/* Quick Actions */
-.storekeeper-dashboard-page .actions-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
-}
-
-.storekeeper-dashboard-page .quick-action-card {
-    background: var(--card-bg);
-    padding: 1.75rem;
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    gap: 1.25rem;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    cursor: pointer;
-    border: var(--card-border);
-}
-
-.storekeeper-dashboard-page .quick-action-card:hover {
-    transform: translateX(4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
-
-.storekeeper-dashboard-page .action-icon {
+.sk-action-icon-wrapper {
     width: 56px;
     height: 56px;
-    border-radius: 12px;
+    border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.75rem;
-    flex-shrink: 0;
-}
-
-.storekeeper-dashboard-page .action-content {
-    flex: 1;
-}
-
-.storekeeper-dashboard-page .action-content h3 {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #f8fafc;
-    margin: 0 0 0.5rem 0;
-}
-
-.storekeeper-dashboard-page .action-content p {
-    font-size: 0.9rem;
-    color: #94a3b8;
-    margin: 0;
-}
-
-.storekeeper-dashboard-page .action-arrow {
-    font-size: 1.5rem;
-    font-weight: 700;
     transition: transform 0.3s ease;
-    color: #f8fafc;
 }
 
-.storekeeper-dashboard-page .quick-action-card:hover .action-arrow {
-    transform: translateX(4px);
+.sk-action-card.blue .sk-action-icon-wrapper { background: #eff6ff; color: #3b82f6; }
+.sk-action-card.emerald .sk-action-icon-wrapper { background: #ecfdf5; color: #10b981; }
+.sk-action-card.purple .sk-action-icon-wrapper { background: #f5f3ff; color: #8b5cf6; }
+.sk-action-card.cyan .sk-action-icon-wrapper { background: #ecfeff; color: #06b6d4; }
+
+.sk-action-card:hover .sk-action-icon-wrapper {
+    transform: scale(1.1) rotate(5deg);
 }
 
-/* Alerts */
-.storekeeper-dashboard-page .alerts-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
+.sk-action-content h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #1e293b;
 }
 
-.storekeeper-dashboard-page .alert-card {
-    background: var(--card-bg);
-    padding: 1.5rem;
-    border-radius: 16px;
+.sk-action-content p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.sk-action-arrow {
+    position: absolute;
+    bottom: 2rem;
+    right: 2rem;
+    color: #cbd5e1;
+    font-size: 1.5rem;
+    transition: all 0.3s ease;
+    opacity: 0;
+    transform: translateX(-10px);
+}
+
+.sk-action-card:hover .sk-action-arrow {
+    opacity: 1;
+    transform: translateX(0);
+    color: #6366f1;
+}
+
+/* Alerts Panel */
+.sk-alerts-panel {
+    background: white;
+    border-radius: 24px;
+    padding: 2rem;
+    box-shadow: 0 10px 40px -10px rgba(0,0,0,0.05);
+    border: 1px solid #f1f5f9;
+}
+
+.sk-alert-item {
     display: flex;
     align-items: center;
     gap: 1rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    border-left: 4px solid;
-    border: var(--card-border);
-    border-left-width: 4px;
-    /* Ensure overwrite */
-}
-
-.storekeeper-dashboard-page .alert-card.urgent {
-    border-left-color: #ef4444;
-}
-
-.storekeeper-dashboard-page .alert-card.warning {
-    border-left-color: #f59e0b;
-}
-
-.storekeeper-dashboard-page .alert-icon {
-    font-size: 2rem;
-    width: 48px;
-    height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 12px;
-    flex-shrink: 0;
-}
-
-.storekeeper-dashboard-page .alert-card.urgent .alert-icon {
-    background: rgba(239, 68, 68, 0.1);
-}
-
-.storekeeper-dashboard-page .alert-card.warning .alert-icon {
-    background: rgba(245, 158, 11, 0.1);
-}
-
-.alert-content {
-    flex: 1;
-}
-
-.alert-content h3 {
-    font-size: 1rem;
-    font-weight: 700;
-    color: #f8fafc;
-    margin: 0 0 0.25rem 0;
-}
-
-.alert-content p {
-    font-size: 0.875rem;
-    color: #94a3b8;
-    margin: 0;
-}
-
-.alert-action {
-    color: #3b82f6;
-    font-weight: 600;
+    padding: 1.25rem;
+    border-radius: 16px;
+    margin-bottom: 1rem;
     text-decoration: none;
-    white-space: nowrap;
     transition: transform 0.2s ease;
 }
 
-.alert-action:hover {
-    transform: translateX(4px);
+.sk-alert-item:last-child {
+    margin-bottom: 0;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .storekeeper-nav {
-        flex-direction: column;
-        gap: 1rem;
-        padding: 1.5rem;
-    }
-
-    .nav-links {
-        width: 100%;
-        flex-wrap: wrap;
-    }
-
-    .storekeeper-content {
-        padding: 1.5rem;
-    }
-
-    .page-header {
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .page-title {
-        font-size: 1.75rem;
-    }
-
-    .stats-grid,
-    .actions-grid,
-    .alerts-grid {
-        grid-template-columns: 1fr;
-    }
+.sk-alert-item:hover {
+    transform: translateX(5px);
 }
 
-/* Animations */
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+.sk-alert-item.critical {
+    background: #fef2f2;
+    border: 1px solid #fee2e2;
 }
 
-.stat-card,
-.quick-action-card,
-.alert-card {
-    animation: slideUp 0.5s ease-out;
+.sk-alert-item.warning {
+    background: #fffbeb;
+    border: 1px solid #fef3c7;
 }
 
-.stat-card:nth-child(1) {
-    animation-delay: 0.1s;
+.sk-alert-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
 }
 
-.stat-card:nth-child(2) {
-    animation-delay: 0.2s;
+.sk-alert-item.critical .sk-alert-icon { background: white; color: #ef4444; }
+.sk-alert-item.warning .sk-alert-icon { background: white; color: #f59e0b; }
+
+.sk-alert-text {
+    flex: 1;
 }
 
-.stat-card:nth-child(3) {
-    animation-delay: 0.3s;
+.sk-alert-text h4 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1rem;
+    font-weight: 800;
 }
 
+.sk-alert-item.critical h4 { color: #991b1b; }
+.sk-alert-item.warning h4 { color: #b45309; }
 
-/* Modal Overrides for Dark Theme */
-.storekeeper-dashboard-page .modal-overlay {
-    backdrop-filter: blur(8px);
-    background: rgba(0, 0, 0, 0.7);
-    z-index: 10000;
-    /* Ensure on top */
+.sk-alert-text p {
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 600;
 }
 
-.storekeeper-dashboard-page .modal-content {
-    background: #1e293b !important;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    color: #f8fafc !important;
+.sk-alert-item.critical p { color: #ef4444; }
+.sk-alert-item.warning p { color: #d97706; }
+
+.sk-alert-arrow {
+    font-size: 1.2rem;
+    font-weight: 900;
 }
 
-.storekeeper-dashboard-page .modal-header h2 {
-    color: #f8fafc;
+.sk-alert-item.critical .sk-alert-arrow { color: #ef4444; }
+.sk-alert-item.warning .sk-alert-arrow { color: #f59e0b; }
+
+.sk-optimal-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    background: #ecfdf5;
+    border-radius: 20px;
+    border: 1px solid #d1fae5;
 }
 
-.storekeeper-dashboard-page .modal-content label {
-    color: #94a3b8;
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 0.05em;
-    font-weight: 700;
+.sk-optimal-icon {
+    font-size: 3.5rem;
+    color: #10b981;
+    margin-bottom: 1rem;
 }
 
-.storekeeper-dashboard-page .form-input,
-.storekeeper-dashboard-page .form-select,
-.storekeeper-dashboard-page textarea {
-    background: rgba(15, 23, 42, 0.6) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    color: white !important;
-    border-radius: 8px;
+.sk-optimal-state h3 {
+    margin: 0 0 0.5rem 0;
+    color: #065f46;
+    font-weight: 900;
+    font-size: 1.25rem;
 }
 
-.storekeeper-dashboard-page .form-input:focus,
-.storekeeper-dashboard-page .form-select:focus,
-.storekeeper-dashboard-page textarea:focus {
-    border-color: #3b82f6 !important;
-    background: rgba(15, 23, 42, 0.8) !important;
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-}
-
-.storekeeper-dashboard-page .btn-cancel {
-    background: transparent;
-    color: #f87171;
-    border: 1px solid rgba(248, 113, 113, 0.2);
-}
-
-.storekeeper-dashboard-page .btn-cancel:hover {
-    background: rgba(248, 113, 113, 0.1);
-    color: #f87171;
-}
-
-.storekeeper-dashboard-page .close-btn {
-    color: #94a3b8;
-}
-
-.storekeeper-dashboard-page .close-btn:hover {
-    color: white;
-}
-
-/* History Table in Modal */
-.storekeeper-dashboard-page .modal-content table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0 0.5rem;
-}
-
-.storekeeper-dashboard-page .modal-content th {
-    background: transparent;
-    color: #64748b;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 0.5rem 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.storekeeper-dashboard-page .modal-content td {
-    background: rgba(255, 255, 255, 0.02);
-    color: #f8fafc;
-    border: none;
-    padding: 1rem;
-}
-
-.storekeeper-dashboard-page .modal-content tr {
-    transition: transform 0.2s;
-}
-
-/* Fix for select dropdown options usually being white in some browsers */
-.storekeeper-dashboard-page option {
-    background: #1e293b;
-    color: white;
+.sk-optimal-state p {
+    margin: 0;
+    color: #047857;
+    font-size: 0.9rem;
+    font-weight: 500;
 }

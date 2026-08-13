@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../shared/supabaseClient';
+import { FiBox, FiAlertTriangle, FiXCircle, FiTrendingUp, FiArrowRight, FiActivity, FiArchive, FiTruck, FiFileText } from 'react-icons/fi';
 import '../shared/ModernPage.css';
 import './StoreKeeperDashboard.css';
 
@@ -36,16 +37,6 @@ const StoreKeeperDashboard = () => {
         }
     };
 
-    const StatCard = ({ icon, label, value, color, suffix }) => (
-        <div className="stat-card" style={{ borderBottom: `6px solid ${color}` }}>
-            <div className="stat-icon" style={{ color: color }}>{icon}</div>
-            <div>
-                <div className="stat-label">{label}</div>
-                <div className="stat-value">{suffix} {value}</div>
-            </div>
-        </div>
-    );
-
     if (loading) return (
         <div className="page-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '80vh' }}>
             <div className="loading-spinner" style={{ borderTopColor: '#6366f1' }}></div>
@@ -54,100 +45,134 @@ const StoreKeeperDashboard = () => {
     );
 
     return (
-        <div className="page-container storekeeper-dashboard-page">
-            <div className="page-header">
-                <div>
-                    <h1 className="page-title">Inventory Command Center</h1>
-                    <p className="page-subtitle">National Livestock Development Board - Central Logistics & Storage</p>
+        <div className="storekeeper-dashboard-wrapper">
+            {/* Header */}
+            <div className="sk-header-container">
+                <div className="sk-header-text">
+                    <h1>Inventory Command Center</h1>
+                    <p>National Livestock Development Board - Central Logistics & Storage</p>
                 </div>
-                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem 2rem', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ width: '12px', height: '12px', background: '#10b981', borderRadius: '50%', boxShadow: '0 0 0 4px rgba(16, 185, 129, 0.2)' }}></div>
-                    <span style={{ fontWeight: '800', color: '#f8fafc', fontSize: '0.95rem' }}>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
+                <div className="sk-date-badge">
+                    <div className="pulse-dot"></div>
+                    {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', marginBottom: '4rem' }}>
-                <StatCard icon="📦" label="Catalog Breadth" value={stats.totalItems} color="#6366f1" />
-                <StatCard icon="⚠️" label="Low Stock Protocols" value={stats.lowStock} color="#f59e0b" />
-                <StatCard icon="❌" label="Depleted Reserves" value={stats.outOfStock} color="#ef4444" />
-                <StatCard icon="🏦" label="Inventory Valuation" value={stats.totalValue.toLocaleString()} suffix="Rs." color="#10b981" />
+            {/* KPI Metrics */}
+            <div className="sk-kpi-grid">
+                <div className="sk-kpi-card blue">
+                    <div className="sk-kpi-icon"><FiBox /></div>
+                    <div className="sk-kpi-content">
+                        <div className="sk-kpi-label">Catalog Breadth</div>
+                        <h3 className="sk-kpi-value">{stats.totalItems}</h3>
+                    </div>
+                </div>
+                <div className="sk-kpi-card amber">
+                    <div className="sk-kpi-icon"><FiAlertTriangle /></div>
+                    <div className="sk-kpi-content">
+                        <div className="sk-kpi-label">Low Stock Warnings</div>
+                        <h3 className="sk-kpi-value">{stats.lowStock}</h3>
+                    </div>
+                </div>
+                <div className="sk-kpi-card red">
+                    <div className="sk-kpi-icon"><FiXCircle /></div>
+                    <div className="sk-kpi-content">
+                        <div className="sk-kpi-label">Depleted Reserves</div>
+                        <h3 className="sk-kpi-value">{stats.outOfStock}</h3>
+                    </div>
+                </div>
+                <div className="sk-kpi-card emerald">
+                    <div className="sk-kpi-icon"><FiTrendingUp /></div>
+                    <div className="sk-kpi-content">
+                        <div className="sk-kpi-label">Inventory Valuation</div>
+                        <h3 className="sk-kpi-value" style={{ fontSize: '1.5rem' }}>Rs. {stats.totalValue.toLocaleString()}</h3>
+                    </div>
+                </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '3rem' }}>
+            <div className="sk-content-grid">
+                {/* Operations Links */}
                 <div>
-                    <h2 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#f8fafc', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <span style={{ width: '8px', height: '32px', background: '#6366f1', borderRadius: '4px' }}></span>
-                        Operations & Quick-Link Registry
+                    <h2 className="sk-section-title">
+                        <FiActivity /> Operations & Quick-Link Registry
                     </h2>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                        {[
-                            { title: 'Catalog Management', desc: 'Initialize or modify biological/product SKU registry.', link: '/storekeeper/items', icon: '📋', color: '#6366f1' },
-                            { title: 'Stock Surveillance', desc: 'Monitor real-time inventory levels across sectors.', link: '/storekeeper/stock', icon: '📈', color: '#10b981' },
-                            { title: 'Internal Logistics', desc: 'Issue, receive, or authorize inter-depot transfers.', link: '/storekeeper/inventory', icon: '🔄', color: '#8b5cf6' },
-                            { title: 'Archival Reports', desc: 'Generate historical movement and movement audits.', link: '/daily-income', icon: '📄', color: '#06b6d4' }
-                        ].map((action, i) => (
-                            <Link key={i} to={action.link} style={{ textDecoration: 'none', background: 'rgba(255,255,255,0.03)', padding: '2rem', borderRadius: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: '1rem', transition: '0.3s' }} className="quick-action-hover">
-                                <div style={{ fontSize: '2rem', background: `${action.color}15`, width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '16px', color: action.color }}>{action.icon}</div>
-                                <div>
-                                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800', color: '#f8fafc' }}>{action.title}</h3>
-                                    <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem', color: '#94a3b8', lineHeight: '1.6' }}>{action.desc}</p>
-                                </div>
-                            </Link>
-                        ))}
+                    <div className="sk-actions-grid">
+                        <Link to="/storekeeper/items" className="sk-action-card blue">
+                            <div className="sk-action-icon-wrapper"><FiArchive /></div>
+                            <div className="sk-action-content">
+                                <h3>Catalog Management</h3>
+                                <p>Initialize or modify biological/product SKU registry.</p>
+                            </div>
+                            <div className="sk-action-arrow"><FiArrowRight /></div>
+                        </Link>
+                        
+                        <Link to="/storekeeper/stock" className="sk-action-card emerald">
+                            <div className="sk-action-icon-wrapper"><FiTrendingUp /></div>
+                            <div className="sk-action-content">
+                                <h3>Stock Surveillance</h3>
+                                <p>Monitor real-time inventory levels across sectors.</p>
+                            </div>
+                            <div className="sk-action-arrow"><FiArrowRight /></div>
+                        </Link>
+
+                        <Link to="/storekeeper/inventory" className="sk-action-card purple">
+                            <div className="sk-action-icon-wrapper"><FiTruck /></div>
+                            <div className="sk-action-content">
+                                <h3>Internal Logistics</h3>
+                                <p>Issue, receive, or authorize inter-depot transfers.</p>
+                            </div>
+                            <div className="sk-action-arrow"><FiArrowRight /></div>
+                        </Link>
+
+                        <Link to="/daily-income" className="sk-action-card cyan">
+                            <div className="sk-action-icon-wrapper"><FiFileText /></div>
+                            <div className="sk-action-content">
+                                <h3>Archival Reports</h3>
+                                <p>Generate historical movement and movement audits.</p>
+                            </div>
+                            <div className="sk-action-arrow"><FiArrowRight /></div>
+                        </Link>
                     </div>
                 </div>
 
+                {/* Critical Alerts */}
                 <div>
-                    <h2 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#f8fafc', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <span style={{ width: '8px', height: '32px', background: '#ef4444', borderRadius: '4px' }}></span>
-                        Critical Oversight
+                    <h2 className="sk-section-title" style={{ color: '#0f172a' }}>
+                        <span style={{ color: '#ef4444' }}><FiAlertTriangle /></span> Critical Oversight
                     </h2>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    <div className="sk-alerts-panel">
                         {stats.outOfStock > 0 && (
-                            <div style={{ background: 'rgba(248, 113, 113, 0.1)', border: '1px solid rgba(248, 113, 113, 0.2)', padding: '1.5rem', borderRadius: '20px', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                <div style={{ fontSize: '2rem', background: 'rgba(255,255,255,0.05)', width: '50px', height: '50px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f87171' }}>🛑</div>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#fca5a5' }}>Depleted Reserves ({stats.outOfStock})</div>
-                                    <div style={{ fontSize: '0.75rem', color: '#fecaca', opacity: 0.8 }}>Immediate requisition required.</div>
+                            <Link to="/storekeeper/stock" className="sk-alert-item critical">
+                                <div className="sk-alert-icon"><FiXCircle /></div>
+                                <div className="sk-alert-text">
+                                    <h4>Depleted Reserves ({stats.outOfStock})</h4>
+                                    <p>Immediate requisition required.</p>
                                 </div>
-                                <Link to="/storekeeper/stock" style={{ color: '#f87171', fontWeight: '900', textDecoration: 'none', fontSize: '1.2rem' }}>→</Link>
-                            </div>
+                                <div className="sk-alert-arrow"><FiArrowRight /></div>
+                            </Link>
                         )}
+
                         {stats.lowStock > 0 && (
-                            <div style={{ background: 'rgba(251, 191, 36, 0.1)', border: '1px solid rgba(251, 191, 36, 0.2)', padding: '1.5rem', borderRadius: '20px', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                <div style={{ fontSize: '2rem', background: 'rgba(255,255,255,0.05)', width: '50px', height: '50px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fbbf24' }}>⚠️</div>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#fcd34d' }}>Low Visibility ({stats.lowStock})</div>
-                                    <div style={{ fontSize: '0.75rem', color: '#fde68a', opacity: 0.8 }}>Restock protocols recommended.</div>
+                            <Link to="/storekeeper/stock" className="sk-alert-item warning">
+                                <div className="sk-alert-icon"><FiAlertTriangle /></div>
+                                <div className="sk-alert-text">
+                                    <h4>Low Visibility ({stats.lowStock})</h4>
+                                    <p>Restock protocols recommended.</p>
                                 </div>
-                                <Link to="/storekeeper/stock" style={{ color: '#fbbf24', fontWeight: '900', textDecoration: 'none', fontSize: '1.2rem' }}>→</Link>
-                            </div>
+                                <div className="sk-alert-arrow"><FiArrowRight /></div>
+                            </Link>
                         )}
+
                         {stats.outOfStock === 0 && stats.lowStock === 0 && (
-                            <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '2rem', borderRadius: '24px', textAlign: 'center' }}>
-                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📦</div>
-                                <h3 style={{ margin: 0, color: '#34d399', fontWeight: '800' }}>Stock Optimized</h3>
-                                <p style={{ margin: '0.5rem 0 0', color: '#6ee7b7', fontSize: '0.85rem' }}>All biological and retail assets are at optimal levels.</p>
+                            <div className="sk-optimal-state">
+                                <div className="sk-optimal-icon"><FiBox /></div>
+                                <h3>Stock Optimized</h3>
+                                <p>All biological and retail assets are at optimal levels.</p>
                             </div>
                         )}
                     </div>
                 </div>
             </div>
-
-            <style>{`
-                .quick-action-hover {
-                    background: rgba(255,255,255,0.03) !important;
-                    border: 1px solid rgba(255,255,255,0.08) !important;
-                }
-                .quick-action-hover h3 { color: #f8fafc !important; }
-                .quick-action-hover p { color: #94a3b8 !important; }
-                .quick-action-hover:hover {
-                    transform: translateY(-8px);
-                    background: rgba(255,255,255,0.06) !important;
-                    border-color: #6366f1 !important;
-                    box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important;
-                }
-            `}</style>
         </div>
     );
 };
