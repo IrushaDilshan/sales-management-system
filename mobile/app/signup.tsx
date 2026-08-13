@@ -53,16 +53,11 @@ export default function SignupScreen() {
                 // Note: This matches the login.tsx logic which queries public.users
                 const { error: dbError } = await supabase
                     .from('users')
-                    .insert([
-                        {
-                            id: authData.user.id,
-                            email: email.trim(),
-                            name: name,
-                            phone: phone,
-                            role: role,
-                            created_at: new Date().toISOString()
-                        }
-                    ]);
+                    .update({
+                        name: name,
+                        phone: phone
+                    })
+                    .eq('id', authData.user.id);
 
                 if (dbError) {
                     // Check if it's the known schema error (missing phone column)
@@ -76,16 +71,10 @@ export default function SignupScreen() {
                         console.log('Schema mismatch detected (missing phone). Retrying without phone number...');
                         const { error: retryError } = await supabase
                             .from('users')
-                            .insert([
-                                {
-                                    id: authData.user.id,
-                                    email: email.trim(),
-                                    name: name,
-                                    role: role,
-                                    // phone: omitted
-                                    created_at: new Date().toISOString()
-                                }
-                            ]);
+                            .update({
+                                name: name
+                            })
+                            .eq('id', authData.user.id);
 
                         if (retryError) console.error('Retry failed:', retryError);
                     }

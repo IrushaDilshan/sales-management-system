@@ -31,57 +31,59 @@ export default function AssignedRepsScreen() {
             // Get current user's shop_id
             const { data: userData, error: userError } = await supabase
                 .from('users')
-                .select('shop_id, shops(name)')
+                .select('shop_id')
                 .eq('id', user.id)
                 .single();
 
-            if (userError || !userData?.shop_id) {
-                throw new Error('Could not find shop information');
-            }
-
-            const shopData: any = userData.shops;
-            setShopName(shopData?.name || (Array.isArray(shopData) ? shopData[0]?.name : 'My Shop'));
-
-            // 1. Fetch shop details to find direct rep_id and route_id
-            const { data: shopDetails, error: shopError } = await supabase
-                .from('shops')
-                .select('rep_id, route_id, name')
-                .eq('id', userData.shop_id)
-                .single();
-
-            let info = `ShopID: ${userData.shop_id?.slice(0, 6)}... | `;
-
             const potentialRepIds = new Set<string>();
+            let info = `Logged in as: ${user.email} | `;
 
-            if (shopDetails) {
-                info += `DirectRep: ${shopDetails.rep_id ? 'Yes' : 'No'} | RouteID: ${shopDetails.route_id || 'None'} | `;
-
-                // Add direct rep if exists
-                if (shopDetails.rep_id) {
-                    potentialRepIds.add(shopDetails.rep_id);
-                }
-            } else {
-                info += `ShopDetails: Not Found (${shopError?.message}) | `;
+            if (userError) {
+                console.warn('Error fetching user shop data:', userError);
+                info += `DB Error: ${userError.message} | `;
             }
 
-            setShopName(shopDetails?.name || 'My Shop');
-
-
-
-            // 2. Fetch Route details if route_id exists
-            if (shopDetails?.route_id) {
-                const { data: routeData, error: routeError } = await supabase
-                    .from('routes')
-                    .select('rep_id')
-                    .eq('id', shopDetails.route_id)
+            if (userData?.shop_id) {
+                // 1. Fetch shop details to find direct rep_id and route_id
+                const { data: shopDetails, error: shopError } = await supabase
+                    .from('shops')
+                    .select('rep_id, route_id, name')
+                    .eq('id', userData.shop_id)
                     .single();
 
-                if (routeData) {
-                    info += `RouteRep: ${routeData.rep_id ? 'Yes' : 'No'} | `;
-                    if (routeData.rep_id) potentialRepIds.add(routeData.rep_id);
+                info += `ShopID: ${userData.shop_id?.slice(0, 6)}... | `;
+
+                if (shopDetails) {
+                    info += `DirectRep: ${shopDetails.rep_id ? 'Yes' : 'No'} | RouteID: ${shopDetails.route_id || 'None'} | `;
+
+                    // Add direct rep if exists
+                    if (shopDetails.rep_id) {
+                        potentialRepIds.add(shopDetails.rep_id);
+                    }
                 } else {
-                    info += `RouteFetch: Fail (${routeError?.message}) | `;
+                    info += `ShopDetails: Not Found (${shopError?.message}) | `;
                 }
+
+                setShopName(shopDetails?.name || 'My Shop');
+
+                // 2. Fetch Route details if route_id exists
+                if (shopDetails?.route_id) {
+                    const { data: routeData, error: routeError } = await supabase
+                        .from('routes')
+                        .select('rep_id')
+                        .eq('id', shopDetails.route_id)
+                        .single();
+
+                    if (routeData) {
+                        info += `RouteRep: ${routeData.rep_id ? 'Yes' : 'No'} | `;
+                        if (routeData.rep_id) potentialRepIds.add(routeData.rep_id);
+                    } else {
+                        info += `RouteFetch: Fail (${routeError?.message}) | `;
+                    }
+                }
+            } else {
+                info += 'User has no shop_id assigned | ';
+                setShopName('No Shop Assigned');
             }
 
             setDebugInfo(info);
@@ -107,11 +109,15 @@ export default function AssignedRepsScreen() {
             }
 
             // 4. Also fetch anyone with role 'rep', 'agent' explicitly linked in this shop as a fallback
-            const { data: roleReps } = await supabase
-                .from('users')
-                .select('*')
-                .eq('shop_id', userData.shop_id)
-                .or('role.ilike.%rep%,role.ilike.%agent%,role.ilike.%manager%,role.ilike.%owner%');
+            let roleReps: any[] = [];
+            if (userData?.shop_id) {
+                const { data } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('shop_id', userData.shop_id)
+                    .or('role.ilike.%rep%,role.ilike.%agent%,role.ilike.%manager%,role.ilike.%owner%');
+                roleReps = data || [];
+            }
 
             const allCandidates = [...foundReps, ...(roleReps || [])];
 
