@@ -1,7 +1,10 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Sidebar from './components/Sidebar';
+import MainShell from './components/MainShell';
 import StoreKeeperSidebar from './components/StoreKeeperSidebar';
+import { ToastProvider } from './shared/ToastContext';
+
+// Pages
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import Shops from './pages/Shops';
@@ -22,168 +25,162 @@ import './App.css';
 
 function App() {
   return (
-    <Router>
-      <div className="App">
-        <Routes>
-          {/* Login Route (No Navbar) */}
-          <Route path="/login" element={<Login />} />
+    <ToastProvider>
+      <Router>
+        <div className="App">
+          <Routes>
+            {/* 1. Unauthenticated / Public Auth Routes (NO Sidebar, NO Topbar) */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<Home />} />
+            <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
 
-          {/* Public Home Page */}
-          <Route path="/" element={<Home />} />
+            {/* 2. Authenticated Admin Routes (Wrapped in Global MainShell) */}
+            <Route
+              path="/dashboard"
+              element={
+                <MainShell>
+                  <Dashboard />
+                </MainShell>
+              }
+            />
+            <Route
+              path="/categories"
+              element={
+                <MainShell>
+                  <Categories />
+                </MainShell>
+              }
+            />
+            <Route
+              path="/items"
+              element={
+                <MainShell>
+                  <Items />
+                </MainShell>
+              }
+            />
+            <Route
+              path="/users"
+              element={
+                <MainShell>
+                  <Users />
+                </MainShell>
+              }
+            />
+            <Route
+              path="/shops"
+              element={
+                <MainShell>
+                  <Shops />
+                </MainShell>
+              }
+            />
+            <Route
+              path="/routes"
+              element={
+                <MainShell>
+                  <RoutesPage />
+                </MainShell>
+              }
+            />
+            <Route
+              path="/daily-income"
+              element={
+                <MainShell>
+                  <DailyIncome />
+                </MainShell>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <MainShell>
+                  <Settings />
+                </MainShell>
+              }
+            />
+            <Route
+              path="/stock"
+              element={
+                <MainShell>
+                  <Stock />
+                </MainShell>
+              }
+            />
+            <Route
+              path="/customers"
+              element={
+                <MainShell>
+                  <Customers />
+                </MainShell>
+              }
+            />
+            <Route
+              path="/sales"
+              element={
+                <MainShell>
+                  <Sales />
+                </MainShell>
+              }
+            />
+            <Route
+              path="/sales-history"
+              element={
+                <MainShell>
+                  <SalesHistory />
+                </MainShell>
+              }
+            />
 
-          {/* Admin Redirect Route */}
-          <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
-
-          {/* Manager Dashboard Routes (With Sidebar) */}
-          <Route path="/dashboard" element={
-            <div className="app-layout">
-              <Sidebar />
-              <div className="main-content">
-                <Dashboard />
-              </div>
-            </div>
-          } />
-
-
-
-          <Route path="/users" element={
-            <div className="app-layout">
-              <Sidebar />
-              <div className="main-content">
-                <Users />
-              </div>
-            </div>
-          } />
-
-          <Route path="/shops" element={
-            <div className="app-layout">
-              <Sidebar />
-              <div className="main-content">
-                <Shops />
-              </div>
-            </div>
-          } />
-
-          <Route path="/routes" element={
-            <div className="app-layout">
-              <Sidebar />
-              <div className="main-content">
-                <RoutesPage />
-              </div>
-            </div>
-          } />
-
-          <Route path="/categories" element={
-            <div className="app-layout">
-              <Sidebar />
-              <div className="main-content">
-                <Categories />
-              </div>
-            </div>
-          } />
-
-          <Route path="/items" element={
-            <div className="app-layout">
-              <Sidebar />
-              <div className="main-content">
-                <Items />
-              </div>
-            </div>
-          } />
-
-          <Route path="/stock" element={
-            <div className="app-layout">
-              <Sidebar />
-              <div className="main-content">
-                <Stock />
-              </div>
-            </div>
-          } />
-
-          <Route path="/customers" element={
-            <div className="app-layout">
-              <Sidebar />
-              <div className="main-content">
-                <Customers />
-              </div>
-            </div>
-          } />
-
-          <Route path="/sales" element={
-            <div className="app-layout">
-              <Sidebar />
-              <div className="main-content">
-                <Sales />
-              </div>
-            </div>
-          } />
-
-          <Route path="/sales-history" element={
-            <div className="app-layout">
-              <Sidebar />
-              <div className="main-content">
-                <SalesHistory />
-              </div>
-            </div>
-          } />
-
-          <Route path="/daily-income" element={
-            <div className="app-layout">
-              <Sidebar />
-              <div className="main-content">
-                <DailyIncome />
-              </div>
-            </div>
-          } />
-
-          <Route path="/settings" element={
-            <div className="app-layout">
-              <Sidebar />
-              <div className="main-content">
-                <Settings />
-              </div>
-            </div>
-          } />
-
-          {/* Storekeeper Routes (With Storekeeper Sidebar) */}
-          <Route path="/storekeeper/dashboard" element={
-            <div className="storekeeper-layout">
-              <StoreKeeperSidebar />
-              <div className="storekeeper-content">
-                <StoreKeeperDashboard />
-              </div>
-            </div>
-          } />
-
-          <Route path="/storekeeper/stock" element={
-            <div className="storekeeper-layout">
-              <StoreKeeperSidebar />
-              <div className="storekeeper-content">
-                <Stock />
-              </div>
-            </div>
-          } />
-
-          <Route path="/storekeeper/inventory" element={
-            <div className="storekeeper-layout">
-              <StoreKeeperSidebar />
-              <div className="storekeeper-content">
-                <Storekeeper />
-              </div>
-            </div>
-          } />
-
-          <Route path="/storekeeper/settings" element={
-            <div className="storekeeper-layout">
-              <StoreKeeperSidebar />
-              <div className="storekeeper-content">
-                <Settings />
-              </div>
-            </div>
-          } />
-        </Routes>
-      </div>
-    </Router>
+            {/* 3. Dedicated Storekeeper Layout Routes */}
+            <Route
+              path="/storekeeper/dashboard"
+              element={
+                <div className="storekeeper-layout">
+                  <StoreKeeperSidebar />
+                  <div className="storekeeper-content">
+                    <StoreKeeperDashboard />
+                  </div>
+                </div>
+              }
+            />
+            <Route
+              path="/storekeeper/stock"
+              element={
+                <div className="storekeeper-layout">
+                  <StoreKeeperSidebar />
+                  <div className="storekeeper-content">
+                    <Stock />
+                  </div>
+                </div>
+              }
+            />
+            <Route
+              path="/storekeeper/inventory"
+              element={
+                <div className="storekeeper-layout">
+                  <StoreKeeperSidebar />
+                  <div className="storekeeper-content">
+                    <Storekeeper />
+                  </div>
+                </div>
+              }
+            />
+            <Route
+              path="/storekeeper/settings"
+              element={
+                <div className="storekeeper-layout">
+                  <StoreKeeperSidebar />
+                  <div className="storekeeper-content">
+                    <Settings />
+                  </div>
+                </div>
+              }
+            />
+          </Routes>
+        </div>
+      </Router>
+    </ToastProvider>
   );
 }
 

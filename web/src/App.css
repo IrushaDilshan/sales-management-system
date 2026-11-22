@@ -1,66 +1,11 @@
+/* Global App Root Layout */
 .App {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
-.navbar {
-  background-color: #1f2937;
-  padding: 1rem 2rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.navbar-brand {
-  color: white;
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-.navbar-links {
-  display: flex;
-  gap: 1.5rem;
-}
-
-/* Sidebar Layout */
-.app-layout {
-  display: flex;
-  min-height: 100vh;
-}
-
-.main-content {
-  flex: 1;
-  margin-left: 280px;
-  background: #f8fafc;
-  min-height: 100vh;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* When modern sidebar is collapsed */
-.modern-sidebar.collapsed+.main-content,
-.app-layout:has(.modern-sidebar.collapsed) .main-content {
-  margin-left: 88px;
-}
-
-/* Responsive */
-@media (max-width: 968px) {
-  .main-content {
-    margin-left: 80px;
-  }
-}
-
-@media (max-width: 640px) {
-
-  .main-content,
-  .storekeeper-content {
-    margin-left: 0;
-    margin-top: auto;
-  }
-}
-
-/* Storekeeper Layout */
+/* Storekeeper legacy layout if needed */
 .storekeeper-layout {
   display: flex;
   min-height: 100vh;
@@ -68,21 +13,5 @@
 
 .storekeeper-content {
   flex: 1;
-  margin-left: 280px;
   min-height: 100vh;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Collapsed Sidebar Handling for Storekeeper */
-.modern-sidebar.collapsed+.storekeeper-content,
-.modern-sidebar.collapsed~.storekeeper-content,
-.storekeeper-layout:has(.modern-sidebar.collapsed) .storekeeper-content {
-  margin-left: 88px;
-}
-
-/* Responsive for Storekeeper */
-@media (max-width: 968px) {
-  .storekeeper-content {
-    margin-left: 80px;
-  }
 }

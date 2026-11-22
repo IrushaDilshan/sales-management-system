@@ -1,0 +1,189 @@
+/* ==========================================================================
+   NLDBSales Manager Pro — Enterprise SaaS Design System & Global Theme Tokens
+   Strictly aligned with index.html design specifications
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
+
+:root {
+  /* Canvas & Surface Tokens (Light Mode) */
+  --nldb-bg-canvas: #F7F7F8;
+  --nldb-surface-card: #FFFFFF;
+  --nldb-surface-subtle: #F4F4F5;
+  --nldb-surface-hover: #F8FAFC;
+  
+  /* Text & Foreground */
+  --nldb-text-primary: #09090B;
+  --nldb-text-secondary: #71717A;
+  --nldb-text-muted: #A1A1AA;
+  
+  /* Borders & Dividers */
+  --nldb-border-subtle: rgba(228, 228, 231, 0.85);
+  --nldb-border-strong: #E4E4E7;
+  
+  /* Emerald Accents */
+  --nldb-emerald-primary: #059669;
+  --nldb-emerald-hover: #047857;
+  --nldb-emerald-subtle: rgba(16, 185, 129, 0.1);
+  --nldb-emerald-border: rgba(16, 185, 129, 0.2);
+  
+  /* Status Colors */
+  --nldb-rose: #E11D48;
+  --nldb-rose-bg: rgba(244, 63, 94, 0.1);
+  --nldb-amber: #D97706;
+  --nldb-amber-bg: rgba(245, 158, 11, 0.12);
+  --nldb-blue: #2563EB;
+  --nldb-blue-bg: rgba(59, 130, 246, 0.1);
+
+  /* Shadows */
+  --nldb-shadow-card: 0 1px 2px rgba(9, 9, 11, 0.04), 0 1px 1px rgba(9, 9, 11, 0.02);
+  --nldb-shadow-hover: 0 8px 20px -6px rgba(9, 9, 11, 0.08), 0 2px 6px -2px rgba(9, 9, 11, 0.04);
+  --nldb-shadow-float: 0 20px 40px -12px rgba(9, 9, 11, 0.18), 0 4px 12px -4px rgba(9, 9, 11, 0.08);
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+}
+
+/* Obsidian Dark Mode Overrides */
+html.dark {
+  --nldb-bg-canvas: #09090B;
+  --nldb-surface-card: #0C0C0E;
+  --nldb-surface-subtle: #18181B;
+  --nldb-surface-hover: #18181B;
+  
+  --nldb-text-primary: #FAFAFA;
+  --nldb-text-secondary: #A1A1AA;
+  --nldb-text-muted: #71717A;
+  
+  --nldb-border-subtle: rgba(39, 39, 42, 0.85);
+  --nldb-border-strong: #27272A;
+
+  --nldb-emerald-primary: #10B981;
+  --nldb-emerald-hover: #059669;
+  --nldb-emerald-subtle: rgba(16, 185, 129, 0.15);
+  --nldb-emerald-border: rgba(16, 185, 129, 0.25);
+
+  --nldb-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --nldb-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --nldb-shadow-float: 0 20px 40px -10px rgba(0, 0, 0, 0.7);
+}
+
+/* Global Reset & Typography */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--nldb-bg-canvas);
+  color: var(--nldb-text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+h1, h2, h3, h4, .font-display {
+  font-family: var(--font-display);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+}
+
+/* Enterprise Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(113, 113, 122, 0.25);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(113, 113, 122, 0.45);
+}
+
+/* Sidebar Responsive & Collapsed States */
+.sidebar-collapsed .sb-hide {
+  display: none !important;
+}
+.sidebar-collapsed .sb-item {
+  justify-content: center !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+.sidebar-collapsed .sb-profile {
+  justify-content: center !important;
+  padding: 0.5rem !important;
+}
+
+/* Micro-animations */
+@keyframes viewEnter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+.animate-view {
+  animation: viewEnter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes drawerIn {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+.animate-drawer {
+  animation: drawerIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.97) translateY(-4px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.animate-pop {
+  animation: popIn 0.16s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Animated Route Dash Flow */
+@keyframes routeFlow {
+  to { stroke-dashoffset: -24; }
+}
+.route-flow {
+  stroke-dasharray: 6 6;
+  animation: routeFlow 1.4s linear infinite;
+}
+
+/* Subtle dot grid for logistics topology */
+.map-grid-bg {
+  background-image: radial-gradient(rgba(113, 113, 122, 0.22) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+html.dark .map-grid-bg {
+  background-image: radial-gradient(rgba(161, 161, 170, 0.14) 1px, transparent 1px);
+}
+
+/* Toast stack animations */
+@keyframes toastSlide {
+  from { opacity: 0; transform: translateY(12px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-toast {
+  animation: toastSlide 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Print Optimization */
+@media print {
+  #sidebar, #topbar, #mobile-backdrop, #toast-stack, #bulk-bar, .no-print {
+    display: none !important;
+  }
+  #main-shell {
+    margin-left: 0 !important;
+    padding: 0 !important;
+  }
+  body {
+    background: #FFFFFF !important;
+    color: #09090B !important;
+  }
+}
