@@ -301,11 +301,17 @@
 }
 
 .modern-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
     background: #f8fafc;
 }
 
 .modern-table thead th {
-    background: transparent;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #f8fafc;
     color: var(--text-secondary);
     border-bottom: 1px solid #e2e8f0;
     font-size: 0.75rem;
