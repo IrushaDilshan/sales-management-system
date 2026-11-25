@@ -1,5 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import {
+    LuX,
+    LuMapPin,
+    LuPackage,
+    LuSnowflake,
+    LuCircleCheck,
+    LuArrowRight,
+    LuTag
+} from 'react-icons/lu';
 import { supabase } from '../shared/supabaseClient';
 import NLDBProductShowcase from '../components/NLDBProductShowcase';
 import './Home.css';
@@ -107,7 +116,13 @@ const Home = () => {
                 img: p.image_url || 'https://via.placeholder.com/300?text=No+Image',
                 desc: p.description || 'Premium NLDB Farm Product',
                 tag: p.is_perishable ? 'Fresh' : 'Standard',
+                isPerishable: Boolean(p.is_perishable),
                 price: p.retail_price,
+                retailPrice: p.retail_price != null ? Number(p.retail_price) : null,
+                wholesalePrice: p.wholesale_price != null ? Number(p.wholesale_price) : null,
+                unit: p.unit_of_measure || 'unit',
+                sku: p.sku || '',
+                stockQty: p.quantity ?? null,
                 categoryName: currentCategoryObj.name
             }));
         };
@@ -135,14 +150,14 @@ const Home = () => {
     ];
 
     const DEMO_PRODUCTS = [
-        { id: 1, name: 'Fresh Milk', description: 'High-quality fresh milk processed under strict hygiene.', category_id: 101, retail_price: 280.00, is_perishable: true, image_url: imgFreshMilk },
-        { id: 2, name: 'Buffalo Curd', description: 'Rich, creamy texture traditional Buffalo curd.', category_id: 101, retail_price: 450.00, is_perishable: true, image_url: imgCurd },
-        { id: 3, name: 'Set Yogurt', description: 'Premium quality yogurt with high nutritional value.', category_id: 101, retail_price: 80.00, is_perishable: true, image_url: imgYogurt },
-        { id: 4, name: 'Pure Ghee', description: 'Traditionally prepared ghee with a rich aroma.', category_id: 101, retail_price: 1500.00, is_perishable: false, image_url: imgGhee },
-        { id: 5, name: 'Drinking Yogurt', description: 'Healthy and refreshing flavored yogurt drinks.', category_id: 101, retail_price: 120.00, is_perishable: true, image_url: imgDrinkingYogurt },
-        { id: 6, name: 'Farm Fresh Eggs', description: 'Nutrient-rich brown eggs from NLDB farms.', category_id: 102, retail_price: 45.00, is_perishable: true, image_url: imgEggs },
-        { id: 7, name: 'Broiler Chicken', description: 'Hygienically processed, hormone-free chicken.', category_id: 102, retail_price: 1250.00, is_perishable: true, image_url: imgChicken },
-        { id: 8, name: 'Coconut Oil', description: '100% pure white coconut oil.', category_id: 103, retail_price: 650.00, is_perishable: false, image_url: imgCoconutOil },
+        { id: 1, name: 'Fresh Milk', description: 'High-quality fresh milk processed under strict hygiene.', category_id: 101, retail_price: 280.00, wholesale_price: 245.00, unit_of_measure: 'bottle', is_perishable: true, image_url: imgFreshMilk },
+        { id: 2, name: 'Buffalo Curd', description: 'Rich, creamy texture traditional Buffalo curd.', category_id: 101, retail_price: 450.00, wholesale_price: 390.00, unit_of_measure: 'pot', is_perishable: true, image_url: imgCurd },
+        { id: 3, name: 'Set Yogurt', description: 'Premium quality yogurt with high nutritional value.', category_id: 101, retail_price: 80.00, wholesale_price: 68.00, unit_of_measure: 'cup', is_perishable: true, image_url: imgYogurt },
+        { id: 4, name: 'Pure Ghee', description: 'Traditionally prepared ghee with a rich aroma.', category_id: 101, retail_price: 1500.00, wholesale_price: 1320.00, unit_of_measure: 'bottle', is_perishable: false, image_url: imgGhee },
+        { id: 5, name: 'Drinking Yogurt', description: 'Healthy and refreshing flavored yogurt drinks.', category_id: 101, retail_price: 120.00, wholesale_price: 102.00, unit_of_measure: 'bottle', is_perishable: true, image_url: imgDrinkingYogurt },
+        { id: 6, name: 'Farm Fresh Eggs', description: 'Nutrient-rich brown eggs from NLDB farms.', category_id: 102, retail_price: 45.00, wholesale_price: 39.00, unit_of_measure: 'piece', is_perishable: true, image_url: imgEggs },
+        { id: 7, name: 'Broiler Chicken', description: 'Hygienically processed, hormone-free chicken.', category_id: 102, retail_price: 1250.00, wholesale_price: 1100.00, unit_of_measure: 'kg', is_perishable: true, image_url: imgChicken },
+        { id: 8, name: 'Coconut Oil', description: '100% pure white coconut oil.', category_id: 103, retail_price: 650.00, wholesale_price: 575.00, unit_of_measure: 'bottle', is_perishable: false, image_url: imgCoconutOil },
     ];
 
     const nldbOutlets = [
@@ -175,45 +190,89 @@ const Home = () => {
 
     return (
         <div className="home-white-modern">
-            {/* Modal Implementation */}
+            {/* Modern Product Quick View Modal */}
             {selectedProduct && (
                 <div className="modal-overlay" onClick={() => setSelectedProduct(null)}>
-                    <div className="modal-content animate-fade" onClick={e => e.stopPropagation()}>
-                        <button className="modal-close" onClick={() => setSelectedProduct(null)}>&times;</button>
+                    <div className="modal-content modal-content-modern" onClick={e => e.stopPropagation()}>
+                        <button
+                            className="modal-close modal-close-modern"
+                            onClick={() => setSelectedProduct(null)}
+                            aria-label="Close modal"
+                        >
+                            <LuX size={18} />
+                        </button>
                         <div className="modal-grid">
-                            <div className="modal-img-col">
-                                <img src={selectedProduct.img} alt={selectedProduct.name} />
+                            <div className="modal-img-col modal-img-col-modern">
+                                <div className="modal-img-badges">
+                                    <span className={`modal-status-pill ${selectedProduct.isPerishable ? 'fresh' : 'standard'}`}>
+                                        {selectedProduct.isPerishable ? <LuSnowflake size={12} /> : <LuCircleCheck size={12} />}
+                                        {selectedProduct.isPerishable ? 'Cold-Chain Fresh' : 'Standard Stock'}
+                                    </span>
+                                </div>
+                                <div className="modal-img-frame">
+                                    <img src={selectedProduct.img} alt={selectedProduct.name} />
+                                </div>
                             </div>
-                            <div className="modal-info-col">
-                                <div className="modal-header">
-                                    <span className="modal-tag">{selectedProduct.tag}</span>
-                                    <span className="modal-cat">{selectedProduct.categoryName}</span>
-                                </div>
-                                <h2>{selectedProduct.name}</h2>
-                                <p className="modal-desc">{selectedProduct.desc}</p>
-
-                                <div className="modal-specs">
-                                    <div className="spec-item">
-                                        <span className="spec-label">Price</span>
-                                        <span className="spec-val" style={{ color: '#059669', fontSize: '1.25rem' }}>
-                                            Rs. {selectedProduct.price ? selectedProduct.price.toFixed(2) : 'N/A'}
+                            <div className="modal-info-col modal-info-col-modern">
+                                <div className="modal-header-modern">
+                                    <span className="modal-cat-pill">{selectedProduct.categoryName}</span>
+                                    {selectedProduct.sku && (
+                                        <span className="modal-sku-pill">
+                                            <LuTag size={11} /> {selectedProduct.sku}
                                         </span>
+                                    )}
+                                </div>
+
+                                <h2 className="modal-title-modern">{selectedProduct.name}</h2>
+                                <p className="modal-desc-modern">{selectedProduct.desc}</p>
+
+                                {/* Retail & Wholesale Pricing Cards */}
+                                <div className="modal-pricing-grid">
+                                    <div className="price-tier-card retail">
+                                        <div className="tier-header">
+                                            <span className="tier-label">Retail Price</span>
+                                            <span className="tier-badge">Direct</span>
+                                        </div>
+                                        <div className="tier-value">
+                                            Rs. {selectedProduct.retailPrice != null ? selectedProduct.retailPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A'}
+                                        </div>
+                                        <div className="tier-unit">per {selectedProduct.unit}</div>
                                     </div>
-                                    <div className="spec-item">
-                                        <span className="spec-label">Origin</span>
-                                        <span className="spec-val">NLDB Farms</span>
+
+                                    <div className="price-tier-card wholesale">
+                                        <div className="tier-header">
+                                            <span className="tier-label">Wholesale Price</span>
+                                            <span className="tier-badge">Bulk</span>
+                                        </div>
+                                        <div className="tier-value">
+                                            Rs. {selectedProduct.wholesalePrice != null ? selectedProduct.wholesalePrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A'}
+                                        </div>
+                                        <div className="tier-unit">per {selectedProduct.unit}</div>
                                     </div>
                                 </div>
 
-                                <div className="modal-actions">
+                                <div className="modal-meta-row">
+                                    <div className="meta-chip">
+                                        <LuMapPin size={14} />
+                                        <span>Origin: <strong>NLDB Farms</strong></span>
+                                    </div>
+                                    <div className="meta-chip">
+                                        <LuPackage size={14} />
+                                        <span>Unit: <strong style={{ textTransform: 'capitalize' }}>{selectedProduct.unit}</strong></span>
+                                    </div>
+                                </div>
+
+                                <div className="modal-actions-modern">
                                     <button
-                                        className="btn-gradient"
+                                        className="btn-locate-modern"
                                         onClick={() => {
                                             setSelectedProduct(null);
                                             document.getElementById('outlets').scrollIntoView({ behavior: 'smooth' });
                                         }}
                                     >
-                                        Locate in Store
+                                        <LuMapPin size={16} />
+                                        <span>Locate in Store</span>
+                                        <LuArrowRight size={16} />
                                     </button>
                                 </div>
                             </div>
@@ -252,7 +311,6 @@ const Home = () => {
                             <li><a href="#products" onClick={() => setIsMobileMenuOpen(false)}>Products</a></li>
                             <li><a href="#outlets" onClick={() => setIsMobileMenuOpen(false)}>Our Shops</a></li>
                             <li><a href="#contact" onClick={() => setIsMobileMenuOpen(false)}>Contact Us</a></li>
-                            <li><Link to="/login" className="btn-portal" onClick={() => setIsMobileMenuOpen(false)}>Command Center</Link></li>
                         </ul>
                     </nav>
                 </div>
@@ -370,12 +428,29 @@ const Home = () => {
                                         </div>
                                         <h3>{p.name}</h3>
                                         <p>{p.desc}</p>
+
+                                        <div className="p-card-pricing-strip">
+                                            <div className="p-price-col">
+                                                <span className="p-price-label">Retail</span>
+                                                <span className="p-price-amount retail">
+                                                    Rs. {p.retailPrice != null ? p.retailPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                                                </span>
+                                            </div>
+                                            <div className="p-price-divider" />
+                                            <div className="p-price-col">
+                                                <span className="p-price-label">Wholesale</span>
+                                                <span className="p-price-amount wholesale">
+                                                    Rs. {p.wholesalePrice != null ? p.wholesalePrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                                                </span>
+                                            </div>
+                                        </div>
+
                                         <div className="p-card-footer-modern">
                                             <button
                                                 className="btn-outlet-modern"
-                                                onClick={() => document.getElementById('outlets').scrollIntoView({ behavior: 'smooth' })}
+                                                onClick={() => setSelectedProduct(p)}
                                             >
-                                                <span>Locate Outlet</span>
+                                                <span>View Details</span>
                                                 <i className="arrow-icon">→</i>
                                             </button>
                                         </div>
