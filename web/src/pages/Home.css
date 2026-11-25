@@ -1626,3 +1626,348 @@
         box-shadow: 0 8px 16px rgba(16, 185, 129, 0.2);
     }
 }
+
+
+/* =====================================================
+   Modernized Product Quick View Modal & Pricing Cards
+   ===================================================== */
+.modal-content-modern {
+    max-width: 880px;
+    border-radius: 24px;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    box-shadow: 0 32px 64px -16px rgba(15, 23, 42, 0.22);
+    background: #ffffff;
+}
+
+.modal-close-modern {
+    top: 16px;
+    right: 16px;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+}
+
+.modal-close-modern:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+    transform: none;
+}
+
+.modal-img-col-modern {
+    background: radial-gradient(circle at 50% 40%, #ffffff 0%, #f1f5f9 100%);
+    border-right: 1px solid #f1f5f9;
+    position: relative;
+    padding: 36px;
+    min-height: 420px;
+    flex-direction: column;
+}
+
+.modal-img-badges {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 2;
+}
+
+.modal-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border: 1px solid transparent;
+}
+
+.modal-status-pill.fresh {
+    background: #ecfdf5;
+    color: #047857;
+    border-color: #a7f3d0;
+}
+
+.modal-status-pill.standard {
+    background: #f1f5f9;
+    color: #334155;
+    border-color: #cbd5e1;
+}
+
+.modal-img-frame {
+    width: 100%;
+    height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+    border-radius: 18px;
+    border: 1px solid #e2e8f0;
+    padding: 20px;
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.05);
+}
+
+.modal-img-frame img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    filter: none;
+}
+
+.modal-info-col-modern {
+    padding: 36px 40px;
+    gap: 0;
+}
+
+.modal-header-modern {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.modal-cat-pill {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #059669;
+    background: #ecfdf5;
+    padding: 4px 10px;
+    border-radius: 6px;
+}
+
+.modal-sku-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: #64748b;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+.modal-title-modern {
+    font-size: 1.875rem !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.02em;
+    color: #0f172a !important;
+    margin-bottom: 8px !important;
+}
+
+.modal-desc-modern {
+    font-size: 0.95rem !important;
+    color: #64748b !important;
+    line-height: 1.55 !important;
+    margin-bottom: 24px !important;
+}
+
+.modal-pricing-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.price-tier-card {
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.price-tier-card.retail {
+    background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+    border-color: #a7f3d0;
+}
+
+.price-tier-card.wholesale {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+.tier-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.tier-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #475569;
+}
+
+.price-tier-card.retail .tier-label {
+    color: #065f46;
+}
+
+.tier-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 9999px;
+    background: rgba(15, 23, 42, 0.06);
+    color: #475569;
+}
+
+.price-tier-card.retail .tier-badge {
+    background: rgba(5, 150, 105, 0.14);
+    color: #047857;
+}
+
+.tier-value {
+    font-size: 1.35rem;
+    font-weight: 800;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    letter-spacing: -0.02em;
+    color: #0f172a;
+    margin-top: 2px;
+}
+
+.price-tier-card.retail .tier-value {
+    color: #059669;
+}
+
+.tier-unit {
+    font-size: 0.75rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.modal-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 24px;
+    padding-top: 16px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.meta-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: #475569;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 6px 12px;
+    border-radius: 8px;
+}
+
+.meta-chip strong {
+    color: #0f172a;
+}
+
+.modal-actions-modern {
+    margin-top: auto;
+}
+
+.btn-locate-modern {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 46px;
+    padding: 0 20px;
+    border-radius: 12px;
+    background: #0f172a;
+    color: #ffffff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+}
+
+.btn-locate-modern:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(5, 150, 105, 0.25);
+}
+
+/* Product Registry Card Pricing Strip */
+.p-card-pricing-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    margin-bottom: 18px;
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.p-price-col {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+}
+
+.p-price-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+}
+
+.p-price-amount {
+    font-size: 0.98rem;
+    font-weight: 800;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    letter-spacing: -0.02em;
+}
+
+.p-price-amount.retail {
+    color: #059669;
+}
+
+.p-price-amount.wholesale {
+    color: #0f172a;
+}
+
+.p-price-divider {
+    width: 1px;
+    height: 28px;
+    background: #e2e8f0;
+}
+
+@media (max-width: 768px) {
+    .modal-img-col-modern {
+        min-height: 240px;
+        padding: 24px;
+        border-right: none;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .modal-img-frame {
+        height: 200px;
+    }
+
+    .modal-info-col-modern {
+        padding: 24px;
+    }
+
+    .modal-pricing-grid {
+        grid-template-columns: 1fr;
+    }
+}
