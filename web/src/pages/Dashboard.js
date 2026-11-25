@@ -176,36 +176,6 @@ const Dashboard = () => {
     }
   };
 
-  const handleQuickRestock = async (itemId, amount, unit) => {
-    try {
-      // Optimistic update in state
-      setRestockQueue((prev) => prev.filter((item) => item.id !== itemId));
-      setStats((prev) => ({
-        ...prev,
-        outOfStockCount: Math.max(0, prev.outOfStockCount - 1),
-      }));
-
-      // Update in Supabase items table if real UUID
-      if (typeof itemId === 'string' && !itemId.startsWith('item-')) {
-        const { data: item } = await supabase
-          .from('items')
-          .select('quantity')
-          .eq('id', itemId)
-          .single();
-        const currentQty = item?.quantity || 0;
-        await supabase
-          .from('items')
-          .update({ quantity: currentQty + amount })
-          .eq('id', itemId);
-      }
-
-      showToast(`Restocked +${amount} ${unit} successfully!`, 'success');
-    } catch (err) {
-      console.error('Restock error:', err);
-      showToast('Stock adjustment recorded.', 'info');
-    }
-  };
-
   // Sparkline renderer
   const renderSparkline = (data, strokeColor) => {
     const min = Math.min(...data);
@@ -545,12 +515,6 @@ const Dashboard = () => {
                         </span>
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleQuickRestock(item.id, 50, item.unit)}
-                      className="shrink-0 h-8 px-2.5 rounded-lg bg-white dark:bg-zinc-800 hover:bg-emerald-600 hover:text-white border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-700 dark:text-zinc-200 transition-colors"
-                    >
-                      +50 {item.unit}
-                    </button>
                   </div>
                 ))
               )}
