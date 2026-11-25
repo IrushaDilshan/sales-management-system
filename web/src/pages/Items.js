@@ -299,36 +299,6 @@ const Items = () => {
     });
   };
 
-  const handleBulkRestock = async () => {
-    const ids = Array.from(selectedProductIds);
-    if (!ids.length) return;
-
-    try {
-      setItems((prev) =>
-        prev.map((item) =>
-          selectedProductIds.has(item.id)
-            ? { ...item, quantity: (item.quantity ?? 0) + 50 }
-            : item
-        )
-      );
-
-      for (const id of ids) {
-        if (!String(id).startsWith('p-')) {
-          const it = items.find((x) => x.id === id);
-          await supabase
-            .from('items')
-            .update({ quantity: (it?.quantity || 0) + 50 })
-            .eq('id', id);
-        }
-      }
-
-      showToast(`Restocked +50 units across ${ids.length} selected SKUs.`, 'success');
-      setSelectedProductIds(new Set());
-    } catch (err) {
-      showToast('Restock completed.', 'info');
-    }
-  };
-
   const handleBulkDelete = async () => {
     const count = selectedProductIds.size;
     const result = await Swal.fire({
@@ -617,29 +587,6 @@ const Items = () => {
       showToast(`SKU "${item.name}" deleted.`, 'info');
     } catch (err) {
       showToast('Delete operation completed.', 'info');
-    }
-  };
-
-  const handleAdjustStock = async (delta) => {
-    if (!inspectedItem) return;
-    const currentQty = inspectedItem.quantity ?? 0;
-    const nextQty = Math.max(0, currentQty + delta);
-
-    setItems((prev) =>
-      prev.map((i) => (i.id === inspectedItem.id ? { ...i, quantity: nextQty } : i))
-    );
-    setInspectedItem((prev) => ({ ...prev, quantity: nextQty }));
-
-    try {
-      if (!String(inspectedItem.id).startsWith('p-')) {
-        await supabase.from('items').update({ quantity: nextQty }).eq('id', inspectedItem.id);
-      }
-      showToast(
-        `Stock adjusted to ${nextQty} ${inspectedItem.unit_of_measure || 'units'}.`,
-        'success'
-      );
-    } catch (err) {
-      console.warn('Stock update note:', err);
     }
   };
 
@@ -1143,13 +1090,6 @@ const Items = () => {
           </span>
           <span className="w-px h-4 bg-zinc-700"></span>
           <button
-            onClick={handleBulkRestock}
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-400 hover:text-emerald-300 transition-colors"
-          >
-            <LuPackagePlus className="w-3.5 h-3.5" />
-            <span>+50 Restock</span>
-          </button>
-          <button
             onClick={() => handleExportCSV(true)}
             className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-300 hover:text-white transition-colors"
           >
@@ -1242,26 +1182,6 @@ const Items = () => {
                       <span className="text-xs font-sans text-zinc-400">
                         {inspectedItem.unit_of_measure || 'units'}
                       </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => handleAdjustStock(-10)}
-                        className="w-8 h-8 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-bold hover:bg-zinc-100"
-                      >
-                        -10
-                      </button>
-                      <button
-                        onClick={() => handleAdjustStock(10)}
-                        className="w-8 h-8 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-bold hover:bg-zinc-100"
-                      >
-                        +10
-                      </button>
-                      <button
-                        onClick={() => handleAdjustStock(50)}
-                        className="h-8 px-2.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700"
-                      >
-                        +50
-                      </button>
                     </div>
                   </div>
                 </div>
