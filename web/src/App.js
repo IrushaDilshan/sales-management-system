@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import MainShell from './components/MainShell';
-import StoreKeeperSidebar from './components/StoreKeeperSidebar';
+import StorekeeperShell from './components/StorekeeperShell';
 import { ToastProvider } from './shared/ToastContext';
 
 // Pages
@@ -133,48 +133,45 @@ function App() {
             />
 
             {/* 3. Dedicated Storekeeper Layout Routes */}
+            <Route path="/storekeeper" element={<Navigate to="/storekeeper/dashboard" replace />} />
             <Route
               path="/storekeeper/dashboard"
               element={
-                <div className="storekeeper-layout">
-                  <StoreKeeperSidebar />
-                  <div className="storekeeper-content">
-                    <StoreKeeperDashboard />
-                  </div>
-                </div>
+                <StorekeeperShell>
+                  <StoreKeeperDashboard />
+                </StorekeeperShell>
               }
             />
             <Route
               path="/storekeeper/stock"
               element={
-                <div className="storekeeper-layout">
-                  <StoreKeeperSidebar />
-                  <div className="storekeeper-content">
-                    <Stock />
-                  </div>
-                </div>
+                <StorekeeperShell>
+                  <Stock />
+                </StorekeeperShell>
               }
             />
             <Route
               path="/storekeeper/inventory"
               element={
-                <div className="storekeeper-layout">
-                  <StoreKeeperSidebar />
-                  <div className="storekeeper-content">
-                    <Storekeeper />
-                  </div>
-                </div>
+                <StorekeeperShell>
+                  <Storekeeper />
+                </StorekeeperShell>
+              }
+            />
+            <Route
+              path="/storekeeper/items"
+              element={
+                <StorekeeperShell>
+                  <Items />
+                </StorekeeperShell>
               }
             />
             <Route
               path="/storekeeper/settings"
               element={
-                <div className="storekeeper-layout">
-                  <StoreKeeperSidebar />
-                  <div className="storekeeper-content">
-                    <Settings />
-                  </div>
-                </div>
+                <StorekeeperShell>
+                  <Settings />
+                </StorekeeperShell>
               }
             />
           </Routes>
