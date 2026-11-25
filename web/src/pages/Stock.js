@@ -1,718 +1,978 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../shared/supabaseClient';
+import { useToast } from '../shared/ToastContext';
 import Swal from 'sweetalert2';
-import '../shared/ModernPage.css';
-import './Stock.css';
+import {
+  LuPackage,
+  LuTrendingDown,
+  LuTriangleAlert,
+  LuBuilding2,
+  LuRefreshCw,
+  LuPlus,
+  LuSearch,
+  LuX,
+  LuSlidersHorizontal,
+  LuArrowRightLeft,
+  LuTrash2,
+  LuCircleCheck,
+} from 'react-icons/lu';
 
 const Stock = () => {
-    const [stocks, setStocks] = useState([]);
-    const [allItems, setAllItems] = useState([]);
-    const [outlets, setOutlets] = useState([]);
-    const [categories, setCategories] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [modalType, setModalType] = useState(''); // 'add', 'adjust', 'transfer'
-    const [formData, setFormData] = useState({
+  const { showToast } = useToast();
+
+  const [stocks, setStocks] = useState([]);
+  const [allItems, setAllItems] = useState([]);
+  const [outlets, setOutlets] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalType, setModalType] = useState(''); // 'add', 'adjust', 'transfer'
+  const [formData, setFormData] = useState({
+    item_id: '',
+    outlet_id: '',
+    quantity: '',
+    batch_number: '',
+    manufacture_date: '',
+    expiry_date: '',
+    minimum_stock_level: '',
+    to_outlet_id: '',
+    notes: '',
+  });
+  const [error, setError] = useState(null);
+
+  const [filterOutlet, setFilterOutlet] = useState('all');
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showExpiring, setShowExpiring] = useState(false);
+  const [showLowStock, setShowLowStock] = useState(false);
+
+  const isExpiringSoon = (expiryDate) => {
+    if (!expiryDate) return false;
+    const today = new Date();
+    const expiry = new Date(expiryDate);
+    const daysUntilExpiry = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+    return daysUntilExpiry >= 0 && daysUntilExpiry <= 7;
+  };
+
+  const isExpired = (expiryDate) => {
+    if (!expiryDate) return false;
+    return new Date(expiryDate) < new Date();
+  };
+
+  const isLowStock = (quantity, minLevel) => {
+    const qty = Number(quantity ?? 0);
+    const min = Number(minLevel ?? 10);
+    return qty <= 0 || (min > 0 && qty < min);
+  };
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch stock table + items + shops + categories in parallel
+      const [stockRes, itemsRes, shopsRes, catRes] = await Promise.all([
+        supabase.from('stock').select('*'),
+        supabase
+          .from('items')
+          .select('*, product_categories ( id, name )')
+          .order('name'),
+        supabase.from('shops').select('*').order('name'),
+        supabase
+          .from('product_categories')
+          .select('*')
+          .eq('is_active', true)
+          .order('name'),
+      ]);
+
+      const itemsList = itemsRes.data || [];
+      const shopsList = shopsRes.data || [];
+      const catList = catRes.data || [];
+
+      setAllItems(itemsList);
+      setOutlets(shopsList);
+      setCategories(catList);
+
+      const rawStock = stockRes.data || [];
+
+      const stitched = rawStock.map((s) => {
+        const matchedItem = itemsList.find((i) => i.id === s.item_id);
+        const matchedShop = shopsList.find((o) => o.id === s.outlet_id);
+        const qtyVal = s.quantity ?? s.qty ?? 0;
+        return {
+          ...s,
+          quantity: qtyVal,
+          minimum_stock_level: s.minimum_stock_level ?? matchedItem?.minimum_level ?? 10,
+          items: matchedItem || { name: 'Item Unavailable' },
+          shops: matchedShop || null,
+          isFallback: false,
+        };
+      });
+
+      // Always include Central Depot rows from `items` for any item without a central `stock` row
+      const centralFallbackRows = itemsList
+        .filter((item) => !stitched.some((s) => !s.outlet_id && s.item_id === item.id))
+        .map((item) => ({
+          id: `item-${item.id}`,
+          item_id: item.id,
+          outlet_id: null,
+          quantity: item.quantity ?? 0,
+          minimum_stock_level: item.minimum_level || 10,
+          batch_number: item.sku || null,
+          expiry_date: null,
+          items: item,
+          shops: null,
+          isFallback: true,
+        }));
+
+      setStocks([...centralFallbackRows, ...stitched]);
+    } catch (err) {
+      console.error('Error fetching stock surveillance:', err);
+      setError('Failed to load stock data.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Derived Stats
+  const stockStats = {
+    totalItems: stocks.reduce((sum, s) => sum + (Number(s.quantity ?? s.qty) || 0), 0),
+    lowStockItems: stocks.filter((s) =>
+      isLowStock(s.quantity ?? s.qty, s.minimum_stock_level)
+    ).length,
+    expiringSoon: stocks.filter((s) => isExpiringSoon(s.expiry_date)).length,
+    totalLocations: Math.max(
+      new Set(stocks.map((s) => s.outlet_id).filter(Boolean)).size,
+      stocks.length > 0 ? 1 : 0
+    ),
+  };
+
+  const handleOpenModal = (type, stock = null) => {
+    setModalType(type);
+    if (stock) {
+      setFormData({
+        id: stock.id,
+        isFallback: Boolean(stock.isFallback),
+        item_id: stock.item_id,
+        outlet_id: stock.outlet_id || '',
+        quantity: stock.quantity ?? 0,
+        batch_number: stock.batch_number || '',
+        manufacture_date: stock.manufacture_date || '',
+        expiry_date: stock.expiry_date || '',
+        minimum_stock_level: stock.minimum_stock_level ?? 10,
+        to_outlet_id: '',
+        notes: '',
+      });
+    } else {
+      setFormData({
         item_id: '',
         outlet_id: '',
         quantity: '',
         batch_number: '',
         manufacture_date: '',
         expiry_date: '',
-        minimum_stock_level: '',
+        minimum_stock_level: 10,
         to_outlet_id: '',
-        notes: ''
-    });
-    const [error, setError] = useState(null);
-    const [filterOutlet, setFilterOutlet] = useState('all');
-    const [filterCategory, setFilterCategory] = useState('all');
-    const [searchTerm, setSearchTerm] = useState('');
-    const [showExpiring, setShowExpiring] = useState(false);
-    const [showLowStock, setShowLowStock] = useState(false);
+        notes: '',
+      });
+    }
+    setIsModalOpen(true);
+    setError(null);
+  };
 
-    // Stats for the top of the page
-    const [stockStats, setStockStats] = useState({
-        totalItems: 0,
-        lowStockItems: 0,
-        expiringSoon: 0,
-        totalLocations: 0
-    });
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setModalType('');
+    setError(null);
+  };
 
-    useEffect(() => {
-        fetchData();
-        fetchOutlets();
-        fetchCategories();
-        fetchItems();
-    }, []);
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
-    const fetchItems = async () => {
-        try {
-            const { data, error } = await supabase
-                .from('items')
-                .select('*')
-                .eq('is_active', true)
-                .order('name');
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setError(null);
+      if (modalType === 'add') {
+        await handleAddStock();
+      } else if (modalType === 'adjust') {
+        await handleAdjustStock();
+      } else if (modalType === 'transfer') {
+        await handleTransferStock();
+      }
+    } catch (err) {
+      setError(err.message || 'Operation failed.');
+    }
+  };
 
-            if (error) throw error;
-            setAllItems(data || []);
-        } catch (err) {
-            console.error('Error fetching items:', err);
-        }
+  const handleAddStock = async () => {
+    const qty = parseInt(formData.quantity, 10) || 0;
+    const stockData = {
+      item_id: formData.item_id,
+      outlet_id: formData.outlet_id || null,
+      quantity: qty,
+      batch_number: formData.batch_number || null,
+      manufacture_date: formData.manufacture_date || null,
+      expiry_date: formData.expiry_date || null,
+      minimum_stock_level: parseInt(formData.minimum_stock_level, 10) || 0,
     };
 
-    useEffect(() => {
-        calculateStats();
-    }, [stocks]);
+    const { error: insertError } = await supabase.from('stock').insert([stockData]);
+    if (insertError) throw insertError;
 
-    const fetchOutlets = async () => {
-        try {
-            const { data, error } = await supabase
-                .from('shops')
-                .select('*')
-                .order('name');
+    // Keep items.quantity in sync when adding to Central Warehouse
+    if (!stockData.outlet_id) {
+      const targetItem = allItems.find((i) => i.id === stockData.item_id);
+      const nextQty = (targetItem?.quantity ?? 0) + qty;
+      await supabase
+        .from('items')
+        .update({ quantity: nextQty })
+        .eq('id', stockData.item_id);
+    }
 
-            if (error) throw error;
-            setOutlets(data || []);
-        } catch (err) {
-            console.error('Error fetching outlets:', err);
-        }
-    };
+    await supabase.from('stock_movements').insert([
+      {
+        product_id: stockData.item_id,
+        to_outlet_id: stockData.outlet_id,
+        quantity: qty,
+        movement_type: 'purchase',
+        batch_number: stockData.batch_number,
+        notes: formData.notes || 'Initial stock entry',
+      },
+    ]);
 
-    const fetchCategories = async () => {
-        try {
-            const { data, error } = await supabase
-                .from('product_categories')
-                .select('*')
-                .eq('is_active', true)
-                .order('name');
+    showToast('Stock reference added.', 'success');
+    await fetchData();
+    handleCloseModal();
+  };
 
-            if (error) throw error;
-            setCategories(data || []);
-        } catch (err) {
-            console.error('Error fetching categories:', err);
-        }
-    };
+  const handleAdjustStock = async () => {
+    const newQuantity = parseInt(formData.quantity, 10) || 0;
 
-    // Debug
-    const [debugInfo, setDebugInfo] = useState('');
+    if (formData.isFallback) {
+      const { error: itemErr } = await supabase
+        .from('items')
+        .update({ quantity: newQuantity })
+        .eq('id', formData.item_id);
+      if (itemErr) throw itemErr;
+    } else {
+      const { error: updErr } = await supabase
+        .from('stock')
+        .update({
+          quantity: newQuantity,
+          batch_number: formData.batch_number || null,
+          manufacture_date: formData.manufacture_date || null,
+          expiry_date: formData.expiry_date || null,
+          minimum_stock_level: parseInt(formData.minimum_stock_level, 10) || 0,
+        })
+        .eq('id', formData.id);
+      if (updErr) throw updErr;
+    }
 
-    const fetchData = async () => {
-        try {
-            setLoading(true);
-            setDebugInfo('Fetching stock data...');
+    await supabase.from('stock_movements').insert([
+      {
+        product_id: formData.item_id,
+        to_outlet_id: formData.outlet_id || null,
+        quantity: newQuantity,
+        movement_type: 'adjustment',
+        batch_number: formData.batch_number || null,
+        notes: formData.notes || 'Stock adjustment',
+      },
+    ]);
 
-            // Attempt 1: Full Relational Fetch (Preferred)
-            // We use maybeSingle() style check implicitly by catching the error
-            const { data: stockData, error: stockError } = await supabase
-                .from('stock')
-                .select(`
-                    *,
-                    items ( id, name, unit_of_measure, is_perishable, category_id ),
-                    shops ( id, name )
-                `);
+    showToast('Stock level updated.', 'success');
+    await fetchData();
+    handleCloseModal();
+  };
 
-            if (!stockError && stockData) {
-                console.log('Stock Data Loaded (Relational):', stockData);
-                setDebugInfo(`Success! Loaded ${stockData.length} records (Linked Mode).`);
-                setStocks(stockData);
-                return;
-            }
+  const handleTransferStock = async () => {
+    const transferQty = parseInt(formData.quantity, 10) || 0;
+    if (transferQty <= 0) throw new Error('Enter a valid transfer quantity.');
 
-            // Attempt 2: Switch to Fallback Mode (Raw Fetch + Manual Stitch)
-            console.warn('Relational fetch failed (Likely Schema Cache issue). Switching to Fallback Mode.', stockError?.message);
-            setDebugInfo(`Relation Error: ${stockError?.message}. Switching to Manual Stitch mode...`);
+    if (formData.isFallback) {
+      const currentItem = allItems.find((i) => i.id === formData.item_id);
+      const currentQty = currentItem?.quantity ?? 0;
+      if (currentQty < transferQty) {
+        throw new Error(`Insufficient stock for transfer. Available: ${currentQty}`);
+      }
+      await supabase
+        .from('items')
+        .update({ quantity: currentQty - transferQty })
+        .eq('id', formData.item_id);
 
-            const { data: rawData, error: rawError } = await supabase
-                .from('stock')
-                .select('*');
+      await supabase.from('stock').insert([
+        {
+          item_id: formData.item_id,
+          outlet_id: formData.to_outlet_id,
+          quantity: transferQty,
+          batch_number: formData.batch_number || null,
+        },
+      ]);
+    } else {
+      const { data: sourceStock } = await supabase
+        .from('stock')
+        .select('quantity')
+        .eq('id', formData.id)
+        .single();
 
-            if (rawError) throw rawError;
+      if (!sourceStock || sourceStock.quantity < transferQty) {
+        throw new Error('Insufficient stock for transfer.');
+      }
 
-            // Manual "Join" in React
-            if (rawData && rawData.length > 0) {
-                const itemIds = [...new Set(rawData.map(s => s.item_id).filter(Boolean))];
-                const shopIds = [...new Set(rawData.map(s => s.outlet_id).filter(Boolean))];
+      await supabase
+        .from('stock')
+        .update({ quantity: sourceStock.quantity - transferQty })
+        .eq('id', formData.id);
 
-                // Fetch related data in parallel
-                const [itemsRes, shopsRes] = await Promise.all([
-                    supabase.from('items').select('id, name, unit_of_measure, category_id').in('id', itemIds),
-                    supabase.from('shops').select('id, name').in('id', shopIds)
-                ]);
+      const { data: destStock } = await supabase
+        .from('stock')
+        .select('*')
+        .eq('item_id', formData.item_id)
+        .eq('outlet_id', formData.to_outlet_id)
+        .maybeSingle();
 
-                const allItems = itemsRes.data || [];
-                const allShops = shopsRes.data || [];
-
-                const stitchedData = rawData.map(s => ({
-                    ...s,
-                    // Use 'Item Unavailable' / 'Shop Unavailable' instead of 'Unknown' to be cleaner
-                    items: allItems.find(i => i.id === s.item_id) || { name: 'Item Unavailable' },
-                    shops: allShops.find(o => o.id === s.outlet_id) || { name: 'Shop Unavailable' }
-                }));
-
-                setStocks(stitchedData);
-                setDebugInfo(`Loaded ${stitchedData.length} records (Manual Mode).`);
-            } else {
-                setStocks([]);
-                setDebugInfo('Loaded 0 records (Table is empty).');
-            }
-
-        } catch (err) {
-            console.error('Final Fetch Error:', err);
-            setDebugInfo('Critical Error: ' + err.message);
-            setError('Failed to load stock data');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const calculateStats = () => {
-        if (!stocks) return;
-        const stats = {
-            totalItems: stocks.reduce((sum, s) => sum + (parseInt(s.quantity || s.qty) || 0), 0),
-            lowStockItems: stocks.filter(s => isLowStock(s.quantity || s.qty, s.minimum_stock_level)).length,
-            expiringSoon: stocks.filter(s => isExpiringSoon(s.expiry_date)).length,
-            totalLocations: new Set(stocks.map(s => s.outlet_id).filter(Boolean)).size
-        };
-        setStockStats(stats);
-    };
-
-    const handleOpenModal = (type, stock = null) => {
-        setModalType(type);
-        if (stock) {
-            setFormData({
-                id: stock.id,
-                item_id: stock.item_id,
-                outlet_id: stock.outlet_id,
-                quantity: stock.quantity || 0,
-                batch_number: stock.batch_number || '',
-                manufacture_date: stock.manufacture_date || '',
-                expiry_date: stock.expiry_date || '',
-                minimum_stock_level: stock.minimum_stock_level || 0,
-                to_outlet_id: '',
-                notes: ''
-            });
-        } else {
-            setFormData({
-                item_id: '',
-                outlet_id: '',
-                quantity: '',
-                batch_number: '',
-                manufacture_date: '',
-                expiry_date: '',
-                minimum_stock_level: 10,
-                to_outlet_id: '',
-                notes: ''
-            });
-        }
-        setIsModalOpen(true);
-        setError(null);
-    };
-
-    const handleCloseModal = () => {
-        setIsModalOpen(false);
-        setModalType('');
-        setFormData({
-            item_id: '',
-            outlet_id: '',
-            quantity: '',
-            batch_number: '',
-            manufacture_date: '',
-            expiry_date: '',
-            minimum_stock_level: '',
-            to_outlet_id: '',
-            notes: ''
-        });
-        setError(null);
-    };
-
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            if (modalType === 'add') {
-                await handleAddStock();
-            } else if (modalType === 'adjust') {
-                await handleAdjustStock();
-            } else if (modalType === 'transfer') {
-                await handleTransferStock();
-            }
-        } catch (err) {
-            setError(err.message);
-        }
-    };
-
-    const handleAddStock = async () => {
-        const stockData = {
-            item_id: parseInt(formData.item_id),
-            outlet_id: formData.outlet_id ? parseInt(formData.outlet_id) : null,
-            quantity: parseInt(formData.quantity),
-            batch_number: formData.batch_number || null,
-            manufacture_date: formData.manufacture_date || null,
-            expiry_date: formData.expiry_date || null,
-            minimum_stock_level: parseInt(formData.minimum_stock_level) || 0
-        };
-
-        const { error } = await supabase
-            .from('stock')
-            .insert([stockData]);
-
-        if (error) throw error;
-
-        // Record movement
-        await supabase.from('stock_movements').insert([{
-            product_id: stockData.item_id,
-            to_outlet_id: stockData.outlet_id,
-            quantity: stockData.quantity,
-            movement_type: 'purchase',
-            batch_number: stockData.batch_number,
-            notes: formData.notes || 'Initial stock entry'
-        }]);
-
-        fetchData();
-        handleCloseModal();
-    };
-
-    const handleAdjustStock = async () => {
-        const newQuantity = parseInt(formData.quantity);
-
-        const { error } = await supabase
-            .from('stock')
-            .update({
-                quantity: newQuantity,
-                batch_number: formData.batch_number || null,
-                manufacture_date: formData.manufacture_date || null,
-                expiry_date: formData.expiry_date || null,
-                minimum_stock_level: parseInt(formData.minimum_stock_level) || 0
-            })
-            .eq('id', formData.id);
-
-        if (error) throw error;
-
-        // Record adjustment
-        await supabase.from('stock_movements').insert([{
-            product_id: formData.item_id,
-            to_outlet_id: formData.outlet_id,
-            quantity: newQuantity,
-            movement_type: 'adjustment',
-            batch_number: formData.batch_number,
-            notes: formData.notes || 'Stock adjustment'
-        }]);
-
-        fetchData();
-        handleCloseModal();
-    };
-
-    const handleTransferStock = async () => {
-        const transferQty = parseInt(formData.quantity);
-
-        // Decrease from source outlet
-        const { data: sourceStock } = await supabase
-            .from('stock')
-            .select('quantity')
-            .eq('id', formData.id)
-            .single();
-
-        if (sourceStock.quantity < transferQty) {
-            throw new Error('Insufficient stock for transfer');
-        }
-
-        // Update source
+      if (destStock) {
         await supabase
-            .from('stock')
-            .update({ quantity: sourceStock.quantity - transferQty })
-            .eq('id', formData.id);
-
-        // Check if destination has this item
-        const { data: destStock } = await supabase
-            .from('stock')
-            .select('*')
-            .eq('item_id', formData.item_id)
-            .eq('outlet_id', formData.to_outlet_id)
-            .maybeSingle();
-
-        if (destStock) {
-            // Update destination
-            await supabase
-                .from('stock')
-                .update({ quantity: destStock.quantity + transferQty })
-                .eq('id', destStock.id);
-        } else {
-            // Create new entry at destination
-            await supabase
-                .from('stock')
-                .insert([{
-                    item_id: formData.item_id,
-                    outlet_id: parseInt(formData.to_outlet_id),
-                    quantity: transferQty,
-                    batch_number: formData.batch_number
-                }]);
-        }
-
-        // Record movement
-        await supabase.from('stock_movements').insert([{
-            product_id: formData.item_id,
-            from_outlet_id: formData.outlet_id,
-            to_outlet_id: parseInt(formData.to_outlet_id),
+          .from('stock')
+          .update({ quantity: destStock.quantity + transferQty })
+          .eq('id', destStock.id);
+      } else {
+        await supabase.from('stock').insert([
+          {
+            item_id: formData.item_id,
+            outlet_id: formData.to_outlet_id,
             quantity: transferQty,
-            movement_type: 'transfer',
-            batch_number: formData.batch_number,
-            notes: formData.notes || 'Stock transfer'
-        }]);
+            batch_number: formData.batch_number || null,
+          },
+        ]);
+      }
+    }
 
-        fetchData();
-        handleCloseModal();
-    };
+    await supabase.from('stock_movements').insert([
+      {
+        product_id: formData.item_id,
+        from_outlet_id: formData.outlet_id || null,
+        to_outlet_id: formData.to_outlet_id,
+        quantity: transferQty,
+        movement_type: 'transfer',
+        batch_number: formData.batch_number || null,
+        notes: formData.notes || 'Stock transfer',
+      },
+    ]);
 
-    const handleDelete = async (id) => {
-        const result = await Swal.fire({
-            title: 'Are you sure?',
-            text: 'Are you sure you want to delete this stock entry?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, delete it!'
-        });
-        
-        if (result.isConfirmed) {
-            try {
-                const { error } = await supabase
-                    .from('stock')
-                    .delete()
-                    .eq('id', id);
+    showToast('Stock transferred successfully.', 'success');
+    await fetchData();
+    handleCloseModal();
+  };
 
-                if (error) throw error;
-                fetchData();
-                Swal.fire('Deleted!', 'Stock entry has been deleted.', 'success');
-            } catch (err) {
-                console.error('Error deleting stock:', err);
-                Swal.fire('Error', 'Failed to delete stock entry', 'error');
-            }
-        }
-    };
+  const handleDelete = async (stock) => {
+    if (stock.isFallback) {
+      showToast('Central item rows can be edited or adjusted directly.', 'info');
+      return;
+    }
 
-    const isExpiringSoon = (expiryDate) => {
-        if (!expiryDate) return false;
-        const today = new Date();
-        const expiry = new Date(expiryDate);
-        const daysUntilExpiry = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-        return daysUntilExpiry >= 0 && daysUntilExpiry <= 7;
-    };
-
-    const isExpired = (expiryDate) => {
-        if (!expiryDate) return false;
-        return new Date(expiryDate) < new Date();
-    };
-
-    const isLowStock = (quantity, minLevel) => {
-        return minLevel > 0 && quantity < minLevel;
-    };
-
-    const filteredStocks = stocks.filter(stock => {
-        if (!stock.items) return false;
-
-        const matchesOutlet = filterOutlet === 'all' || stock.outlet_id?.toString() === filterOutlet;
-        const matchesCategory = filterCategory === 'all' || stock.items.category_id?.toString() === filterCategory;
-        const matchesSearch = searchTerm === '' ||
-            stock.items.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            stock.batch_number?.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesExpiring = !showExpiring || isExpiringSoon(stock.expiry_date);
-        const matchesLowStock = !showLowStock || isLowStock(stock.quantity, stock.minimum_stock_level);
-
-        return matchesOutlet && matchesCategory && matchesSearch && matchesExpiring && matchesLowStock;
+    const result = await Swal.fire({
+      title: 'Delete stock entry?',
+      text: 'This removes the batch stock reference.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Delete',
+      confirmButtonColor: '#ef4444',
     });
 
-    const StatCard = ({ icon, label, value, color }) => (
-        <div className="stock-stat-card animate-fade-in" style={{ '--card-accent': color }}>
-            <div className="stock-stat-icon" style={{ color: color }}>{icon}</div>
-            <div className="stock-stat-info">
-                <div className="stock-stat-label">{label}</div>
-                <div className="stock-stat-value">{value}</div>
-            </div>
-        </div>
-    );
+    if (result.isConfirmed) {
+      try {
+        const { error: delErr } = await supabase.from('stock').delete().eq('id', stock.id);
+        if (delErr) throw delErr;
+        showToast('Stock entry deleted.', 'info');
+        fetchData();
+      } catch (err) {
+        console.error('Error deleting stock:', err);
+        showToast('Failed to delete stock entry.', 'error');
+      }
+    }
+  };
+
+  const filteredStocks = stocks.filter((stock) => {
+    if (!stock.items) return false;
+
+    const matchesOutlet =
+      filterOutlet === 'all' ||
+      (filterOutlet === 'central' && !stock.outlet_id) ||
+      stock.outlet_id?.toString() === filterOutlet;
+    const matchesCategory =
+      filterCategory === 'all' || stock.items.category_id?.toString() === filterCategory;
+    const matchesSearch =
+      searchTerm === '' ||
+      stock.items.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      stock.batch_number?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesExpiring = !showExpiring || isExpiringSoon(stock.expiry_date);
+    const matchesLowStock =
+      !showLowStock || isLowStock(stock.quantity, stock.minimum_stock_level);
 
     return (
-        <div className="stock-dashboard-container animate-fade-in">
-            <div className="stock-header">
-                <div className="stock-title">
-                    <h1>Inventory Control</h1>
-                    <p>National Livestock Development Board - Centralized Stock Tracking</p>
-                </div>
-                <div className="stock-header-actions">
-                    <button className="btn-premium-secondary" onClick={() => fetchData()}>
-                        <span>🔄</span> Refresh
-                    </button>
-                    <button className="btn-premium-primary" onClick={() => handleOpenModal('add')}>
-                        <span>+</span> Add Stock Reference
-                    </button>
-                </div>
-            </div>
-
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', paddingBottom: '1rem' }}>
-                {/* Stats Dashboard */}
-                <div className="stock-stats-grid">
-                    <StatCard icon="📦" label="Total Units" value={stockStats.totalItems.toLocaleString()} color="#0ea5e9" />
-                    <StatCard icon="📉" label="Low Stock Alerts" value={stockStats.lowStockItems} color="#ef4444" />
-                    <StatCard icon="⚠️" label="Expiring Soon" value={stockStats.expiringSoon} color="#f59e0b" />
-                    <StatCard icon="🏢" label="Active Locations" value={stockStats.totalLocations} color="#10b981" />
-                </div>
-
-                {/* Advanced Filters */}
-                <div className="stock-filter-hub">
-                    <div className="stock-filter-row">
-                        <div className="stock-filter-group" style={{ flex: '1', minWidth: '300px' }}>
-                            <label className="stock-filter-label">Search Inventory</label>
-                            <input
-                                type="text"
-                                className="stock-input"
-                                placeholder="Find by product name, SKU, or batch..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-                        <div className="stock-filter-group" style={{ width: '220px' }}>
-                            <label className="stock-filter-label">Retail Center</label>
-                            <select
-                                className="stock-input"
-                                value={filterOutlet}
-                                onChange={(e) => setFilterOutlet(e.target.value)}
-                            >
-                                <option value="all">Everywhere</option>
-                                {outlets.map(outlet => (
-                                    <option key={outlet.id} value={outlet.id}>{outlet.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="stock-filter-group" style={{ width: '220px' }}>
-                            <label className="stock-filter-label">Project Category</label>
-                            <select
-                                className="stock-input"
-                                value={filterCategory}
-                                onChange={(e) => setFilterCategory(e.target.value)}
-                            >
-                                <option value="all">All Divisions</option>
-                                {categories.map(cat => (
-                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div className="stock-checkbox-container">
-                        <label className="stock-checkbox-label" style={{ color: showExpiring ? 'var(--warning-color)' : '#64748b' }}>
-                            <input
-                                type="checkbox"
-                                className="stock-checkbox"
-                                checked={showExpiring}
-                                onChange={(e) => setShowExpiring(e.target.checked)}
-                            />
-                            <span>Show Only Expiring items (7 days)</span>
-                        </label>
-                        <label className="stock-checkbox-label" style={{ color: showLowStock ? 'var(--danger-color)' : '#64748b' }}>
-                            <input
-                                type="checkbox"
-                                className="stock-checkbox"
-                                checked={showLowStock}
-                                onChange={(e) => setShowLowStock(e.target.checked)}
-                            />
-                            <span>Critical Stock Levels Only</span>
-                        </label>
-                    </div>
-                </div>
-
-                {loading ? (
-                    <div style={{ textAlign: 'center', padding: '4rem', flex: 1 }}>
-                        <div className="loading-spinner" style={{ margin: '0 auto', borderColor: '#cbd5e1', borderTopColor: '#0ea5e9' }}></div>
-                        <p style={{ marginTop: '1.5rem', color: '#64748b', fontWeight: '500' }}>Awaiting cloud synchronization...</p>
-                    </div>
-                ) : (
-                    <div className="stock-table-wrapper">
-                        {filteredStocks.length === 0 ? (
-                            <div className="empty-state" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
-                                <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }}>🔍</div>
-                                <h3 style={{ color: '#0f172a', fontWeight: '700', fontSize: '1.5rem' }}>No matching inventory records</h3>
-                                <p style={{ color: '#64748b', marginTop: '0.5rem' }}>Refine your search parameters or add new stock entry.</p>
-                            </div>
-                        ) : (
-                            <table className="stock-table">
-                                <thead>
-                                    <tr>
-                                        <th>Product Identity</th>
-                                        <th>Service Center</th>
-                                        <th>Batch Ref</th>
-                                        <th style={{ textAlign: 'right' }}>Stock Level</th>
-                                        <th style={{ textAlign: 'center' }}>Trigger Limit</th>
-                                        <th style={{ textAlign: 'center' }}>Safety Audit</th>
-                                        <th style={{ textAlign: 'right' }}>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredStocks.map((stock) => (
-                                        <tr key={stock.id}>
-                                            <td>
-                                                <div style={{ fontWeight: '700', color: '#0f172a' }}>{stock.items?.name}</div>
-                                                {stock.items?.product_categories && (
-                                                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: '600' }}>
-                                                        {stock.items.product_categories.name}
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td>
-                                                {stock.shops ? (
-                                                    <span className="stock-badge badge-info">
-                                                        🏢 {stock.shops.name}
-                                                    </span>
-                                                ) : (
-                                                    <span style={{ color: '#94a3b8', fontStyle: 'italic', fontWeight: '500' }}>Central Depot</span>
-                                                )}
-                                            </td>
-                                            <td>
-                                                {stock.batch_number ? (
-                                                    <code style={{ background: 'rgba(15, 23, 42, 0.05)', padding: '4px 8px', borderRadius: '6px', border: '1px solid rgba(15, 23, 42, 0.1)', color: '#475569', fontWeight: '600', fontSize: '0.8rem' }}>
-                                                        {stock.batch_number}
-                                                    </code>
-                                                ) : <span style={{ color: '#cbd5e1' }}>-</span>}
-                                            </td>
-                                            <td>
-                                                <div className="stock-qty" style={{ color: isLowStock(stock.quantity, stock.minimum_stock_level) ? 'var(--danger-color)' : 'var(--secondary-color)' }}>
-                                                    {stock.quantity}
-                                                    <span className="stock-qty-unit">{stock.items?.unit_of_measure}</span>
-                                                </div>
-                                            </td>
-                                            <td style={{ textAlign: 'center', fontWeight: '600', color: '#64748b' }}>
-                                                {stock.minimum_stock_level || '-'}
-                                            </td>
-                                            <td style={{ textAlign: 'center' }}>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
-                                                    {isExpired(stock.expiry_date) && <span className="stock-badge badge-danger">⚠️ EXPIRED</span>}
-                                                    {!isExpired(stock.expiry_date) && isExpiringSoon(stock.expiry_date) && <span className="stock-badge badge-warning">⌛ EXPIRING</span>}
-                                                    {isLowStock(stock.quantity, stock.minimum_stock_level) && <span className="stock-badge badge-danger">📉 LOW STOCK</span>}
-                                                    {!isExpired(stock.expiry_date) && !isExpiringSoon(stock.expiry_date) && !isLowStock(stock.quantity, stock.minimum_stock_level) && <span className="stock-badge badge-success">✅ SECURE</span>}
-                                                </div>
-                                            </td>
-                                            <td style={{ textAlign: 'right' }}>
-                                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                                                    <button className="btn-action edit" onClick={() => handleOpenModal('adjust', stock)}>Adjust</button>
-                                                    <button className="btn-action transfer" onClick={() => handleOpenModal('transfer', stock)}>Transfer</button>
-                                                    <button className="btn-action delete" onClick={() => handleDelete(stock.id)}>Delete</button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            {/* Debug Footer */}
-            <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'rgba(255,255,255,0.5)', borderRadius: '12px', fontSize: '0.75rem', color: '#64748b', flexShrink: 0, fontWeight: '500' }}>
-                <strong>System diagnostics:</strong> {debugInfo} {stocks.length === 0 && ' (Check RLS policies if 0)'}
-            </div>
-
-            {/* Modal Handling */}
-            {isModalOpen && (
-                <div className="modal-overlay stock-modal-overlay">
-                    <div className="modal-content stock-modal-content" style={{ maxWidth: '600px', padding: '2.5rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                            <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800', color: '#0f172a' }}>
-                                {modalType === 'add' && 'Register New Inventory Record'}
-                                {modalType === 'adjust' && 'Inventory Correction'}
-                                {modalType === 'transfer' && 'Inter-Branch Transfer'}
-                            </h2>
-                            <button onClick={handleCloseModal} style={{ background: 'none', border: 'none', fontSize: '1.75rem', cursor: 'pointer', color: '#94a3b8', padding: '0 8px' }}>×</button>
-                        </div>
-
-                        {error && <div style={{ background: '#fef2f2', color: '#991b1b', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', fontWeight: '600', border: '1px solid #fecaca' }}>{error}</div>}
-
-                        <form onSubmit={handleSubmit}>
-                            {modalType === 'add' && (
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                                    <div className="stock-filter-group">
-                                        <label className="stock-filter-label">Product Portfolio</label>
-                                        <select className="stock-input" name="item_id" value={formData.item_id} onChange={handleInputChange} required>
-                                            <option value="">Select Item</option>
-                                            {allItems.map(item => (
-                                                <option key={item.id} value={item.id}>{item.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="stock-filter-group">
-                                        <label className="stock-filter-label">Deployment Center</label>
-                                        <select className="stock-input" name="outlet_id" value={formData.outlet_id} onChange={handleInputChange}>
-                                            <option value="">Central Warehouse</option>
-                                            {outlets.map(outlet => <option key={outlet.id} value={outlet.id}>{outlet.name}</option>)}
-                                        </select>
-                                    </div>
-                                </div>
-                            )}
-
-                            {modalType === 'transfer' && (
-                                <div className="stock-filter-group" style={{ marginBottom: '1.5rem' }}>
-                                    <label className="stock-filter-label">Target Destination Center</label>
-                                    <select className="stock-input" name="to_outlet_id" value={formData.to_outlet_id} onChange={handleInputChange} required>
-                                        <option value="">Select Target Depot</option>
-                                        {outlets.filter(o => o.id !== formData.outlet_id).map(outlet => <option key={outlet.id} value={outlet.id}>{outlet.name}</option>)}
-                                    </select>
-                                </div>
-                            )}
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                                <div className="stock-filter-group">
-                                    <label className="stock-filter-label">Quantum (Quantity)</label>
-                                    <input type="number" className="stock-input" name="quantity" value={formData.quantity} onChange={handleInputChange} required min="0" />
-                                </div>
-                                {modalType !== 'transfer' && (
-                                    <div className="stock-filter-group">
-                                        <label className="stock-filter-label">Batch Identifier</label>
-                                        <input type="text" className="stock-input" name="batch_number" value={formData.batch_number} onChange={handleInputChange} placeholder="BN-XXXX-XXXX" />
-                                    </div>
-                                )}
-                            </div>
-
-                            {modalType !== 'transfer' && (
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                                    <div className="stock-filter-group">
-                                        <label className="stock-filter-label">Production Date</label>
-                                        <input type="date" className="stock-input" name="manufacture_date" value={formData.manufacture_date} onChange={handleInputChange} />
-                                    </div>
-                                    <div className="stock-filter-group">
-                                        <label className="stock-filter-label">Expiry Deadline</label>
-                                        <input type="date" className="stock-input" name="expiry_date" value={formData.expiry_date} onChange={handleInputChange} />
-                                    </div>
-                                </div>
-                            )}
-
-                            {modalType !== 'transfer' && (
-                                <div className="stock-filter-group" style={{ marginBottom: '1.5rem' }}>
-                                    <label className="stock-filter-label">Safety Stock Trigger (Min level)</label>
-                                    <input type="number" className="stock-input" name="minimum_stock_level" value={formData.minimum_stock_level} onChange={handleInputChange} min="0" />
-                                </div>
-                            )}
-
-                            <div className="stock-filter-group" style={{ marginBottom: '2.5rem' }}>
-                                <label className="stock-filter-label">Official Audit Remarks</label>
-                                <textarea className="stock-input" name="notes" value={formData.notes} onChange={handleInputChange} rows="3" placeholder="Additional operational notes..." style={{ resize: 'vertical' }} />
-                            </div>
-
-                            <div style={{ display: 'flex', gap: '1rem' }}>
-                                <button type="button" className="btn-premium-secondary" style={{ flex: 1 }} onClick={handleCloseModal}>Discard</button>
-                                <button type="submit" className="btn-premium-primary" style={{ flex: 2, justifyContent: 'center' }}>
-                                    {modalType === 'add' && 'Initialize Stock Entry'}
-                                    {modalType === 'adjust' && 'Commence Adjustment'}
-                                    {modalType === 'transfer' && 'Execute Distribution'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-        </div>
+      matchesOutlet &&
+      matchesCategory &&
+      matchesSearch &&
+      matchesExpiring &&
+      matchesLowStock
     );
+  });
+
+  return (
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-2 text-xs font-medium text-emerald-700 dark:text-emerald-400 mb-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>National Livestock Development Board · Centralized Stock Tracking</span>
+          </div>
+          <h1 className="text-2xl sm:text-[26px] font-bold tracking-tight text-zinc-950 dark:text-white">
+            Inventory Control
+          </h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
+            Monitor batch quantities, expiry windows, safety thresholds, and branch transfers.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={fetchData}
+            className="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-200 shadow-card transition-colors"
+          >
+            <LuRefreshCw className={`w-3.5 h-3.5 text-zinc-400 ${loading ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
+          <button
+            onClick={() => handleOpenModal('add')}
+            className="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-colors"
+          >
+            <LuPlus className="w-3.5 h-3.5" />
+            <span>Add Stock Reference</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Bento KPI Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-zinc-950 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 shadow-card">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Total Units</span>
+            <span className="w-8 h-8 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center">
+              <LuPackage className="w-4 h-4" />
+            </span>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-bold font-mono tracking-tight text-zinc-950 dark:text-white">
+              {stockStats.totalItems.toLocaleString()}
+            </div>
+            <div className="text-xs text-zinc-400 mt-1">Across {stocks.length} active records</div>
+          </div>
+        </div>
+
+        <div
+          onClick={() => setShowLowStock((v) => !v)}
+          className="cursor-pointer bg-white dark:bg-zinc-950 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 shadow-card hover:shadow-card-hover transition-all"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+              Low Stock Alerts
+            </span>
+            <span className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+              <LuTrendingDown className="w-4 h-4" />
+            </span>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-bold font-mono tracking-tight text-rose-600 dark:text-rose-400">
+              {stockStats.lowStockItems}
+            </div>
+            <div className="text-xs text-zinc-400 mt-1">Click to filter critical levels</div>
+          </div>
+        </div>
+
+        <div
+          onClick={() => setShowExpiring((v) => !v)}
+          className="cursor-pointer bg-white dark:bg-zinc-950 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 shadow-card hover:shadow-card-hover transition-all"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+              Expiring Soon
+            </span>
+            <span className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <LuTriangleAlert className="w-4 h-4" />
+            </span>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-bold font-mono tracking-tight text-zinc-950 dark:text-white">
+              {stockStats.expiringSoon}
+            </div>
+            <div className="text-xs text-zinc-400 mt-1">Within next 7 days</div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-zinc-950 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-5 shadow-card">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+              Active Locations
+            </span>
+            <span className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <LuBuilding2 className="w-4 h-4" />
+            </span>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-bold font-mono tracking-tight text-zinc-950 dark:text-white">
+              {stockStats.totalLocations}
+            </div>
+            <div className="text-xs text-zinc-400 mt-1">Depots & retail outlets</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Unified Data Surface Card */}
+      <div className="bg-white dark:bg-zinc-950 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-card overflow-hidden">
+        {/* Toolbar */}
+        <div className="p-4 border-b border-zinc-200/70 dark:border-zinc-800/70 space-y-3">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-md">
+              <LuSearch className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Find by product name, SKU, or batch..."
+                className="w-full h-9 pl-9 pr-4 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:bg-white dark:focus:bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <select
+                value={filterOutlet}
+                onChange={(e) => setFilterOutlet(e.target.value)}
+                className="h-9 px-3 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              >
+                <option value="all">Everywhere</option>
+                <option value="central">Central Depot</option>
+                {outlets.map((outlet) => (
+                  <option key={outlet.id} value={outlet.id}>
+                    {outlet.name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="h-9 px-3 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              >
+                <option value="all">All Divisions</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <label className="inline-flex items-center gap-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={showExpiring}
+                onChange={(e) => setShowExpiring(e.target.checked)}
+                className="w-3.5 h-3.5 rounded border-zinc-300 dark:border-zinc-700 text-amber-600 focus:ring-amber-500"
+              />
+              <span>Show Only Expiring Items (7 days)</span>
+            </label>
+
+            <label className="inline-flex items-center gap-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={showLowStock}
+                onChange={(e) => setShowLowStock(e.target.checked)}
+                className="w-3.5 h-3.5 rounded border-zinc-300 dark:border-zinc-700 text-rose-600 focus:ring-rose-500"
+              />
+              <span>Critical Stock Levels Only</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto">
+          {loading ? (
+            <div className="py-16 text-center text-sm text-zinc-400">
+              Synchronizing inventory surveillance...
+            </div>
+          ) : filteredStocks.length === 0 ? (
+            <div className="py-16 px-4 text-center">
+              <LuSearch className="w-8 h-8 text-zinc-300 dark:text-zinc-700 mx-auto mb-2.5" />
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                No matching inventory records
+              </h3>
+              <p className="text-xs text-zinc-500 mt-1">
+                Refine your search parameters or add a new stock reference.
+              </p>
+            </div>
+          ) : (
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-zinc-200/70 dark:border-zinc-800/70 bg-zinc-50/60 dark:bg-zinc-900/50">
+                  <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+                    Product Identity
+                  </th>
+                  <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+                    Service Center
+                  </th>
+                  <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+                    Batch / SKU
+                  </th>
+                  <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-zinc-400 text-right">
+                    Stock Level
+                  </th>
+                  <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-zinc-400 text-center">
+                    Trigger Limit
+                  </th>
+                  <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-zinc-400 text-center">
+                    Safety Audit
+                  </th>
+                  <th className="py-3 px-4 text-[11px] font-semibold uppercase tracking-wider text-zinc-400 text-right">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/70 text-sm">
+                {filteredStocks.map((stock) => {
+                  const low = isLowStock(stock.quantity, stock.minimum_stock_level);
+                  const expired = isExpired(stock.expiry_date);
+                  const expiring = !expired && isExpiringSoon(stock.expiry_date);
+
+                  return (
+                    <tr
+                      key={stock.id}
+                      className="hover:bg-zinc-50/80 dark:hover:bg-zinc-900/50 transition-colors"
+                    >
+                      <td className="py-3.5 px-4">
+                        <div className="font-semibold text-zinc-900 dark:text-zinc-100">
+                          {stock.items?.name}
+                        </div>
+                        {stock.items?.product_categories && (
+                          <div className="text-[11px] font-medium text-zinc-400 mt-0.5">
+                            {stock.items.product_categories.name}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        {stock.shops ? (
+                          <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-700 dark:text-sky-400">
+                            <LuBuilding2 className="w-3 h-3" />
+                            {stock.shops.name}
+                          </span>
+                        ) : (
+                          <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                            Central Depot
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        {stock.batch_number ? (
+                          <code className="text-xs font-mono px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300">
+                            {stock.batch_number}
+                          </code>
+                        ) : (
+                          <span className="text-zinc-400">—</span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-mono font-bold">
+                        <span className={low ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}>
+                          {stock.quantity}
+                        </span>{' '}
+                        <span className="text-xs font-sans font-normal text-zinc-400">
+                          {stock.items?.unit_of_measure || 'units'}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-center font-mono text-xs text-zinc-500">
+                        {stock.minimum_stock_level || '—'}
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        <div className="inline-flex flex-col items-center gap-1">
+                          {expired && (
+                            <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                              Expired
+                            </span>
+                          )}
+                          {expiring && (
+                            <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                              Expiring
+                            </span>
+                          )}
+                          {low && (
+                            <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                              Low Stock
+                            </span>
+                          )}
+                          {!expired && !expiring && !low && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                              <LuCircleCheck className="w-3 h-3" />
+                              Secure
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1.5">
+                          <button
+                            onClick={() => handleOpenModal('adjust', stock)}
+                            className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-200 transition-colors"
+                          >
+                            <LuSlidersHorizontal className="w-3.5 h-3.5" />
+                            <span>Adjust</span>
+                          </button>
+                          <button
+                            onClick={() => handleOpenModal('transfer', stock)}
+                            className="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold transition-colors"
+                          >
+                            <LuArrowRightLeft className="w-3.5 h-3.5" />
+                            <span>Transfer</span>
+                          </button>
+                          {!stock.isFallback && (
+                            <button
+                              onClick={() => handleDelete(stock)}
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-zinc-400 hover:text-rose-600 hover:bg-rose-500/10 transition-colors"
+                              title="Delete entry"
+                            >
+                              <LuTrash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      {/* Add / Adjust / Transfer Modal */}
+      {isModalOpen && (
+        <div
+          className="fixed inset-0 !mt-0 z-50 bg-zinc-950/60 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={handleCloseModal}
+        >
+          <div
+            className="w-full max-w-lg bg-white dark:bg-zinc-950 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-float overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-4 border-b border-zinc-200/80 dark:border-zinc-800 flex items-center justify-between">
+              <h2 className="text-base font-bold text-zinc-950 dark:text-white">
+                {modalType === 'add' && 'Register New Inventory Record'}
+                {modalType === 'adjust' && 'Inventory Correction'}
+                {modalType === 'transfer' && 'Inter-Branch Transfer'}
+              </h2>
+              <button
+                onClick={handleCloseModal}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              >
+                <LuX className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              {error && (
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs font-semibold text-rose-600 dark:text-rose-400">
+                  {error}
+                </div>
+              )}
+
+              {modalType === 'add' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                      Product Portfolio
+                    </label>
+                    <select
+                      name="item_id"
+                      value={formData.item_id}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full h-10 px-3 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-sm text-zinc-950 dark:text-white"
+                    >
+                      <option value="">Select Item</option>
+                      {allItems.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                      Deployment Center
+                    </label>
+                    <select
+                      name="outlet_id"
+                      value={formData.outlet_id}
+                      onChange={handleInputChange}
+                      className="w-full h-10 px-3 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-sm text-zinc-950 dark:text-white"
+                    >
+                      <option value="">Central Warehouse</option>
+                      {outlets.map((outlet) => (
+                        <option key={outlet.id} value={outlet.id}>
+                          {outlet.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {modalType === 'transfer' && (
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                    Target Destination Center
+                  </label>
+                  <select
+                    name="to_outlet_id"
+                    value={formData.to_outlet_id}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full h-10 px-3 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-sm text-zinc-950 dark:text-white"
+                  >
+                    <option value="">Select Target Depot</option>
+                    {outlets
+                      .filter((o) => o.id !== formData.outlet_id)
+                      .map((outlet) => (
+                        <option key={outlet.id} value={outlet.id}>
+                          {outlet.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                    Quantity
+                  </label>
+                  <input
+                    type="number"
+                    name="quantity"
+                    value={formData.quantity}
+                    onChange={handleInputChange}
+                    required
+                    min="0"
+                    className="w-full h-10 px-3 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-sm text-zinc-950 dark:text-white"
+                  />
+                </div>
+                {modalType !== 'transfer' && (
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                      Batch Identifier
+                    </label>
+                    <input
+                      type="text"
+                      name="batch_number"
+                      value={formData.batch_number}
+                      onChange={handleInputChange}
+                      placeholder="BN-XXXX-XXXX"
+                      className="w-full h-10 px-3 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-sm text-zinc-950 dark:text-white"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {modalType !== 'transfer' && (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                        Production Date
+                      </label>
+                      <input
+                        type="date"
+                        name="manufacture_date"
+                        value={formData.manufacture_date}
+                        onChange={handleInputChange}
+                        className="w-full h-10 px-3 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-sm text-zinc-950 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                        Expiry Deadline
+                      </label>
+                      <input
+                        type="date"
+                        name="expiry_date"
+                        value={formData.expiry_date}
+                        onChange={handleInputChange}
+                        className="w-full h-10 px-3 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-sm text-zinc-950 dark:text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                      Safety Stock Trigger (Min level)
+                    </label>
+                    <input
+                      type="number"
+                      name="minimum_stock_level"
+                      value={formData.minimum_stock_level}
+                      onChange={handleInputChange}
+                      min="0"
+                      className="w-full h-10 px-3 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-sm text-zinc-950 dark:text-white"
+                    />
+                  </div>
+                </>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                  Audit Remarks
+                </label>
+                <textarea
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleInputChange}
+                  rows="3"
+                  placeholder="Additional operational notes..."
+                  className="w-full p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-sm text-zinc-950 dark:text-white"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="h-9 px-4 rounded-lg border border-zinc-200 dark:border-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="h-9 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-colors"
+                >
+                  {modalType === 'add' && 'Save Stock Entry'}
+                  {modalType === 'adjust' && 'Save Adjustment'}
+                  {modalType === 'transfer' && 'Execute Transfer'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default Stock;
