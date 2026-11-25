@@ -182,7 +182,7 @@ const Settings = () => {
                 }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
                   active
-                    ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950 font-semibold'
+                    ? 'bg-zinc-900 text-white dark:bg-zinc-800 dark:text-white font-semibold'
                     : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900'
                 }`}
               >
