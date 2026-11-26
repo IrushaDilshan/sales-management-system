@@ -65,27 +65,30 @@ export default function SalesmanInventoryScreen() {
 
             if (stockData && stockData.length > 0) {
                 const itemIds = stockData.map((s: any) => s.item_id);
-                const { data: itemsData, error: itemsError } = await supabase
+                const { data: rawItemsData, error: itemsError } = await supabase
                     .from('items')
-                    .select('id, name, unit_of_measure, retail_price, sku')
+                    .select('*')
                     .in('id', itemIds);
 
                 if (itemsError) throw itemsError;
+                const itemsData = (rawItemsData || []).filter((i: any) => i.is_active !== false);
 
                 const inventoryList = stockData.map((s: any) => {
                     const itemDetail = itemsData?.find((i: any) => i.id === s.item_id);
                     if (!itemDetail) return null;
 
-                    const qty = s.quantity; // FIXED: Changed 'qty' to 'quantity'
+                    const qty = s.quantity;
+                    const minLevel = itemDetail.minimum_level || 10;
 
                     return {
                         id: s.item_id,
                         name: itemDetail.name,
                         unit: itemDetail.unit_of_measure || 'units',
-                        price: itemDetail.retail_price,
+                        retailPrice: itemDetail.retail_price ?? 0,
+                        wholesalePrice: itemDetail.wholesale_price ?? 0,
                         sku: itemDetail.sku || '-',
                         qty: qty,
-                        status: qty > 10 ? 'In Stock' : (qty > 0 ? 'Low Stock' : 'Out of Stock')
+                        status: qty <= 0 ? 'Out of Stock' : (qty < minLevel ? 'Low Stock' : 'In Stock')
                     };
                 }).filter(Boolean)
                     .sort((a: any, b: any) => a.name.localeCompare(b.name));
@@ -196,8 +199,12 @@ export default function SalesmanInventoryScreen() {
                                         <Text style={styles.metricValue}>{item.qty} <Text style={styles.metricUnit}>{item.unit}</Text></Text>
                                     </View>
                                     <View style={styles.metricItem}>
-                                        <Text style={styles.metricLabel}>PRICE</Text>
-                                        <Text style={styles.metricValue}>Rs.{item.price ? item.price.toFixed(2) : '0.00'}</Text>
+                                        <Text style={styles.metricLabel}>RETAIL</Text>
+                                        <Text style={styles.metricValue}>Rs.{item.retailPrice ? Number(item.retailPrice).toFixed(2) : '0.00'}</Text>
+                                    </View>
+                                    <View style={styles.metricItem}>
+                                        <Text style={styles.metricLabel}>WHOLESALE</Text>
+                                        <Text style={styles.metricValue}>Rs.{item.wholesalePrice ? Number(item.wholesalePrice).toFixed(2) : '0.00'}</Text>
                                     </View>
                                     <View style={[styles.metricItem, { alignItems: 'flex-end' }]}>
                                         <Text style={styles.metricLabel}>SKU</Text>

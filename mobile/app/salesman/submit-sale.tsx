@@ -3,6 +3,7 @@ import { View, Text, FlatList, TextInput, TouchableOpacity, Alert, StyleSheet, A
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import { showSuccessAlert, showErrorAlert } from '../../lib/alert';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SubmitSaleScreen() {
@@ -17,6 +18,7 @@ export default function SubmitSaleScreen() {
     const [shopId, setShopId] = useState<string | null>(null);
     const [shopName, setShopName] = useState<string>('');
     const [searchText, setSearchText] = useState('');
+    const [priceTier, setPriceTier] = useState<'retail' | 'wholesale'>('retail');
 
     useEffect(() => {
         fetchInitialData();
@@ -56,13 +58,14 @@ export default function SubmitSaleScreen() {
                 setShopName((userData.shops as any).name);
             }
 
-            // Fetch Items
-            const { data: itemsData, error: itemsError } = await supabase
+            // Fetch Active Items with Dual Pricing (select * to avoid 400 if optional columns differ)
+            const { data: rawItemsData, error: itemsError } = await supabase
                 .from('items')
                 .select('*')
                 .order('name');
 
             if (itemsError) throw itemsError;
+            const itemsData = (rawItemsData || []).filter((i: any) => i.is_active !== false);
 
             // Fetch Stock for this shop
             let stockMapping: Record<string, number> = {};
@@ -98,8 +101,9 @@ export default function SubmitSaleScreen() {
 
             const initialPrices: any = {};
             itemsData?.forEach((item: any) => {
-                if (item.price || item.unit_price) {
-                    initialPrices[item.id] = (item.price || item.unit_price).toString();
+                const p = item.retail_price ?? item.wholesale_price ?? item.price ?? item.unit_price;
+                if (p != null) {
+                    initialPrices[item.id] = p.toString();
                 }
             });
             setPrices(initialPrices);
@@ -124,6 +128,19 @@ export default function SubmitSaleScreen() {
 
     const updatePrice = (id: string, price: string) => {
         setPrices(prev => ({ ...prev, [id]: price }));
+    };
+
+    const handleSwitchPriceTier = (tier: 'retail' | 'wholesale') => {
+        setPriceTier(tier);
+        const updated: { [key: string]: string } = {};
+        items.forEach((item: any) => {
+            const p =
+                tier === 'wholesale'
+                    ? (item.wholesale_price ?? item.retail_price ?? item.price ?? 0)
+                    : (item.retail_price ?? item.wholesale_price ?? item.price ?? 0);
+            updated[item.id] = p.toString();
+        });
+        setPrices(updated);
     };
 
     const incrementQuantity = (id: string, maxStock: number) => {
@@ -172,10 +189,12 @@ export default function SubmitSaleScreen() {
             if (!user) throw new Error('No user found');
 
             const totalAmount = getTotalAmount();
+            const invoiceNumber = `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
             const { data: saleData, error: saleError } = await supabase
                 .from('sales')
                 .insert([{
+                    invoice_number: invoiceNumber,
                     outlet_id: shopId,
                     customer_name: 'Walk-in Customer',
                     total_amount: totalAmount,
@@ -196,6 +215,7 @@ export default function SubmitSaleScreen() {
                 sale_id: saleData.id,
                 product_id: item.id,
                 product_name: item.name,
+                sku: item.sku || null,
                 quantity: quantities[item.id],
                 unit_price: parseFloat(prices[item.id] || '0'),
                 line_total: (quantities[item.id] * parseFloat(prices[item.id] || '0'))
@@ -207,15 +227,46 @@ export default function SubmitSaleScreen() {
 
             if (itemsError) throw itemsError;
 
-            Alert.alert(
+            // Deduct sold quantities from shop stock & log stock_movements
+            for (const item of validItems) {
+                const soldQty = quantities[item.id] || 0;
+                if (soldQty <= 0 || !shopId) continue;
+
+                const { data: currentStockRow } = await supabase
+                    .from('stock')
+                    .select('id, quantity')
+                    .eq('outlet_id', shopId)
+                    .eq('item_id', item.id)
+                    .maybeSingle();
+
+                if (currentStockRow) {
+                    const nextQty = Math.max(0, (currentStockRow.quantity ?? 0) - soldQty);
+                    await supabase
+                        .from('stock')
+                        .update({ quantity: nextQty, last_updated: new Date().toISOString() })
+                        .eq('id', currentStockRow.id);
+                }
+
+                await supabase.from('stock_movements').insert([{
+                    product_id: item.id,
+                    from_outlet_id: shopId,
+                    quantity: soldQty,
+                    movement_type: 'sale',
+                    reference_number: invoiceNumber,
+                    notes: `Mobile Sale (${priceTier})`,
+                    created_by: user.id,
+                }]);
+            }
+
+            showSuccessAlert(
                 'Success!',
                 `Sale recorded successfully!\nTotal: Rs. ${totalAmount.toLocaleString()}`,
-                [{ text: 'OK', onPress: () => router.back() }]
+                () => router.back()
             );
 
         } catch (error: any) {
             console.error('Submit error:', error);
-            Alert.alert('Error', error.message || 'Failed to submit sale');
+            showErrorAlert('Error', error.message || 'Failed to submit sale');
         } finally {
             setSubmitting(false);
         }
@@ -272,6 +323,30 @@ export default function SubmitSaleScreen() {
                         </View>
                     </View>
 
+                    {/* Price Tier Toggle: Retail vs Wholesale */}
+                    <View style={{ flexDirection: 'row', marginHorizontal: 16, marginBottom: 10, backgroundColor: '#F1F5F9', borderRadius: 12, padding: 4 }}>
+                        {(['retail', 'wholesale'] as const).map((tier) => {
+                            const active = priceTier === tier;
+                            return (
+                                <TouchableOpacity
+                                    key={tier}
+                                    onPress={() => handleSwitchPriceTier(tier)}
+                                    style={{
+                                        flex: 1,
+                                        paddingVertical: 8,
+                                        borderRadius: 9,
+                                        alignItems: 'center',
+                                        backgroundColor: active ? '#059669' : 'transparent',
+                                    }}
+                                >
+                                    <Text style={{ fontSize: 12, fontWeight: '700', color: active ? '#FFFFFF' : '#475569' }}>
+                                        {tier === 'retail' ? 'Retail Pricing' : 'Wholesale Pricing'}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+
                     {/* Search Bar */}
                     <View style={styles.searchWrapper}>
                         <View style={styles.searchContainer}>
@@ -326,9 +401,14 @@ export default function SubmitSaleScreen() {
                                                     </View>
                                                 ) : (
                                                     <View style={styles.stockBadgeIn}>
-                                                        <Text style={styles.stockTextIn}>Available: {currentStock}</Text>
+                                                        <Text style={styles.stockTextIn}>
+                                                            Available: {currentStock} {item.unit_of_measure || 'units'}
+                                                        </Text>
                                                     </View>
                                                 )}
+                                                <Text style={{ fontSize: 11, color: '#64748B' }}>
+                                                    R: Rs.{item.retail_price ?? 0} · W: Rs.{item.wholesale_price ?? 0}
+                                                </Text>
                                             </View>
                                         </View>
 
