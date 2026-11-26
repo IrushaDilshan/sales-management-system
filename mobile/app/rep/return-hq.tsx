@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
+import { showSuccessAlert, showErrorAlert } from '../../lib/alert';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type StockItem = {
-    id: number;
+    id: string;
     name: string;
     qty: number;
+    hqQty: number;
 };
 
 export default function ReturnHQScreen() {
@@ -17,7 +19,7 @@ export default function ReturnHQScreen() {
 
     const [items, setItems] = useState<StockItem[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedItems, setSelectedItems] = useState<{ [key: number]: number }>({});
+    const [selectedItems, setSelectedItems] = useState<{ [key: string]: number }>({});
     const [submitting, setSubmitting] = useState(false);
     const [currentRepId, setCurrentRepId] = useState<string | null>(null);
 
@@ -44,10 +46,10 @@ export default function ReturnHQScreen() {
 
             if (!repId) return;
 
-            // 1. Fetch Item Definitions
+            // 1. Fetch Item Definitions (including HQ central quantity)
             const { data: itemsData, error: itemsError } = await supabase
                 .from('items')
-                .select('id, name')
+                .select('id, name, quantity')
                 .order('name');
 
             if (itemsError) throw itemsError;
@@ -78,9 +80,10 @@ export default function ReturnHQScreen() {
             // 3. Merge
             const merged: StockItem[] = (itemsData || [])
                 .map((item: any) => ({
-                    id: item.id,
+                    id: String(item.id),
                     name: item.name,
-                    qty: repStockMap.get(item.id) || 0
+                    qty: repStockMap.get(item.id) || 0,
+                    hqQty: item.quantity ?? 0,
                 }))
                 .filter(item => item.qty > 0);
 
@@ -93,8 +96,8 @@ export default function ReturnHQScreen() {
         }
     };
 
-    const handleQtyChange = (itemId: number, text: string) => {
-        const qty = parseInt(text);
+    const handleQtyChange = (itemId: string, text: string) => {
+        const qty = parseInt(text, 10);
         if (isNaN(qty) || qty < 0) {
             const newSelected = { ...selectedItems };
             delete newSelected[itemId];
@@ -112,7 +115,7 @@ export default function ReturnHQScreen() {
 
         const itemsToReturn = Object.entries(selectedItems)
             .filter(([_, qty]) => qty > 0)
-            .map(([id, qty]) => ({ id: parseInt(id), qty }));
+            .map(([id, qty]) => ({ id, qty }));
 
         if (itemsToReturn.length === 0) {
             Alert.alert('Error', 'Please select at least one item to return');
@@ -122,22 +125,47 @@ export default function ReturnHQScreen() {
         setSubmitting(true);
         try {
             for (const tItem of itemsToReturn) {
-                const { error } = await supabase.rpc('return_rep_to_storekeeper', {
-                    p_rep_id: currentRepId,
-                    p_product_id: tItem.id,
-                    p_quantity: tItem.qty,
-                    p_notes: 'Rep Return to HQ'
-                });
+                // 1. Deduct from Rep floating stock in stock_transactions
+                const { error: transError } = await supabase
+                    .from('stock_transactions')
+                    .insert([{
+                        rep_id: currentRepId,
+                        item_id: tItem.id,
+                        qty: tItem.qty,
+                        type: 'RETURN_TO_HQ',
+                        remarks: 'Rep Return to HQ',
+                        created_at: new Date().toISOString(),
+                    }]);
+                if (transError) throw transError;
 
-                if (error) throw error;
+                // 2. Increment HQ Central Depot items.quantity for Web Storekeeper & Stock.js
+                const matched = items.find((i) => i.id === tItem.id);
+                const nextHqQty = (matched?.hqQty ?? 0) + tItem.qty;
+                const { error: itemUpdErr } = await supabase
+                    .from('items')
+                    .update({ quantity: nextHqQty })
+                    .eq('id', tItem.id);
+                if (itemUpdErr) throw itemUpdErr;
+
+                // 3. Log in stock_movements for Web Stock.js
+                const { error: moveError } = await supabase
+                    .from('stock_movements')
+                    .insert([{
+                        product_id: tItem.id,
+                        quantity: tItem.qty,
+                        movement_type: 'rep_return_hq',
+                        notes: 'Rep Return to HQ',
+                        created_by: currentRepId,
+                    }]);
+                if (moveError) console.warn('stock_movements insert note:', moveError.message);
             }
 
-            Alert.alert('Success', 'Stock returned to storekeeper successfully', [
-                { text: 'OK', onPress: () => router.push('/rep/(tabs)/stock') }
-            ]);
+            showSuccessAlert('Success', 'Stock returned to storekeeper successfully', () =>
+                router.push('/rep/(tabs)/stock')
+            );
 
         } catch (err: any) {
-            Alert.alert('Error', err.message);
+            showErrorAlert('Error', err.message);
         } finally {
             setSubmitting(false);
         }

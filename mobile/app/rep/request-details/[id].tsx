@@ -46,7 +46,7 @@ export default function SingleRequestView() {
             // Fetch request details
             const { data: requestData, error: requestError } = await supabase
                 .from('requests')
-                .select('id, date, shop_id')
+                .select('id, required_date, created_at, shop_id')
                 .eq('id', requestId)
                 .maybeSingle();
 
@@ -61,7 +61,7 @@ export default function SingleRequestView() {
                 return;
             }
 
-            setRequestDate(requestData.date);
+            setRequestDate(requestData.required_date || requestData.created_at);
 
             // Fetch shop details
             const { data: shopData } = await supabase

@@ -27,17 +27,16 @@ const groupByDate = (requests: RealTimeRequest[]): GroupedSection[] => {
     const groups = new Map<string, RealTimeRequest[]>();
 
     requests.forEach(request => {
-        const dateStr = request.created_at || request.date;
-        const requestDate = new Date(dateStr);
+        const dateStr = request.date || request.created_at || '';
+        const requestDate = dateStr.length === 10 ? new Date(dateStr + 'T00:00:00') : new Date(dateStr);
         const requestDay = new Date(requestDate.getFullYear(), requestDate.getMonth(), requestDate.getDate());
 
-        const diffTime = today.getTime() - requestDay.getTime();
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const diffDays = Math.round((requestDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
         let dateLabel: string;
         if (diffDays === 0) dateLabel = 'Today';
-        else if (diffDays === 1) dateLabel = 'Yesterday';
-        else if (diffDays < 7) dateLabel = `${diffDays} days ago`;
+        else if (diffDays === 1) dateLabel = 'Tomorrow';
+        else if (diffDays === -1) dateLabel = 'Yesterday';
         else dateLabel = requestDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
         if (!groups.has(dateLabel)) groups.set(dateLabel, []);
@@ -108,7 +107,7 @@ export default function RealTimeRequests() {
 
             const { data: requestsData } = await supabase
                 .from('requests')
-                .select('id, shop_id, date, created_at')
+                .select('id, shop_id, required_date, created_at')
                 .eq('status', 'pending')
                 .in('shop_id', shopIds)
                 .order('created_at', { ascending: false });
@@ -134,16 +133,14 @@ export default function RealTimeRequests() {
                 id: req.id,
                 shopName: shopNamesMap.get(req.shop_id) || 'Unknown Shop',
                 shopId: req.shop_id,
-                date: req.date,
+                date: req.required_date || req.created_at,
                 created_at: req.created_at,
                 itemCount: itemCountMap.get(req.id) || 0
             }));
 
             const grouped = groupByDate(realTimeReqs);
             setRealTimeRequests(grouped);
-
-            // Expand all initially if wanted, or just Today/Yesterday
-            // setExpandedSections(new Set(grouped.map(g => g.title)));
+            setExpandedSections(new Set(grouped.map(g => g.title)));
 
         } catch (err: any) {
             console.log('Error fetching requests:', err);

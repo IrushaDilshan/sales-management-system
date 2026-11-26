@@ -146,9 +146,9 @@ export default function ShopRequestDetails() {
             // 2. Fetch Requests (Show all recent)
             let query = supabase
                 .from('requests')
-                .select('id, date')
+                .select('id, required_date, created_at')
                 .eq('shop_id', shopId)
-                .order('date', { ascending: false })
+                .order('created_at', { ascending: false })
                 .limit(50);
 
             const { data: requestsData, error: reqError } = await query;
@@ -162,7 +162,7 @@ export default function ShopRequestDetails() {
 
             const requestIds = requestsData.map((r: any) => r.id);
             const requestDateMap = new Map();
-            requestsData.forEach((r: any) => requestDateMap.set(r.id, r.date));
+            requestsData.forEach((r: any) => requestDateMap.set(r.id, r.required_date || r.created_at));
 
             // 3. Fetch Items
             const { data: requestItemsData, error: itemsError } = await supabase
