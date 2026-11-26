@@ -29,12 +29,16 @@ const Shops = () => {
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRoute, setSelectedRoute] = useState('ALL');
+  const [selectedType, setSelectedType] = useState('ALL');
 
   // Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     id: null,
     name: '',
+    outlet_type: 'Farm Shop',
+    location: '',
+    phone: '',
     rep_id: '',
     route_id: '',
     salesman_id: '',
@@ -124,6 +128,9 @@ const Shops = () => {
           id: s.id,
           name: s.name,
           code: s.code || `OUT-${String(idx + 1).padStart(3, '0')}`,
+          outlet_type: s.outlet_type || 'Farm Shop',
+          location: s.location || '',
+          phone: s.phone || '',
           rep_id: s.rep_id,
           route_id: s.route_id,
           salesman_id: assignedSalesman?.id || '',
@@ -167,23 +174,28 @@ const Shops = () => {
   const filteredShops = useMemo(() => {
     return shops.filter((s) => {
       if (selectedRoute !== 'ALL' && s.route_name !== selectedRoute) return false;
+      if (selectedType !== 'ALL' && (s.outlet_type || 'Farm Shop') !== selectedType) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesName = (s.name || '').toLowerCase().includes(q);
         const matchesCode = (s.code || '').toLowerCase().includes(q);
         const matchesSalesman = (s.salesman_name || '').toLowerCase().includes(q);
         const matchesRoute = (s.route_name || '').toLowerCase().includes(q);
-        if (!matchesName && !matchesCode && !matchesSalesman && !matchesRoute) return false;
+        const matchesLoc = (s.location || '').toLowerCase().includes(q);
+        if (!matchesName && !matchesCode && !matchesSalesman && !matchesRoute && !matchesLoc) return false;
       }
       return true;
     });
-  }, [shops, selectedRoute, searchQuery]);
+  }, [shops, selectedRoute, selectedType, searchQuery]);
 
   const handleOpenModal = (shop = null) => {
     if (shop) {
       setFormData({
         id: shop.id,
         name: shop.name || '',
+        outlet_type: shop.outlet_type || 'Farm Shop',
+        location: shop.location || '',
+        phone: shop.phone || '',
         rep_id: shop.rep_id || '',
         route_id: shop.route_id || '',
         salesman_id: shop.salesman_id || '',
@@ -192,6 +204,9 @@ const Shops = () => {
       setFormData({
         id: null,
         name: '',
+        outlet_type: 'Farm Shop',
+        location: '',
+        phone: '',
         rep_id: reps[0]?.id || '',
         route_id: routes[0]?.id || '',
         salesman_id: salesmen[0]?.id || '',
@@ -211,6 +226,9 @@ const Shops = () => {
     try {
       const payload = {
         name: formData.name.trim(),
+        outlet_type: formData.outlet_type || 'Farm Shop',
+        location: formData.location.trim(),
+        phone: formData.phone.trim(),
         route_id: formData.route_id ? formData.route_id : null,
         rep_id: formData.rep_id ? formData.rep_id : null,
       };
@@ -355,11 +373,27 @@ const Shops = () => {
               className="w-full h-9 pl-9 pr-3 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-sm focus:outline-none focus:border-emerald-500"
             />
           </div>
-          <select
-            value={selectedRoute}
-            onChange={(e) => setSelectedRoute(e.target.value)}
-            className="h-9 px-3 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300"
-          >
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="inline-flex items-center p-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800">
+              {['ALL', 'Farm Shop', 'Milk Shop'].map((tp) => (
+                <button
+                  key={tp}
+                  onClick={() => setSelectedType(tp)}
+                  className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+                    selectedType === tp
+                      ? 'bg-white dark:bg-zinc-800 text-zinc-950 dark:text-white shadow-sm'
+                      : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200'
+                  }`}
+                >
+                  {tp === 'ALL' ? 'All Types' : tp}
+                </button>
+              ))}
+            </div>
+            <select
+              value={selectedRoute}
+              onChange={(e) => setSelectedRoute(e.target.value)}
+              className="h-9 px-3 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300"
+            >
             <option value="ALL">All Deployment Routes</option>
             {routes.map((r) => (
               <option key={r.id || r.name} value={r.name}>
@@ -369,6 +403,7 @@ const Shops = () => {
             <option value="Colombo Metro Circuit">Colombo Metro Circuit</option>
             <option value="Suburban Express Path">Suburban Express Path</option>
           </select>
+          </div>
         </div>
 
         {/* Table */}
@@ -416,10 +451,25 @@ const Shops = () => {
                           <LuBuilding2 className="w-4 h-4" />
                         </div>
                         <div>
-                          <div className="font-semibold text-zinc-950 dark:text-white">
-                            {o.name}
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-zinc-950 dark:text-white">
+                              {o.name}
+                            </span>
+                            <span
+                              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                                (o.outlet_type || 'Farm Shop') === 'Milk Shop'
+                                  ? 'bg-sky-500/10 text-sky-700 dark:text-sky-400'
+                                  : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                              }`}
+                            >
+                              {o.outlet_type || 'Farm Shop'}
+                            </span>
                           </div>
-                          <div className="text-[11px] font-mono text-zinc-400">{o.code}</div>
+                          <div className="text-[11px] font-mono text-zinc-400">
+                            {o.code}
+                            {o.location ? ` · ${o.location}` : ''}
+                            {o.phone ? ` · ${o.phone}` : ''}
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -510,18 +560,60 @@ const Shops = () => {
                   </div>
                 )}
 
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                    Outlet Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="e.g. Kollupitiya Super Center"
-                    className="w-full h-10 px-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                      Outlet Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="e.g. Kollupitiya Super Center"
+                      className="w-full h-10 px-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                      Outlet Type *
+                    </label>
+                    <select
+                      value={formData.outlet_type}
+                      onChange={(e) => setFormData({ ...formData, outlet_type: e.target.value })}
+                      className="w-full h-10 px-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                    >
+                      <option value="Farm Shop">Farm Shop</option>
+                      <option value="Milk Shop">Milk Shop</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                      Location / City
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.location}
+                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                      placeholder="e.g. Narahenpita, Colombo 05"
+                      className="w-full h-10 px-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                      Telephone
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder="e.g. 0112 501 701"
+                      className="w-full h-10 px-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                    />
+                  </div>
                 </div>
 
                 <div>
