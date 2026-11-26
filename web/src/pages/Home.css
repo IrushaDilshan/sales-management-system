@@ -685,6 +685,8 @@
 /* Outlet Locator UI */
 .outlet-search-box {
     display: flex;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
     margin-bottom: 60px;
 }
@@ -848,11 +850,12 @@
 .no-results {
     grid-column: 1 / -1;
     text-align: center;
-    padding: 60px;
-    background: #f8fafc;
+    padding: 48px 24px;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(12px);
     border-radius: 24px;
-    border: 1px dashed var(--border-color);
-    color: var(--text-gray);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    color: #f8fafc;
     font-weight: 600;
 }
 
@@ -1970,4 +1973,74 @@
     .modal-pricing-grid {
         grid-template-columns: 1fr;
     }
+}
+
+
+/* Trilingual Language Switcher Pill */
+.lang-switcher-pill {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(15, 23, 42, 0.06);
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    border-radius: 9999px;
+    padding: 3px;
+    gap: 2px;
+}
+
+.lang-btn {
+    border: none;
+    background: transparent;
+    color: #475569;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 5px 10px;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+.lang-btn:hover {
+    color: #0f172a;
+}
+
+.lang-btn.active {
+    background: #059669;
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25);
+}
+
+
+/* Outlet Type Filter Pills (All / Farm Shop / Milk Shop) */
+.outlet-type-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.outlet-type-pill {
+    padding: 8px 18px;
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(8px);
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.outlet-type-pill:hover {
+    background: rgba(255, 255, 255, 0.16);
+    color: #ffffff;
+}
+
+.outlet-type-pill.active {
+    background: #10b981;
+    border-color: #10b981;
+    color: #ffffff;
+    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.35);
 }
