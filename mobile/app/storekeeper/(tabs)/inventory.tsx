@@ -41,11 +41,11 @@ export default function InventoryScreen() {
 
             const mergedItems = (data || []).map(item => {
                 const stockEntry = (stockData || []).find((s: any) => s.item_id === item.id);
-                const currentQty = stockEntry ? stockEntry.qty : 0;
+                const currentQty = item.quantity ?? stockEntry?.qty ?? stockEntry?.quantity ?? 0;
 
                 let status = 'OK';
                 if (currentQty === 0) status = 'OUT';
-                else if (currentQty < (item.minimum_level || 5)) status = 'LOW';
+                else if (currentQty < (item.minimum_level || 10)) status = 'LOW';
 
                 return {
                     ...item,

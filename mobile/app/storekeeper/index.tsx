@@ -46,13 +46,13 @@ export default function StorekeeperDashboard() {
 
             const todayTrans = transitions || [];
 
-            // Calculate stock logic
+            // Calculate stock logic from live items.quantity
             let lowStockCount = 0;
             (items || []).forEach((item: any) => {
                 const stockEntry = (stockData || []).find((s: any) => s.item_id === item.id);
-                const currentQty = stockEntry ? stockEntry.qty : 0;
+                const currentQty = item.quantity ?? stockEntry?.qty ?? stockEntry?.quantity ?? 0;
 
-                if (currentQty < (item.minimum_level || 5)) {
+                if (currentQty < (item.minimum_level || 10)) {
                     lowStockCount++;
                 }
             });

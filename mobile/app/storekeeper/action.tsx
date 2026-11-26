@@ -112,41 +112,37 @@ export default function ActionScreen() {
                 created_at: new Date().toISOString()
             };
 
+            // Update live items.quantity (shared with Web Storekeeper & Product Catalog)
+            const { data: itemRow, error: getItemErr } = await supabase
+                .from('items')
+                .select('quantity')
+                .eq('id', itemId)
+                .single();
+            if (getItemErr) throw getItemErr;
+
+            let newStockVal = itemRow?.quantity ?? 0;
+            if (typeDb === 'IN') {
+                newStockVal += quantity;
+            } else if (typeDb === 'OUT' || typeDb === 'RETURN') {
+                if (newStockVal < quantity) {
+                    throw new Error(`Insufficient stock. Available: ${newStockVal}`);
+                }
+                newStockVal = Math.max(0, newStockVal - quantity);
+            }
+
+            const { error: updateItemErr } = await supabase
+                .from('items')
+                .update({ quantity: newStockVal })
+                .eq('id', itemId);
+            if (updateItemErr) throw updateItemErr;
+
             const { error } = await supabase
                 .from('stock_transactions')
                 .insert([transactionRecord]);
 
-            if (error) throw error;
-
-            // Update Stock Table logic
-            const { data: stockData, error: getStockError } = await supabase
-                .from('stock')
-                .select('qty')
-                .eq('item_id', itemId)
-                .single();
-
-            let currentStockVal = 0;
-            if (stockData) {
-                currentStockVal = stockData.qty;
-            } else if (getStockError && getStockError.code !== 'PGRST116') {
-                throw getStockError;
+            if (error) {
+                console.warn('Stock transaction log note:', error);
             }
-
-            let newStockVal = currentStockVal;
-            if (typeDb === 'IN') {
-                // Add stock increases inventory
-                newStockVal = currentStockVal + quantity;
-            } else if (typeDb === 'OUT' || typeDb === 'RETURN') {
-                // Issue and Return both decrease inventory
-                // (Return removes damaged/expired items)
-                newStockVal = currentStockVal - quantity;
-            }
-
-            const { error: upsertError } = await supabase
-                .from('stock')
-                .upsert({ item_id: itemId, qty: newStockVal }, { onConflict: 'item_id' });
-
-            if (upsertError) throw upsertError;
 
             Alert.alert('Success', 'Transaction recorded successfully', [
                 { text: 'OK', onPress: () => router.back() }
