@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
+import { showSuccessAlert, showErrorAlert } from '../../lib/alert';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -122,15 +123,22 @@ export default function SubmitIncomeScreen() {
     };
 
     const submitIncome = async () => {
+        if (!shopId) {
+            Alert.alert('Error', 'No shop assigned. Please select or reload a shop.');
+            return;
+        }
         setLoading(true);
         try {
+            const total = parseFloat(totalSales) || 0;
+            const cash = parseFloat(cashSales) || 0;
+            const credit = parseFloat(creditSales) || 0;
             const incomeRecord = {
                 shop_id: shopId,
                 date: date.toISOString().split('T')[0],
-                total_sales: parseFloat(totalSales),
-                cash_sales: parseFloat(cashSales) || 0,
-                credit_sales: parseFloat(creditSales) || 0,
-                notes: notes || null,
+                total_sales: total,
+                cash_sales: cash,
+                credit_sales: credit,
+                notes: notes.trim() || null,
                 created_at: new Date().toISOString()
             };
 
@@ -140,10 +148,10 @@ export default function SubmitIncomeScreen() {
 
             if (error) throw error;
 
-            Alert.alert(
+            showSuccessAlert(
                 'Success',
                 'Daily income submitted successfully!',
-                [{ text: 'OK', onPress: () => router.back() }]
+                () => router.back()
             );
 
             setTotalSales('');
