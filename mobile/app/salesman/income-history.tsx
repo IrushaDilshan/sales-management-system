@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -9,6 +9,7 @@ import {
     RefreshControl
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -18,9 +19,11 @@ export default function IncomeHistoryScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
-    useEffect(() => {
-        fetchIncomeHistory();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            fetchIncomeHistory();
+        }, [])
+    );
 
     const fetchIncomeHistory = async () => {
         try {
@@ -28,12 +31,21 @@ export default function IncomeHistoryScreen() {
 
             // Get current user
             const { data: userData } = await supabase.auth.getUser();
+            const userId = userData?.user?.id;
             const userEmail = userData?.user?.email;
 
             let shopId = null;
 
-            if (userEmail) {
-                // Get user's shop
+            if (userId) {
+                const { data: userRecord } = await supabase
+                    .from('users')
+                    .select('shop_id')
+                    .eq('id', userId)
+                    .maybeSingle();
+                shopId = userRecord?.shop_id || null;
+            }
+
+            if (!shopId && userEmail) {
                 const { data: userRecord } = await supabase
                     .from('users')
                     .select('shop_id')
@@ -45,25 +57,43 @@ export default function IncomeHistoryScreen() {
                 }
             }
 
-            // Fetch income records
+            // Fetch income records (avoid fragile PostgREST FK join; enrich shops in JS)
             let query = supabase
                 .from('daily_income')
-                .select(`
-                    *,
-                    shops (name)
-                `)
-                .order('date', { ascending: false });
+                .select('*')
+                .order('date', { ascending: false })
+                .order('created_at', { ascending: false });
 
             if (shopId) {
                 query = query.eq('shop_id', shopId);
             }
 
-            const { data, error } = await query;
+            const [{ data, error }, { data: shopsData }] = await Promise.all([
+                query,
+                supabase.from('shops').select('id, name'),
+            ]);
 
             if (error) {
                 console.error('Error fetching income history:', error);
+                setIncomeRecords([]);
             } else {
-                setIncomeRecords(data || []);
+                let rows = data || [];
+                // If user has a shop_id but records were submitted under a fallback/other shop, show all recent
+                if (rows.length === 0 && shopId) {
+                    const { data: allRows } = await supabase
+                        .from('daily_income')
+                        .select('*')
+                        .order('date', { ascending: false })
+                        .order('created_at', { ascending: false })
+                        .limit(50);
+                    rows = allRows || [];
+                }
+                const shopMap = new Map((shopsData || []).map((s: any) => [s.id, s.name]));
+                const enriched = rows.map((r: any) => ({
+                    ...r,
+                    shops: r.shop_id && shopMap.has(r.shop_id) ? { name: shopMap.get(r.shop_id) } : null,
+                }));
+                setIncomeRecords(enriched);
             }
         } catch (error) {
             console.error('Exception in fetchIncomeHistory:', error);
@@ -122,6 +152,20 @@ export default function IncomeHistoryScreen() {
                         <Text style={styles.emptySubtext}>
                             Submit your first daily income to see it here
                         </Text>
+                        <TouchableOpacity
+                            style={{
+                                marginTop: 18,
+                                backgroundColor: '#16A34A',
+                                paddingHorizontal: 20,
+                                paddingVertical: 11,
+                                borderRadius: 10,
+                            }}
+                            onPress={() => router.push('/shop-owner/submit-income')}
+                        >
+                            <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 14 }}>
+                                + Submit Daily Income
+                            </Text>
+                        </TouchableOpacity>
                     </View>
                 ) : (
                     <View style={styles.recordsList}>

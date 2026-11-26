@@ -64,12 +64,20 @@ export default function RequestHistoryScreen() {
 
             const shopId = userData?.shop_id;
 
-            // 2. Fetch Requests
-            const { data: requestsData } = await supabase
+            // 2. Fetch Requests (by salesman_id or shop_id, ordered by created_at)
+            let reqQuery = supabase
                 .from('requests')
-                .select('*')
-                .eq('salesman_id', user.id)
-                .order('date', { ascending: false });
+                .select('*, shops(name)')
+                .order('created_at', { ascending: false });
+
+            if (shopId) {
+                reqQuery = reqQuery.or(`salesman_id.eq.${user.id},shop_id.eq.${shopId}`);
+            } else {
+                reqQuery = reqQuery.eq('salesman_id', user.id);
+            }
+
+            const { data: requestsData, error: reqError } = await reqQuery;
+            if (reqError) console.error('Requests fetch error:', reqError);
 
             // 3. Fetch Stock Movements (Rep Transfers & Returns)
             let movements: any[] = [];
@@ -85,14 +93,12 @@ export default function RequestHistoryScreen() {
             }
 
             // 4. Process Requests
-            const processedRequests: HistoryItem[] = (requestsData || []).map(req => ({
+            const processedRequests: HistoryItem[] = (requestsData || []).map((req: any) => ({
                 id: req.id,
                 type: 'request',
-                date: req.date || req.created_at,
+                date: req.created_at || req.required_date,
                 status: req.status,
-                shopName: 'Stock Request', // Default label
-                // For requests, we accept we might need to fetch shop name if it varies, 
-                // but usually salesman requests for their ONE shop.
+                shopName: req.shops?.name || 'Stock Request',
             }));
 
             // 5. Process & Group Movements
