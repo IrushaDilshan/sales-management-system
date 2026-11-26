@@ -62,13 +62,13 @@
     left: 0;
     right: 0;
     z-index: 1000;
-    padding: 24px 0;
+    padding: 14px 0;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     background: transparent;
 }
 
 .header-modern.scrolled {
-    padding: 16px 0;
+    padding: 10px 0;
     background: var(--glass-bg);
     backdrop-filter: blur(20px);
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
@@ -88,47 +88,40 @@
 }
 
 .trilingual-titles {
-    font-size: 0.85rem;
+    font-size: 0.72rem;
     font-weight: 700;
     color: var(--text-dark);
-    border-left: 3px solid var(--accent-green);
-    margin-left: 20px;
-    padding-left: 20px;
+    border-left: 2.5px solid var(--accent-green);
+    margin-left: 14px;
+    padding-left: 14px;
     display: flex;
     flex-direction: column;
-    line-height: 1.2;
+    line-height: 1.25;
 }
 
 .trilingual-titles .sinhala {
     font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 1.1rem;
+    font-size: 0.82rem;
 }
 
 .trilingual-titles .english {
     font-weight: 800;
-    font-size: 1.2rem;
+    font-size: 0.9rem;
     color: var(--text-dark);
 }
 
 .trilingual-titles .tamil {
-    font-size: 1rem;
+    font-size: 0.78rem;
     opacity: 0.8;
 }
 
 .logo-main {
     font-family: 'Outfit', sans-serif;
-    font-size: 2.8rem;
+    font-size: 1.75rem;
     font-weight: 900;
-    letter-spacing: -2px;
+    letter-spacing: -1px;
     display: flex;
     align-items: center;
-}
-
-.logo-main {
-    font-family: 'Outfit', sans-serif;
-    font-size: 2.8rem;
-    font-weight: 900;
-    letter-spacing: -2px;
     color: var(--text-dark);
     line-height: 1;
     white-space: nowrap;
@@ -184,11 +177,11 @@
 
 /* Hero Section - Immersive Background */
 .hero-premium {
-    min-height: 100vh;
+    min-height: 82vh;
     display: flex;
     align-items: center;
     position: relative;
-    padding: 100px 0;
+    padding: 88px 0 60px;
     background-size: cover;
     background-position: center;
     color: white;
@@ -209,7 +202,7 @@
 }
 
 .hero-content {
-    max-width: 800px;
+    max-width: 640px;
 }
 
 .hero-badge-v2 {
@@ -219,40 +212,40 @@
     background: rgba(16, 185, 129, 0.2);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(16, 185, 129, 0.3);
-    padding: 8px 16px;
+    padding: 6px 14px;
     border-radius: 50px;
-    font-size: 0.85rem;
+    font-size: 0.78rem;
     font-weight: 700;
     color: var(--accent-green);
-    margin-bottom: 30px;
+    margin-bottom: 18px;
 }
 
 .hero-content h1 {
-    font-size: 5.5rem;
+    font-size: 3.1rem;
     font-weight: 800;
-    line-height: 1.05;
-    letter-spacing: -3px;
-    margin-bottom: 30px;
+    line-height: 1.1;
+    letter-spacing: -1.5px;
+    margin-bottom: 18px;
 }
 
 .hero-content p {
-    font-size: 1.4rem;
-    line-height: 1.6;
-    margin-bottom: 45px;
+    font-size: 1.05rem;
+    line-height: 1.65;
+    margin-bottom: 28px;
     opacity: 0.9;
     font-weight: 400;
 }
 
 .hero-btns {
     display: flex;
-    gap: 20px;
+    gap: 14px;
 }
 
 .btn-glass {
-    padding: 18px 40px;
+    padding: 12px 26px;
     border-radius: 50px;
     font-weight: 700;
-    font-size: 1.1rem;
+    font-size: 0.9rem;
     text-decoration: none;
     transition: 0.3s;
     background: rgba(255, 255, 255, 0.1);
@@ -267,15 +260,15 @@
 }
 
 .btn-gradient {
-    padding: 18px 40px;
+    padding: 12px 26px;
     border-radius: 50px;
     font-weight: 700;
-    font-size: 1.1rem;
+    font-size: 0.9rem;
     text-decoration: none;
     transition: 0.3s;
     background: linear-gradient(135deg, var(--accent-green), var(--primary-green));
     color: white;
-    box-shadow: 0 15px 30px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 12px 24px rgba(16, 185, 129, 0.28);
 }
 
 .btn-gradient:hover {
@@ -319,30 +312,30 @@
 
 /* Section Fundamentals */
 .section-padding {
-    padding: 120px 0;
+    padding: 72px 0;
 }
 
 .section-padding-fluid {
-    padding: 120px 0;
+    padding: 72px 0;
 }
 
 .section-title-box {
     text-align: center;
-    max-width: 800px;
-    margin: 0 auto 80px;
+    max-width: 720px;
+    margin: 0 auto 44px;
 }
 
 .headline-h2 {
-    font-size: 3.5rem;
+    font-size: 2.15rem;
     font-weight: 800;
-    letter-spacing: -1.5px;
-    margin-bottom: 20px;
+    letter-spacing: -0.75px;
+    margin-bottom: 12px;
 }
 
 .subtitle-p {
-    font-size: 1.25rem;
+    font-size: 1rem;
     color: var(--text-gray);
-    line-height: 1.7;
+    line-height: 1.65;
 }
 
 /* Strategic Operations Section */
@@ -485,30 +478,30 @@
 
 .product-showcase-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 25px;
+    grid-template-columns: repeat(auto-fill, minmax(265px, 1fr));
+    gap: 20px;
     width: 100%;
 }
 
 .product-card-premium {
     background: #ffffff;
-    border-radius: 32px;
+    border-radius: 20px;
     overflow: hidden;
-    transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-    border: 1px solid rgba(0, 0, 0, 0.04);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 1px solid rgba(0, 0, 0, 0.06);
     position: relative;
     display: flex;
     flex-direction: column;
 }
 
 .product-card-premium:hover {
-    transform: translateY(-15px);
-    box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.08);
+    transform: translateY(-6px);
+    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.08);
     border-color: var(--accent-green);
 }
 
 .p-card-img {
-    height: 320px;
+    height: 210px;
     background: #f8fafc;
     overflow: hidden;
     position: relative;
@@ -604,7 +597,7 @@
 }
 
 .p-card-info {
-    padding: 30px;
+    padding: 20px;
     flex-grow: 1;
     display: flex;
     flex-direction: column;
@@ -635,17 +628,17 @@
 }
 
 .p-card-info h3 {
-    font-size: 1.6rem;
+    font-size: 1.15rem;
     font-weight: 800;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     color: var(--text-dark);
 }
 
 .p-card-info p {
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     color: var(--text-gray);
-    line-height: 1.6;
-    margin-bottom: 25px;
+    line-height: 1.55;
+    margin-bottom: 14px;
 }
 
 .p-card-footer-modern {
@@ -654,11 +647,12 @@
 
 .btn-outlet-modern {
     width: 100%;
-    padding: 16px;
-    border-radius: 16px;
+    padding: 11px 14px;
+    border-radius: 12px;
     background: #f8fafc;
-    border: 1px solid #f1f5f9;
+    border: 1px solid #e2e8f0;
     color: var(--text-dark);
+    font-size: 0.85rem;
     font-weight: 700;
     display: flex;
     justify-content: space-between;
@@ -1166,7 +1160,7 @@
 /* Responsive */
 @media (max-width: 1024px) {
     .hero-content h1 {
-        font-size: 3.5rem;
+        font-size: 2.35rem;
     }
 
     .mission-v2,
@@ -1222,7 +1216,7 @@
     background-position: center;
     background-repeat: no-repeat;
     background-size: cover;
-    padding: 120px 0;
+    padding: 72px 0;
 }
 
 .bg-overlay-dark {
