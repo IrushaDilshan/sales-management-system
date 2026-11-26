@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../../lib/supabase';
+import { showSuccessAlert, showErrorAlert } from '../../lib/alert';
 
 export default function CreateRequestScreen() {
     const router = useRouter();
@@ -220,27 +221,18 @@ export default function CreateRequestScreen() {
                 .select(`
                     *,
                     product_categories (
+                        id,
                         name
                     )
                 `)
-                .order('category_id') // Group by category
-                .order('name'); // Then alphabetical
+                .order('name'); // Alphabetical
 
             if (error) throw error;
 
             if (data) {
-                console.log('Fetched Items:', data.length);
-                // Log first 3 items with images to debug
-                const itemsWithImages = data.filter(i => i.image_url);
-                console.log('Items with images:', itemsWithImages.length);
-                if (itemsWithImages.length > 0) {
-                    console.log('Sample Image URL:', itemsWithImages[0].image_url);
-                } else {
-                    console.log('No items have image_url set.');
-                }
-
-                setAllItems(data);
-                organizeData(data, '');
+                const activeItems = data.filter((i: any) => i.is_active !== false);
+                setAllItems(activeItems);
+                organizeData(activeItems, '');
             }
         } catch (e) {
             console.error(e);
@@ -352,12 +344,21 @@ export default function CreateRequestScreen() {
         setSubmitting(true);
 
         try {
-            // Get current user for salesman_id
+            // Get current user for salesman_id & fallback shop_id
             let salesmanId = null;
-            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            let resolvedShopId = Array.isArray(shop_id) ? shop_id[0] : shop_id;
+            const { data: { user } } = await supabase.auth.getUser();
 
             if (user) {
                 salesmanId = user.id;
+                if (!resolvedShopId) {
+                    const { data: userRow } = await supabase
+                        .from('users')
+                        .select('shop_id')
+                        .eq('id', user.id)
+                        .maybeSingle();
+                    resolvedShopId = userRow?.shop_id;
+                }
             } else {
                 console.log('No auth session, using TEST salesman ID');
                 salesmanId = '00000000-0000-0000-0000-000000000000';
@@ -366,12 +367,15 @@ export default function CreateRequestScreen() {
             if (!salesmanId) {
                 throw new Error('No user authenticated and no fallback ID provided');
             }
+            if (!resolvedShopId) {
+                throw new Error('No shop selected for restock request');
+            }
 
             // 2. Insert Request
             const { data: requestData, error: reqError } = await supabase
                 .from('requests')
                 .insert([{
-                    shop_id: shop_id,
+                    shop_id: resolvedShopId,
                     salesman_id: salesmanId,
                     status: 'pending',
                     required_date: requiredDate.toISOString().split('T')[0],
@@ -396,15 +400,15 @@ export default function CreateRequestScreen() {
 
             if (itemsError) throw itemsError;
 
-            Alert.alert(
+            showSuccessAlert(
                 'Success!',
                 `Order created successfully!\n\n${validItems.length} items • ${getTotalItems()} total quantity`,
-                [{ text: 'OK', onPress: () => router.back() }]
+                () => router.back()
             );
 
         } catch (error: any) {
             console.error(error);
-            Alert.alert('Error', error.message || 'Failed to create request');
+            showErrorAlert('Error', error.message || 'Failed to create request');
         } finally {
             setSubmitting(false);
         }
