@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '../shared/supabaseClient';
 import './NLDBProductShowcase.css';
 
 const PRODUCTS = [
@@ -60,24 +61,55 @@ const PRODUCTS = [
 ];
 
 const NLDBProductShowcase = () => {
+  const [slides, setSlides] = useState(PRODUCTS);
   const [activeIndex, setActiveIndex] = useState(0);
-  const activeProduct = PRODUCTS[activeIndex];
+  const activeProduct = slides[activeIndex % slides.length] || PRODUCTS[0];
+
+  useEffect(() => {
+    const fetchSlides = async () => {
+      try {
+        const { data } = await supabase
+          .from('showcase_slides')
+          .select('*')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true });
+
+        if (data && data.length > 0) {
+          setSlides(
+            data.map((s) => ({
+              image: s.image_url,
+              name: s.name,
+              ghostText: s.ghost_text,
+              bgColor: s.bg_color,
+              accentGlow: s.accent_glow || 'rgba(59, 130, 246, 0.4)',
+              category: s.category,
+              tagline: s.tagline,
+            }))
+          );
+          setActiveIndex(0);
+        }
+      } catch (err) {
+        // Fallback to default PRODUCTS
+      }
+    };
+    fetchSlides();
+  }, []);
 
   const handleNext = () => {
-    setActiveIndex((prevIndex) => (prevIndex + 1) % PRODUCTS.length);
+    setActiveIndex((prevIndex) => (prevIndex + 1) % slides.length);
   };
 
   const handlePrev = () => {
-    setActiveIndex((prevIndex) => (prevIndex - 1 + PRODUCTS.length) % PRODUCTS.length);
+    setActiveIndex((prevIndex) => (prevIndex - 1 + slides.length) % slides.length);
   };
 
   useEffect(() => {
     const timer = setInterval(() => {
-      handleNext();
+      setActiveIndex((prevIndex) => (prevIndex + 1) % slides.length);
     }, 2000);
 
     return () => clearInterval(timer);
-  }, [activeIndex]);
+  }, [slides.length]);
 
   return (
     <section
@@ -175,7 +207,7 @@ const NLDBProductShowcase = () => {
 
         {/* Dynamic Navigation Indicators */}
         <div className="side-indicators">
-          {PRODUCTS.map((_, idx) => (
+          {slides.map((_, idx) => (
             <button
               key={idx}
               onClick={() => setActiveIndex(idx)}
