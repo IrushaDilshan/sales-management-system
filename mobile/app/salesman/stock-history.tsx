@@ -46,38 +46,45 @@ export default function StockHistoryScreen() {
 
             const myShopId = userData?.shop_id;
 
-            if (!myShopId) {
-                setLoading(false);
-                return;
-            }
-
-            // Build Query
+            // Build Query (select * without fragile FK aliases, then enrich in JS)
             let query = supabase
                 .from('stock_movements')
-                .select('*, items(name, unit_of_measure), from_shop:from_outlet_id(name), to_shop:to_outlet_id(name)')
-                .or(`from_outlet_id.eq.${myShopId},to_outlet_id.eq.${myShopId}`)
-                .order('created_at', { ascending: false });
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(100);
+
+            if (myShopId) {
+                query = query.or(`from_outlet_id.eq.${myShopId},to_outlet_id.eq.${myShopId}`);
+            }
 
             if (filter !== 'all') {
                 query = query.eq('movement_type', filter);
             }
 
-            const { data, error } = await query;
+            const [{ data, error }, itemsRes, shopsRes] = await Promise.all([
+                query,
+                supabase.from('items').select('id, name, unit_of_measure'),
+                supabase.from('shops').select('id, name'),
+            ]);
 
             if (error) {
-                // Graceful handling for missing table
                 if (error.message?.includes('stock_movements') || error.code === '42P01') {
                     console.warn('DB Mismatch: stock_movements table missing');
-                    // Alert only once to avoid spamming
-                    if (!refreshing) { // Simple check to avoid alert loop during strict mode dev
-                        // Alert.alert('Database Update Required', 'The "stock_movements" table is missing. Please run Migration 02.');
-                    }
                     setMovements([]);
                 } else {
                     console.error('Error fetching movements:', error);
+                    setMovements([]);
                 }
             } else {
-                setMovements(data || []);
+                const itemMap = new Map((itemsRes.data || []).map((i: any) => [i.id, i]));
+                const shopMap = new Map((shopsRes.data || []).map((s: any) => [s.id, s]));
+                const enriched = (data || []).map((m: any) => ({
+                    ...m,
+                    items: itemMap.get(m.product_id) || { name: 'Item', unit_of_measure: 'units' },
+                    from_shop: m.from_outlet_id ? shopMap.get(m.from_outlet_id) || null : null,
+                    to_shop: m.to_outlet_id ? shopMap.get(m.to_outlet_id) || null : null,
+                }));
+                setMovements(enriched);
             }
 
         } catch (error: any) {

@@ -3,6 +3,7 @@ import { View, Text, FlatList, TextInput, TouchableOpacity, Alert, StyleSheet, A
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import { showSuccessAlert, showErrorAlert } from '../../lib/alert';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function StockReturnScreen() {
@@ -138,31 +139,67 @@ export default function StockReturnScreen() {
             let successCount = 0;
 
             for (const item of validItems) {
-                const { data, error } = await supabase.rpc('process_customer_return', {
-                    p_product_id: item.id,
-                    p_outlet_id: currentShopId,
-                    p_quantity: quantities[item.id],
-                    p_reason: reasons[item.id] || 'Customer Return',
-                    p_user_id: user?.id
-                });
+                const returnQty = quantities[item.id] || 0;
+                if (returnQty <= 0 || !currentShopId) continue;
 
-                if (!error && data?.success) {
-                    successCount++;
+                // 1. Add returned qty back to shop `stock.quantity` (matching Web Stock.js)
+                const { data: existingRow, error: fetchErr } = await supabase
+                    .from('stock')
+                    .select('id, quantity')
+                    .eq('outlet_id', currentShopId)
+                    .eq('item_id', item.id)
+                    .maybeSingle();
+
+                if (fetchErr) throw fetchErr;
+
+                if (existingRow) {
+                    const { error: updErr } = await supabase
+                        .from('stock')
+                        .update({
+                            quantity: (existingRow.quantity ?? 0) + returnQty,
+                            last_updated: new Date().toISOString(),
+                        })
+                        .eq('id', existingRow.id);
+                    if (updErr) throw updErr;
+                } else {
+                    const { error: insErr } = await supabase
+                        .from('stock')
+                        .insert([{
+                            item_id: item.id,
+                            outlet_id: currentShopId,
+                            quantity: returnQty,
+                            last_updated: new Date().toISOString(),
+                        }]);
+                    if (insErr) throw insErr;
                 }
+
+                // 2. Log in stock_movements for Web Stock.js
+                const { error: moveErr } = await supabase.from('stock_movements').insert([{
+                    product_id: item.id,
+                    to_outlet_id: currentShopId,
+                    quantity: returnQty,
+                    movement_type: 'return',
+                    notes: reasons[item.id] || 'Customer Return',
+                    created_by: user?.id,
+                }]);
+                if (moveErr) console.warn('stock_movements insert note:', moveErr.message);
+
+                successCount++;
             }
 
             if (successCount === validItems.length) {
-                Alert.alert('Success', 'Returns processed successfully', [
-                    { text: 'OK', onPress: () => router.back() }
-                ]);
+                showSuccessAlert('Success', 'Returns processed successfully', () => router.back());
             } else {
-                Alert.alert('Partial Success', `Processed ${successCount} returns. Check logs.`);
-                router.back();
+                showSuccessAlert(
+                    'Partial Success',
+                    `Processed ${successCount} returns. Check logs.`,
+                    () => router.back()
+                );
             }
 
         } catch (error: any) {
             console.error('Submit error:', error);
-            Alert.alert('Error', error.message || 'Failed to submit return');
+            showErrorAlert('Error', error.message || 'Failed to submit return');
         } finally {
             setSubmitting(false);
         }

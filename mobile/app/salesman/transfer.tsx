@@ -3,6 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, Alert, StyleSheet, ActivityIndi
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import { showSuccessAlert, showErrorAlert } from '../../lib/alert';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function StockTransferScreen() {
@@ -160,50 +161,120 @@ export default function StockTransferScreen() {
             let successCount = 0;
 
             for (const item of validItems) {
-                let rpcName = 'transfer_stock';
-                let params: any = {
-                    p_product_id: item.id,
-                    p_quantity: quantities[item.id],
-                    p_notes: notes || (transferMode === 'rep' ? 'Return to Rep' : 'Manual Transfer')
-                    // user_id is implicit or passed if needed
-                };
+                const transferQty = quantities[item.id] || 0;
+                if (transferQty <= 0 || !currentShopId) continue;
 
-                // Add RPC-specific params
+                // 1. Check & deduct from source shop stock (using `quantity` matching Web Stock.js)
+                const { data: sourceRow, error: sourceErr } = await supabase
+                    .from('stock')
+                    .select('id, quantity')
+                    .eq('outlet_id', currentShopId)
+                    .eq('item_id', item.id)
+                    .maybeSingle();
+
+                if (sourceErr) throw sourceErr;
+                const available = sourceRow?.quantity ?? 0;
+                if (!sourceRow || available < transferQty) {
+                    throw new Error(`Insufficient stock for ${item.name} (Available: ${available})`);
+                }
+
+                const { error: deductErr } = await supabase
+                    .from('stock')
+                    .update({
+                        quantity: available - transferQty,
+                        last_updated: new Date().toISOString(),
+                    })
+                    .eq('id', sourceRow.id);
+
+                if (deductErr) throw deductErr;
+
                 if (transferMode === 'shop') {
-                    rpcName = 'transfer_stock';
-                    params.p_from_outlet_id = currentShopId;
-                    params.p_to_outlet_id = selectedShopId;
-                    params.p_user_id = user?.id; // transfer_stock expects p_user_id
+                    // 2a. Add to destination shop stock
+                    const { data: destRow, error: destFetchErr } = await supabase
+                        .from('stock')
+                        .select('id, quantity')
+                        .eq('outlet_id', selectedShopId)
+                        .eq('item_id', item.id)
+                        .maybeSingle();
+
+                    if (destFetchErr) throw destFetchErr;
+
+                    if (destRow) {
+                        const { error: destUpdErr } = await supabase
+                            .from('stock')
+                            .update({
+                                quantity: (destRow.quantity ?? 0) + transferQty,
+                                last_updated: new Date().toISOString(),
+                            })
+                            .eq('id', destRow.id);
+                        if (destUpdErr) throw destUpdErr;
+                    } else {
+                        const { error: destInsErr } = await supabase
+                            .from('stock')
+                            .insert([{
+                                item_id: item.id,
+                                outlet_id: selectedShopId,
+                                quantity: transferQty,
+                                last_updated: new Date().toISOString(),
+                            }]);
+                        if (destInsErr) throw destInsErr;
+                    }
+
+                    // 3a. Log in stock_movements for Web Stock.js
+                    const { error: moveErr } = await supabase.from('stock_movements').insert([{
+                        product_id: item.id,
+                        from_outlet_id: currentShopId,
+                        to_outlet_id: selectedShopId,
+                        quantity: transferQty,
+                        movement_type: 'transfer',
+                        notes: notes || 'Mobile Shop Transfer',
+                        created_by: user?.id,
+                    }]);
+                    if (moveErr) console.warn('stock_movements insert note:', moveErr.message);
                 } else {
-                    rpcName = 'transfer_salesman_to_rep';
-                    params.p_salesman_id = user?.id;
-                    // transfer_salesman_to_rep signature: (p_salesman_id, p_product_id, p_quantity, p_notes)
-                    // Note: Ensure consistent param names with migration file
+                    // 2b. Credit Rep floating stock in stock_transactions
+                    const { error: transErr } = await supabase.from('stock_transactions').insert([{
+                        rep_id: repId,
+                        item_id: item.id,
+                        qty: transferQty,
+                        type: 'RETURN_IN',
+                        remarks: notes || 'Transferred from shop to rep',
+                        created_at: new Date().toISOString(),
+                    }]);
+                    if (transErr) throw transErr;
+
+                    // 3b. Log in stock_movements
+                    const { error: moveErr } = await supabase.from('stock_movements').insert([{
+                        product_id: item.id,
+                        from_outlet_id: currentShopId,
+                        quantity: transferQty,
+                        movement_type: 'transfer_to_rep',
+                        notes: notes || 'Return to Rep',
+                        created_by: user?.id,
+                    }]);
+                    if (moveErr) console.warn('stock_movements insert note:', moveErr.message);
                 }
 
-                const { data, error } = await supabase.rpc(rpcName, params);
-
-                if (!error && (data?.success || data === true)) { // Handle different return types
-                    successCount++;
-                } else {
-                    console.error("RPC Error", rpcName, error, data);
-                    if (data && !data.success) throw new Error(data.message);
-                    if (error) throw error;
-                }
+                successCount++;
             }
 
             if (successCount === validItems.length) {
-                Alert.alert('Success', transferMode === 'rep' ? 'Returned to Rep successfully' : 'Transfer completed successfully', [
-                    { text: 'OK', onPress: () => router.back() }
-                ]);
+                showSuccessAlert(
+                    'Success',
+                    transferMode === 'rep' ? 'Returned to Rep successfully' : 'Transfer completed successfully',
+                    () => router.back()
+                );
             } else {
-                Alert.alert('Partial Success', `Processed ${successCount} of ${validItems.length} items. Check logs.`);
-                router.back();
+                showSuccessAlert(
+                    'Partial Success',
+                    `Processed ${successCount} of ${validItems.length} items. Check logs.`,
+                    () => router.back()
+                );
             }
 
         } catch (error: any) {
             console.error('Submit error:', error);
-            Alert.alert('Error', error.message || 'Failed to submit transfer');
+            showErrorAlert('Error', error.message || 'Failed to submit transfer');
         } finally {
             setSubmitting(false);
         }
