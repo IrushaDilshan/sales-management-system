@@ -103,6 +103,21 @@ export default function SalesmanSettings() {
     };
 
     const handleLogout = async () => {
+        const doSignOut = async () => {
+            await supabase.auth.signOut();
+            router.replace('/login' as any);
+        };
+
+        if (Platform.OS === 'web') {
+            const confirmed = typeof window !== 'undefined' && typeof window.confirm === 'function'
+                ? window.confirm('Are you sure you want to logout?')
+                : true;
+            if (confirmed) {
+                await doSignOut();
+            }
+            return;
+        }
+
         Alert.alert(
             'Logout',
             'Are you sure you want to logout?',
@@ -111,10 +126,7 @@ export default function SalesmanSettings() {
                 {
                     text: 'Logout',
                     style: 'destructive',
-                    onPress: async () => {
-                        await supabase.auth.signOut();
-                        router.replace('/login' as any);
-                    }
+                    onPress: doSignOut
                 }
             ]
         );

@@ -115,8 +115,8 @@ export default function HistoryTabScreen() {
                 // Get sales
                 const { data: sales } = await supabase
                     .from('sales')
-                    .select('id, created_at, total_amount, customer_name')
-                    .eq('shop_id', shopId)
+                    .select('id, created_at, total_amount, customer_name, payment_method')
+                    .eq('outlet_id', shopId)
                     .order('created_at', { ascending: false });
 
                 if (sales) {
@@ -125,7 +125,7 @@ export default function HistoryTabScreen() {
                             id: `sale-${sale.id}`,
                             type: 'sale',
                             action: 'Sale completed',
-                            detail: sale.customer_name || 'Customer',
+                            detail: sale.customer_name || sale.payment_method || 'Sale',
                             date: sale.created_at,
                             amount: sale.total_amount
                         });
@@ -134,20 +134,21 @@ export default function HistoryTabScreen() {
 
                 // Get income
                 const { data: incomes } = await supabase
-                    .from('incomes')
-                    .select('id, created_at, amount, notes')
+                    .from('daily_income')
+                    .select('id, created_at, total_sales, cash_sales, credit_sales, notes, date')
                     .eq('shop_id', shopId)
                     .order('created_at', { ascending: false });
 
                 if (incomes) {
                     incomes.forEach(income => {
+                        const amt = income.total_sales ?? ((income.cash_sales || 0) + (income.credit_sales || 0));
                         allActivities.push({
                             id: `income-${income.id}`,
                             type: 'income',
                             action: 'Income submitted',
-                            detail: income.notes || 'Income record',
-                            date: income.created_at,
-                            amount: income.amount
+                            detail: income.notes || `Cash Rs. ${income.cash_sales || 0} · Credit Rs. ${income.credit_sales || 0}`,
+                            date: income.created_at || income.date,
+                            amount: amt
                         });
                     });
                 }

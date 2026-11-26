@@ -171,8 +171,8 @@ export default function SalesmanDashboard() {
                 try {
                     const { data: sales } = await supabase
                         .from('sales')
-                        .select('id, created_at, total_amount, customer_name')
-                        .eq('shop_id', shopId)
+                        .select('id, created_at, total_amount, customer_name, payment_method')
+                        .eq('outlet_id', shopId)
                         .order('created_at', { ascending: false })
                         .limit(10);
 
@@ -182,7 +182,7 @@ export default function SalesmanDashboard() {
                                 id: `sale-${sale.id}`,
                                 type: 'sale',
                                 action: 'Sale completed',
-                                detail: sale.customer_name || `Rs. ${sale.total_amount}`,
+                                detail: sale.customer_name || (sale.payment_method ? `${sale.payment_method} · Rs. ${sale.total_amount}` : `Rs. ${sale.total_amount}`),
                                 date: sale.created_at,
                                 amount: sale.total_amount
                             });
@@ -192,24 +192,25 @@ export default function SalesmanDashboard() {
                     console.error('Error fetching sales:', err);
                 }
 
-                // 6. Get INCOME (Income submissions)
+                // 6. Get INCOME (Daily Income submissions)
                 try {
                     const { data: incomes } = await supabase
-                        .from('incomes')
-                        .select('id, created_at, amount, notes')
+                        .from('daily_income')
+                        .select('id, created_at, total_sales, cash_sales, credit_sales, notes, date')
                         .eq('shop_id', shopId)
                         .order('created_at', { ascending: false })
                         .limit(10);
 
                     if (incomes) {
                         incomes.forEach(income => {
+                            const amt = income.total_sales ?? ((income.cash_sales || 0) + (income.credit_sales || 0));
                             activities.push({
                                 id: `income-${income.id}`,
                                 type: 'income',
                                 action: 'Income submitted',
-                                detail: income.notes || `Rs. ${income.amount}`,
-                                date: income.created_at,
-                                amount: income.amount
+                                detail: income.notes || `Cash Rs. ${income.cash_sales || 0} · Credit Rs. ${income.credit_sales || 0}`,
+                                date: income.created_at || income.date,
+                                amount: amt
                             });
                         });
                     }
