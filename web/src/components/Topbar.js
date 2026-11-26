@@ -125,7 +125,31 @@ const Topbar = ({ onOpenMobile, isDark, onToggleTheme }) => {
         }
       }
 
-      // 3. Role-specific alerts
+      // 3. Pending Mobile Restock Requests (Storekeeper + Admin live alert)
+      const { data: pendingReqs } = await supabase
+        .from('requests')
+        .select('id, required_date, created_at, shops(name)')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (pendingReqs && pendingReqs.length > 0) {
+        const shopPreview = pendingReqs
+          .slice(0, 2)
+          .map((r) => r.shops?.name || 'Outlet')
+          .join(', ');
+        const extra = pendingReqs.length > 2 ? ` +${pendingReqs.length - 2} more` : '';
+        nextAlerts.push({
+          id: `pending-requests-${pendingReqs.length}`,
+          title: `${pendingReqs.length} Pending Restock Request${pendingReqs.length > 1 ? 's' : ''}`,
+          description: `From ${shopPreview}${extra} — awaiting storekeeper dispatch.`,
+          time: 'Restock',
+          tone: 'amber',
+          icon: 'ledger',
+          target: '/storekeeper',
+        });
+      }
+
+      // 4. Role-specific alerts
       if (!isStorekeeper) {
         // Admin: check inactive / pending staff accounts
         const { data: usersData } = await supabase
@@ -178,7 +202,18 @@ const Topbar = ({ onOpenMobile, isDark, onToggleTheme }) => {
   useEffect(() => {
     fetchAlerts();
     const interval = setInterval(fetchAlerts, 60000);
-    return () => clearInterval(interval);
+    const channel = supabase
+      .channel('topbar-requests-alerts')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'requests' },
+        () => fetchAlerts()
+      )
+      .subscribe();
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
   }, [fetchAlerts]);
 
   const visibleAlerts = alerts.filter((a) => !dismissedIds.has(a.id));

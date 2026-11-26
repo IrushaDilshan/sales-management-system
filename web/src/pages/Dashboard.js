@@ -45,7 +45,7 @@ const Dashboard = () => {
       // 1. Fetch Sales for Revenue Trajectory
       const { data: salesData, error: salesError } = await supabase
         .from('sales')
-        .select('id, total_amount, payment_type, sale_date, created_at')
+        .select('id, total_amount, payment_method, sale_date, created_at')
         .order('sale_date', { ascending: false })
         .limit(100);
 
@@ -72,7 +72,8 @@ const Dashboard = () => {
       (salesData || []).forEach((s) => {
         const amt = parseFloat(s.total_amount) || 0;
         totalRev += amt;
-        if (s.payment_type?.toLowerCase() === 'cash') {
+        const method = (s.payment_method || s.payment_type || '').toLowerCase();
+        if (method === 'cash') {
           cashRev += amt;
         } else {
           creditRev += amt;

@@ -22,6 +22,7 @@ const Storekeeper = () => {
   const [stocks, setStocks] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [reps, setReps] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -74,6 +75,18 @@ const Storekeeper = () => {
       }
       if (repsData) setReps(repsData);
 
+      const { data: reqData, error: reqError } = await supabase
+        .from('requests')
+        .select(
+          'id, shop_id, salesman_id, status, required_date, created_at, shops(name, outlet_type, rep_id, route_id, routes(name, rep_id)), request_items(id, item_id, qty, delivered_qty, items(id, name, sku, unit_of_measure, quantity))'
+        )
+        .eq('status', 'pending')
+        .order('required_date', { ascending: true });
+      if (reqError && reqError.code !== 'PGRST116') {
+        console.warn('Requests fetch note:', reqError.message);
+      }
+      setPendingRequests(reqData || []);
+
       const transactionsList = transData || [];
 
       const mergedStocks = (itemsData || []).map((item) => {
@@ -109,7 +122,18 @@ const Storekeeper = () => {
         fetchData(true);
       }
     }, 30000);
-    return () => clearInterval(interval);
+    const channel = supabase
+      .channel('storekeeper-requests-live')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'requests' },
+        () => fetchData(true)
+      )
+      .subscribe();
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
   }, [actionModal.open, historyModal.open, fetchData]);
 
   // Dashboard Stats
@@ -235,6 +259,72 @@ const Storekeeper = () => {
     }
   };
 
+  const handleIssueRequestToRep = async (req) => {
+    const repId = req.shops?.rep_id || req.shops?.routes?.rep_id || null;
+    if (!repId) {
+      showToast('No Rep is assigned to this shop or its route.', 'error');
+      return;
+    }
+
+    try {
+      let issuedLines = 0;
+      for (const ri of req.request_items || []) {
+        const needed = Math.max(0, (ri.qty || 0) - (ri.delivered_qty || 0));
+        if (needed <= 0) continue;
+
+        const currentCentralQty = ri.items?.quantity ?? 0;
+        const issueQty = Math.min(needed, currentCentralQty);
+        if (issueQty <= 0) continue;
+
+        const { error: itemUpdErr } = await supabase
+          .from('items')
+          .update({ quantity: currentCentralQty - issueQty })
+          .eq('id', ri.item_id);
+        if (itemUpdErr) throw itemUpdErr;
+
+        const { error: transErr } = await supabase.from('stock_transactions').insert([
+          {
+            item_id: ri.item_id,
+            type: 'OUT',
+            qty: issueQty,
+            rep_id: repId,
+            reference: `REQ-${String(req.id).slice(0, 8)}`,
+            remarks: `Issued for ${req.shops?.name || 'Outlet'} (${req.required_date || 'ASAP'})`,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+        if (transErr) throw transErr;
+        issuedLines++;
+      }
+
+      if (issuedLines === 0) {
+        showToast('No available central stock to issue for this request.', 'warning');
+      } else {
+        const repName = reps.find((r) => r.id === repId)?.name || 'Assigned Rep';
+        showToast(`Issued ${issuedLines} item(s) from HQ stock to ${repName}.`, 'success');
+      }
+      await fetchData(true);
+    } catch (err) {
+      console.error('Error issuing request stock to rep:', err);
+      showToast(err.message || 'Failed to issue stock to rep.', 'error');
+    }
+  };
+
+  const handleMarkRequestFulfilled = async (reqId) => {
+    try {
+      const { error: updErr } = await supabase
+        .from('requests')
+        .update({ status: 'fulfilled' })
+        .eq('id', reqId);
+      if (updErr) throw updErr;
+      showToast('Restock request marked as fulfilled.', 'success');
+      await fetchData(true);
+    } catch (err) {
+      console.error('Error updating request:', err);
+      showToast('Failed to update restock request.', 'error');
+    }
+  };
+
   const getItemHistory = () => {
     if (!historyModal.item) return [];
     return transactions
@@ -340,6 +430,72 @@ const Storekeeper = () => {
           </div>
         </div>
       </div>
+
+      {/* Incoming Mobile Restock Requests */}
+      {pendingRequests.length > 0 && (
+        <div className="bg-amber-50/60 dark:bg-amber-950/20 rounded-2xl border border-amber-200/80 dark:border-amber-800/60 p-4 shadow-card space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+              <h2 className="text-sm font-bold text-zinc-900 dark:text-white">
+                Incoming Restock Requests ({pendingRequests.length})
+              </h2>
+            </div>
+            <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+              Live from Mobile Outlets
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {pendingRequests.map((req) => (
+              <div
+                key={req.id}
+                className="bg-white dark:bg-zinc-950 rounded-xl border border-zinc-200/80 dark:border-zinc-800 p-3.5 flex flex-col justify-between gap-3"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <span className="text-sm font-semibold text-zinc-900 dark:text-white">
+                        {req.shops?.name || 'Retail Outlet'}
+                      </span>
+                      <div className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                        {req.shops?.routes?.name ? `Route: ${req.shops.routes.name} · ` : ''}
+                        Rep: {reps.find((r) => r.id === (req.shops?.rep_id || req.shops?.routes?.rep_id))?.name || 'Unassigned'}
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300">
+                      Due: {req.required_date || 'ASAP'}
+                    </span>
+                  </div>
+                  <div className="mt-2 space-y-1">
+                    {(req.request_items || []).map((ri) => (
+                      <div key={ri.id} className="flex items-center justify-between text-xs text-zinc-600 dark:text-zinc-400">
+                        <span>{ri.items?.name || 'Item'}</span>
+                        <span className="font-mono font-semibold text-zinc-900 dark:text-zinc-200">
+                          {ri.qty} {ri.items?.unit_of_measure || 'units'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800/70">
+                  <button
+                    onClick={() => handleIssueRequestToRep(req)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold transition-colors"
+                  >
+                    Issue to Rep
+                  </button>
+                  <button
+                    onClick={() => handleMarkRequestFulfilled(req.id)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors"
+                  >
+                    Mark Fulfilled
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Unified Data Surface Card */}
       <div className="bg-white dark:bg-zinc-950 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-card overflow-hidden">
