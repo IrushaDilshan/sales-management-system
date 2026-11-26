@@ -17,6 +17,11 @@ export default function RepHomeDashboard() {
     const [totalItemsCount, setTotalItemsCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [summary, setSummary] = useState<{ name: string; total: number }[]>([]);
+    const [rawRequests, setRawRequests] = useState<any[]>([]);
+    const [rawRequestItems, setRawRequestItems] = useState<any[]>([]);
+    const [productMap, setProductMap] = useState<Record<string, string>>({});
+    const [availableDates, setAvailableDates] = useState<string[]>([]);
+    const [selectedDate, setSelectedDate] = useState<string>('ALL');
 
     useFocusEffect(
         useCallback(() => {
@@ -30,81 +35,146 @@ export default function RepHomeDashboard() {
         setRefreshing(false);
     }, []);
 
+    const recomputeLoad = useCallback((
+        dateFilter: string,
+        reqs: any[],
+        reqItems: any[],
+        prodMap: Record<string, string>
+    ) => {
+        const filteredReqs = dateFilter === 'ALL'
+            ? reqs
+            : reqs.filter((r) => (r.required_date || (r.created_at || '').split('T')[0]) === dateFilter);
+
+        setPendingRequests(filteredReqs.length);
+
+        const reqIdSet = new Set(filteredReqs.map((r) => r.id));
+        const totals: Record<string, number> = {};
+        let grandTotal = 0;
+
+        reqItems.forEach((item: any) => {
+            if (!reqIdSet.has(item.request_id)) return;
+            const remaining = (item.qty || 0) - (item.delivered_qty || 0);
+            if (remaining > 0) {
+                totals[item.item_id] = (totals[item.item_id] || 0) + remaining;
+                grandTotal += remaining;
+            }
+        });
+
+        setTotalItemsCount(grandTotal);
+        const summaryList = Object.entries(totals)
+            .map(([id, qty]) => ({
+                name: prodMap[id] || 'Item Unavailable',
+                total: qty,
+            }))
+            .sort((a, b) => b.total - a.total);
+        setSummary(summaryList);
+    }, []);
+
+    const handleSelectDate = (dateKey: string) => {
+        setSelectedDate(dateKey);
+        recomputeLoad(dateKey, rawRequests, rawRequestItems, productMap);
+    };
+
+    const formatDateChip = (dateStr: string) => {
+        if (dateStr === 'ALL') return 'All Dates';
+        const todayStr = new Date().toISOString().split('T')[0];
+        const tmr = new Date();
+        tmr.setDate(tmr.getDate() + 1);
+        const tmrStr = tmr.toISOString().split('T')[0];
+        if (dateStr === todayStr) return 'Today';
+        if (dateStr === tmrStr) return 'Tomorrow';
+        const d = new Date(dateStr + 'T00:00:00');
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    };
+
     const fetchData = async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
             // Fetch Name
-            const { data: userData } = await supabase.from('users').select('name').eq('id', user.id).single();
+            const { data: userData } = await supabase.from('users').select('id, name').eq('id', user.id).maybeSingle();
             if (userData?.name) setUserName(userData.name);
 
-            // Fetch Pending Request Count (Yesterday's Requests Only)
-            const dateObj = new Date();
-            dateObj.setDate(dateObj.getDate() - 1); // Go back 1 day
-            const yesterday = dateObj.toISOString().split('T')[0];
+            // 1. Resolve Rep's assigned routes and shops
+            const { data: myRoutes } = await supabase
+                .from('routes')
+                .select('id')
+                .eq('rep_id', user.id);
+            const myRouteIds = (myRoutes || []).map((r: any) => r.id);
 
+            let shopsQuery = supabase.from('shops').select('id');
+            if (myRouteIds.length > 0) {
+                shopsQuery = shopsQuery.or(`rep_id.eq.${user.id},route_id.in.(${myRouteIds.join(',')})`);
+            } else {
+                shopsQuery = shopsQuery.eq('rep_id', user.id);
+            }
+            const { data: myShops } = await shopsQuery;
+            const myShopIds = (myShops || []).map((s: any) => s.id).filter(Boolean);
+
+            if (myShopIds.length === 0) {
+                setRawRequests([]);
+                setRawRequestItems([]);
+                setAvailableDates([]);
+                setPendingRequests(0);
+                setTotalItemsCount(0);
+                setSummary([]);
+                return;
+            }
+
+            // 2. Fetch Pending Requests ONLY for this Rep's assigned route/shops
             const { data: requestsData, error: reqError } = await supabase
                 .from('requests')
-                .select('id')
+                .select('id, shop_id, required_date, created_at')
                 .eq('status', 'pending')
-                .eq('date', yesterday); // Visibility Rule: Only seeing exactly Yesterday's requests
+                .in('shop_id', myShopIds)
+                .order('required_date', { ascending: true });
 
             if (!reqError && requestsData) {
-                setPendingRequests(requestsData.length);
+                const dates = Array.from(
+                    new Set(
+                        requestsData
+                            .map((r: any) => r.required_date || (r.created_at || '').split('T')[0])
+                            .filter(Boolean)
+                    )
+                ).sort();
+
+                setRawRequests(requestsData);
+                setAvailableDates(dates);
+
+                let itemsData: any[] = [];
+                let prodMap: Record<string, string> = {};
 
                 if (requestsData.length > 0) {
-                    const reqIds = requestsData.map(r => r.id);
-
-                    // Fetch items for aggregation
-                    const { data: itemsData, error: itemsError } = await supabase
+                    const reqIds = requestsData.map((r: any) => r.id);
+                    const { data: reqItems, error: itemsError } = await supabase
                         .from('request_items')
-                        .select('item_id, qty, delivered_qty')
+                        .select('request_id, item_id, qty, delivered_qty')
                         .in('request_id', reqIds);
 
-                    if (itemsData && !itemsError) {
-                        // Aggregate (Subtract delivered amounts)
-                        const totals: Record<string, number> = {};
-                        let grandTotal = 0;
-                        itemsData.forEach((item: any) => {
-                            const remaining = item.qty - (item.delivered_qty || 0);
-                            if (remaining > 0) {
-                                totals[item.item_id] = (totals[item.item_id] || 0) + remaining;
-                                grandTotal += remaining;
-                            }
-                        });
-                        setTotalItemsCount(grandTotal);
-
-                        // Fetch Item Names
-                        const itemIds = Object.keys(totals);
-
-                        const { data: products, error: productError } = await supabase
-                            .from('items')
-                            .select('id, name')
-                            .in('id', itemIds);
-
-                        if (productError) {
-                            console.error('Error fetching products:', productError);
-                        }
-
-                        const productMap: Record<string, string> = {};
-                        if (products) {
-                            products.forEach((p: any) => {
-                                productMap[p.id] = p.name;
+                    if (reqItems && !itemsError) {
+                        itemsData = reqItems;
+                        const itemIds = Array.from(new Set(reqItems.map((i: any) => i.item_id).filter(Boolean)));
+                        if (itemIds.length > 0) {
+                            const { data: products } = await supabase
+                                .from('items')
+                                .select('id, name')
+                                .in('id', itemIds);
+                            (products || []).forEach((p: any) => {
+                                prodMap[p.id] = p.name;
                             });
                         }
-
-                        // Format for display
-                        const summaryList = Object.entries(totals).map(([id, qty]) => ({
-                            name: productMap[id] || 'Item Unavailable',
-                            total: qty
-                        })).sort((a, b) => b.total - a.total); // Sort by highest qty
-
-                        setSummary(summaryList);
                     }
-                } else {
-                    setSummary([]);
                 }
+
+                setRawRequestItems(itemsData);
+                setProductMap(prodMap);
+
+                const activeDate = selectedDate !== 'ALL' && dates.includes(selectedDate)
+                    ? selectedDate
+                    : (dates[0] || 'ALL');
+                setSelectedDate(activeDate);
+                recomputeLoad(activeDate, requestsData, itemsData, prodMap);
             }
 
         } catch (error) { console.error(error) } finally {
@@ -160,6 +230,39 @@ export default function RepHomeDashboard() {
                             <Text style={styles.actionBtnText}>View Real-Time</Text>
                         </LinearGradient>
                     </TouchableOpacity>
+
+                    {/* Delivery Date Filter Chips */}
+                    {availableDates.length > 0 && (
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={{ gap: 8, marginTop: 14, paddingVertical: 2 }}
+                        >
+                            {['ALL', ...availableDates].map((dKey) => {
+                                const active = selectedDate === dKey;
+                                return (
+                                    <TouchableOpacity
+                                        key={dKey}
+                                        onPress={() => handleSelectDate(dKey)}
+                                        style={{
+                                            paddingHorizontal: 14,
+                                            paddingVertical: 7,
+                                            borderRadius: 999,
+                                            backgroundColor: active ? '#2563EB' : '#F1F5F9',
+                                        }}
+                                    >
+                                        <Text style={{
+                                            fontSize: 12,
+                                            fontWeight: '700',
+                                            color: active ? '#FFFFFF' : '#475569',
+                                        }}>
+                                            {formatDateChip(dKey)}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </ScrollView>
+                    )}
 
                     {/* Central Empty State / Content */}
                     <View style={styles.centerContent}>

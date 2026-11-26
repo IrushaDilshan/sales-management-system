@@ -8,6 +8,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 type ShopRequest = {
     shopId: number;
     shopName: string;
+    outletType: string;
+    location: string;
+    phone: string;
+    routeName: string;
     requestCount: number;
     latestDate: string;
 };
@@ -18,6 +22,7 @@ export default function ShopsListScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [search, setSearch] = useState('');
+    const [typeFilter, setTypeFilter] = useState<'ALL' | 'Farm Shop' | 'Milk Shop'>('ALL');
     const router = useRouter();
 
     useEffect(() => {
@@ -73,7 +78,7 @@ export default function ShopsListScreen() {
             // 2. Find all shops assigned to this rep (either directly or through routes)
             let shopsQuery = supabase
                 .from('shops')
-                .select('id, name');
+                .select('id, name, outlet_type, location, phone, route_id, rep_id, routes(name)');
 
             if (myRouteIds.length > 0) {
                 shopsQuery = shopsQuery.or(`rep_id.eq.${currentUserId},route_id.in.(${myRouteIds.join(',')})`);
@@ -96,7 +101,7 @@ export default function ShopsListScreen() {
             // 3. Fetch ALL pending requests for these shops
             const { data: requestsData, error: reqError } = await supabase
                 .from('requests')
-                .select('id, shop_id, date')
+                .select('id, shop_id, required_date, created_at')
                 .eq('status', 'pending')
                 .in('shop_id', shopIds);
 
@@ -109,18 +114,23 @@ export default function ShopsListScreen() {
             }
 
             // 4. Aggregate
-            const shopsMap = new Map();
-            shopsData?.forEach((s: any) => shopsMap.set(s.id, s.name));
+            const shopsMap = new Map<any, any>();
+            shopsData?.forEach((s: any) => shopsMap.set(s.id, s));
 
             const shopIdsWithRequests = Array.from(new Set(requestsData.map((r: any) => r.shop_id)));
 
             const aggregated = shopIdsWithRequests.map(id => {
                 const shopRequests = requestsData.filter((r: any) => r.shop_id === id);
+                const shopMeta = shopsMap.get(id);
                 return {
                     shopId: id,
-                    shopName: shopsMap.get(id) || 'Unknown Shop',
+                    shopName: shopMeta?.name || 'Unknown Shop',
+                    outletType: shopMeta?.outlet_type || 'Farm Shop',
+                    location: shopMeta?.location || '',
+                    phone: shopMeta?.phone || '',
+                    routeName: (shopMeta?.routes as any)?.name || '',
                     requestCount: shopRequests.length,
-                    latestDate: shopRequests[0]?.date
+                    latestDate: shopRequests[0]?.required_date || shopRequests[0]?.created_at
                 };
             });
 
@@ -140,16 +150,34 @@ export default function ShopsListScreen() {
         fetchShops();
     };
 
-    const handleSearch = (text: string) => {
-        setSearch(text);
-        if (text) {
-            setFilteredShops(shops.filter(s => s.shopName.toLowerCase().includes(text.toLowerCase())));
-        } else {
-            setFilteredShops(shops);
+    const applyFilters = (text: string, typeVal: 'ALL' | 'Farm Shop' | 'Milk Shop') => {
+        let next = shops;
+        if (typeVal !== 'ALL') {
+            next = next.filter(s => (s.outletType || 'Farm Shop') === typeVal);
         }
+        if (text) {
+            const q = text.toLowerCase();
+            next = next.filter(s =>
+                s.shopName.toLowerCase().includes(q) ||
+                (s.location || '').toLowerCase().includes(q)
+            );
+        }
+        setFilteredShops(next);
     };
 
-    const renderItem = ({ item }: { item: ShopRequest }) => (
+    const handleSearch = (text: string) => {
+        setSearch(text);
+        applyFilters(text, typeFilter);
+    };
+
+    const handleTypeFilter = (typeVal: 'ALL' | 'Farm Shop' | 'Milk Shop') => {
+        setTypeFilter(typeVal);
+        applyFilters(search, typeVal);
+    };
+
+    const renderItem = ({ item }: { item: ShopRequest }) => {
+        const isMilk = item.outletType === 'Milk Shop';
+        return (
         <TouchableOpacity
             style={styles.shopCard}
             onPress={() => router.push(`/rep/request/${item.shopId}`)}
@@ -158,7 +186,7 @@ export default function ShopsListScreen() {
             {/* Shop Icon */}
             <View style={styles.shopIconWrapper}>
                 <LinearGradient
-                    colors={['#2196F3', '#1976D2']}
+                    colors={isMilk ? ['#0284C7', '#0369A1'] : ['#10B981', '#059669']}
                     style={styles.shopIconGradient}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
@@ -169,7 +197,24 @@ export default function ShopsListScreen() {
 
             {/* Shop Details */}
             <View style={styles.shopDetails}>
-                <Text style={styles.shopName} numberOfLines={1}>{item.shopName}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <Text style={styles.shopName} numberOfLines={1}>{item.shopName}</Text>
+                    <View style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 2,
+                        borderRadius: 999,
+                        backgroundColor: isMilk ? '#E0F2FE' : '#D1FAE5',
+                    }}>
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: isMilk ? '#0369A1' : '#047857' }}>
+                            {item.outletType}
+                        </Text>
+                    </View>
+                </View>
+                {(item.location || item.routeName || item.phone) ? (
+                    <Text style={{ fontSize: 11, color: '#64748B', marginTop: 2 }} numberOfLines={1}>
+                        {[item.location, item.routeName, item.phone].filter(Boolean).join(' · ')}
+                    </Text>
+                ) : null}
                 <View style={styles.requestBadge}>
                     <Ionicons name="receipt" size={12} color="#0284C7" />
                     <Text style={styles.requestText}>
@@ -181,7 +226,8 @@ export default function ShopsListScreen() {
             {/* Arrow */}
             <Ionicons name="chevron-forward" size={24} color="#CBD5E1" />
         </TouchableOpacity>
-    );
+        );
+    };
 
     // Calculate stats
     const totalShops = filteredShops.length;
@@ -232,6 +278,35 @@ export default function ShopsListScreen() {
                         <Ionicons name="close-circle" size={20} color="#94A3B8" />
                     </TouchableOpacity>
                 )}
+            </View>
+
+            {/* Outlet Type Filter Pills */}
+            <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 12 }}>
+                {(['ALL', 'Farm Shop', 'Milk Shop'] as const).map((typeOpt) => {
+                    const active = typeFilter === typeOpt;
+                    return (
+                        <TouchableOpacity
+                            key={typeOpt}
+                            onPress={() => handleTypeFilter(typeOpt)}
+                            style={{
+                                paddingHorizontal: 14,
+                                paddingVertical: 7,
+                                borderRadius: 999,
+                                backgroundColor: active ? '#2196F3' : '#FFFFFF',
+                                borderWidth: 1,
+                                borderColor: active ? '#2196F3' : '#E2E8F0',
+                            }}
+                        >
+                            <Text style={{
+                                fontSize: 12,
+                                fontWeight: '700',
+                                color: active ? '#FFFFFF' : '#475569',
+                            }}>
+                                {typeOpt === 'ALL' ? 'All' : typeOpt}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                })}
             </View>
 
             {/* Shops List */}

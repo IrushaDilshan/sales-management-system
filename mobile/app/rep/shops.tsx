@@ -9,6 +9,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 type ShopRequest = {
     shopId: number;
     shopName: string;
+    outletType: string;
+    location: string;
+    phone: string;
+    routeName: string;
     requestCount: number;
     latestDate: string;
 };
@@ -18,6 +22,7 @@ export default function ShopsListScreen() {
     const [filteredShops, setFilteredShops] = useState<ShopRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [typeFilter, setTypeFilter] = useState<'ALL' | 'Farm Shop' | 'Milk Shop'>('ALL');
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
@@ -56,7 +61,7 @@ export default function ShopsListScreen() {
 
             let shopsQuery = supabase
                 .from('shops')
-                .select('id, name');
+                .select('id, name, outlet_type, location, phone, route_id, rep_id, routes(name)');
 
             if (myRouteIds.length > 0) {
                 shopsQuery = shopsQuery.or(`rep_id.eq.${currentUserId},route_id.in.(${myRouteIds.join(',')})`);
@@ -77,7 +82,7 @@ export default function ShopsListScreen() {
 
             const { data: requestsData, error: reqError } = await supabase
                 .from('requests')
-                .select('shop_id, date')
+                .select('shop_id, required_date, created_at')
                 .eq('status', 'pending')
                 .in('shop_id', myShopIds);
 
@@ -89,17 +94,22 @@ export default function ShopsListScreen() {
                 return;
             }
 
-            const shopsMap = new Map();
-            myShops.forEach((s: any) => shopsMap.set(s.id, s.name));
+            const shopsMap = new Map<any, any>();
+            myShops.forEach((s: any) => shopsMap.set(s.id, s));
             const shopIdsWithRequests = Array.from(new Set(requestsData.map((r: any) => r.shop_id)));
 
             const aggregated = shopIdsWithRequests.map(id => {
                 const shopRequests = requestsData.filter((r: any) => r.shop_id === id);
+                const shopMeta = shopsMap.get(id);
                 return {
                     shopId: id,
-                    shopName: shopsMap.get(id) || 'Unknown Shop',
+                    shopName: shopMeta?.name || 'Unknown Shop',
+                    outletType: shopMeta?.outlet_type || 'Farm Shop',
+                    location: shopMeta?.location || '',
+                    phone: shopMeta?.phone || '',
+                    routeName: (shopMeta?.routes as any)?.name || '',
                     requestCount: shopRequests.length,
-                    latestDate: shopRequests[0]?.date
+                    latestDate: shopRequests[0]?.required_date || shopRequests[0]?.created_at
                 };
             });
 
@@ -113,16 +123,34 @@ export default function ShopsListScreen() {
         }
     };
 
-    const handleSearch = (text: string) => {
-        setSearch(text);
-        if (text) {
-            setFilteredShops(shops.filter(s => s.shopName.toLowerCase().includes(text.toLowerCase())));
-        } else {
-            setFilteredShops(shops);
+    const applyFilters = (text: string, typeVal: 'ALL' | 'Farm Shop' | 'Milk Shop') => {
+        let next = shops;
+        if (typeVal !== 'ALL') {
+            next = next.filter(s => (s.outletType || 'Farm Shop') === typeVal);
         }
+        if (text) {
+            const q = text.toLowerCase();
+            next = next.filter(s =>
+                s.shopName.toLowerCase().includes(q) ||
+                (s.location || '').toLowerCase().includes(q)
+            );
+        }
+        setFilteredShops(next);
     };
 
-    const renderItem = ({ item }: { item: ShopRequest }) => (
+    const handleSearch = (text: string) => {
+        setSearch(text);
+        applyFilters(text, typeFilter);
+    };
+
+    const handleTypeFilter = (typeVal: 'ALL' | 'Farm Shop' | 'Milk Shop') => {
+        setTypeFilter(typeVal);
+        applyFilters(search, typeVal);
+    };
+
+    const renderItem = ({ item }: { item: ShopRequest }) => {
+        const isMilk = item.outletType === 'Milk Shop';
+        return (
         <TouchableOpacity
             style={styles.card}
             activeOpacity={0.9}
@@ -130,10 +158,27 @@ export default function ShopsListScreen() {
         >
             <View style={styles.cardContent}>
                 <View style={styles.iconContainer}>
-                    <Ionicons name="storefront" size={24} color="#0284C7" />
+                    <Ionicons name="storefront" size={24} color={isMilk ? '#0284C7' : '#059669'} />
                 </View>
                 <View style={{ flex: 1 }}>
-                    <Text style={styles.shopName} numberOfLines={1}>{item.shopName}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <Text style={styles.shopName} numberOfLines={1}>{item.shopName}</Text>
+                        <View style={{
+                            paddingHorizontal: 8,
+                            paddingVertical: 2,
+                            borderRadius: 999,
+                            backgroundColor: isMilk ? '#E0F2FE' : '#D1FAE5',
+                        }}>
+                            <Text style={{ fontSize: 10, fontWeight: '700', color: isMilk ? '#0369A1' : '#047857' }}>
+                                {item.outletType}
+                            </Text>
+                        </View>
+                    </View>
+                    {(item.location || item.routeName || item.phone) ? (
+                        <Text style={{ fontSize: 11, color: '#64748B', marginTop: 2 }} numberOfLines={1}>
+                            {[item.location, item.routeName, item.phone].filter(Boolean).join(' · ')}
+                        </Text>
+                    ) : null}
                     <View style={styles.badgeContainer}>
                         <View style={styles.badge}>
                             <Text style={styles.badgeText}>
@@ -148,6 +193,7 @@ export default function ShopsListScreen() {
             </View>
         </TouchableOpacity>
     );
+    };
 
     // Stats for Header
     const totalShops = shops.length;
@@ -194,6 +240,35 @@ export default function ShopsListScreen() {
                         value={search}
                         onChangeText={handleSearch}
                     />
+                </View>
+
+                {/* Outlet Type Filter Pills */}
+                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                    {(['ALL', 'Farm Shop', 'Milk Shop'] as const).map((typeOpt) => {
+                        const active = typeFilter === typeOpt;
+                        return (
+                            <TouchableOpacity
+                                key={typeOpt}
+                                onPress={() => handleTypeFilter(typeOpt)}
+                                style={{
+                                    paddingHorizontal: 14,
+                                    paddingVertical: 7,
+                                    borderRadius: 999,
+                                    backgroundColor: active ? '#2196F3' : '#FFFFFF',
+                                    borderWidth: 1,
+                                    borderColor: active ? '#2196F3' : '#E2E8F0',
+                                }}
+                            >
+                                <Text style={{
+                                    fontSize: 12,
+                                    fontWeight: '700',
+                                    color: active ? '#FFFFFF' : '#475569',
+                                }}>
+                                    {typeOpt === 'ALL' ? 'All' : typeOpt}
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    })}
                 </View>
 
                 {loading ? (
