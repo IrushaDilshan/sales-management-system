@@ -218,6 +218,8 @@ const Topbar = ({ onOpenMobile, isDark, onToggleTheme }) => {
         return { section: 'Intelligence & System', page: 'Revenue Stream' };
       case '/settings':
         return { section: 'Intelligence & System', page: 'System Config' };
+      case '/website-content':
+        return { section: 'Intelligence & System', page: 'Website Content' };
       case '/stock':
         return { section: 'Product Catalog', page: 'Stock Ledger' };
       case '/storekeeper':
