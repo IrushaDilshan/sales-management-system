@@ -21,6 +21,7 @@ import StoreKeeperDashboard from './pages/StoreKeeperDashboard';
 import Login from './pages/Login';
 import Home from './pages/Home';
 import Settings from './pages/Settings';
+import WebsiteContent from './pages/WebsiteContent';
 import './App.css';
 
 function App() {
@@ -96,6 +97,14 @@ function App() {
               element={
                 <MainShell>
                   <Settings />
+                </MainShell>
+              }
+            />
+            <Route
+              path="/website-content"
+              element={
+                <MainShell>
+                  <WebsiteContent />
                 </MainShell>
               }
             />
