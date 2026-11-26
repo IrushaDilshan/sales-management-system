@@ -10,6 +10,7 @@ import {
     LuTag
 } from 'react-icons/lu';
 import { supabase } from '../shared/supabaseClient';
+import { HOME_TRANSLATIONS, translateCategoryName } from '../shared/homeTranslations';
 import NLDBProductShowcase from '../components/NLDBProductShowcase';
 import './Home.css';
 
@@ -38,8 +39,19 @@ const Home = () => {
     const [dbProducts, setDbProducts] = useState([]);
     const [categories, setCategories] = useState([]); // Dynamic Categories
     const [loading, setLoading] = useState(true);
+    const [landingSettings, setLandingSettings] = useState(null);
+    const [publicOutlets, setPublicOutlets] = useState([]);
+    const [lang, setLang] = useState(() => localStorage.getItem('nldb_lang') || 'en');
 
     const [searchQuery, setSearchQuery] = useState('');
+    const [outletTypeFilter, setOutletTypeFilter] = useState('ALL');
+
+    const handleChangeLang = (nextLang) => {
+        setLang(nextLang);
+        localStorage.setItem('nldb_lang', nextLang);
+    };
+
+    const t = HOME_TRANSLATIONS[lang] || HOME_TRANSLATIONS.en;
 
     useEffect(() => {
         const handleScroll = () => {
@@ -47,8 +59,38 @@ const Home = () => {
         };
         window.addEventListener('scroll', handleScroll);
         fetchProducts();
+        fetchLandingContent();
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
+
+    const fetchLandingContent = async () => {
+        try {
+            const [settingsRes, outletsRes, shopsRes] = await Promise.all([
+                supabase.from('landing_settings').select('*').eq('id', 1).maybeSingle(),
+                supabase.from('public_outlets').select('*').eq('is_active', true).order('sort_order', { ascending: true }),
+                supabase.from('shops').select('id, name, outlet_type, location, phone, routes(name)').order('name')
+            ]);
+            if (settingsRes.data) setLandingSettings(settingsRes.data);
+
+            const baseOutlets = outletsRes.data && outletsRes.data.length > 0 ? outletsRes.data : nldbOutlets;
+            const registeredShops = (shopsRes.data || []).map((s) => ({
+                name: s.name,
+                loc: s.location || s.routes?.name || 'Sri Lanka',
+                tel: s.phone || '+94 11 250 1701',
+                type: s.outlet_type || 'Farm Shop',
+            }));
+
+            // Merge registered shops (Retail Outlets) first, then public_outlets without duplicates
+            const seen = new Set(registeredShops.map((r) => r.name.trim().toLowerCase()));
+            const merged = [
+                ...registeredShops,
+                ...baseOutlets.filter((o) => !seen.has((o.name || '').trim().toLowerCase())),
+            ];
+            setPublicOutlets(merged);
+        } catch (err) {
+            // Silently fallback to bundled defaults
+        }
+    };
 
     const fetchProducts = async () => {
         try {
@@ -161,27 +203,36 @@ const Home = () => {
     ];
 
     const nldbOutlets = [
-        { name: 'Melsiripura Sale Center', loc: 'Melsiripura', tel: '0377 294 792', type: 'Major Center' },
-        { name: 'Mahaberithenna Sale Center', loc: 'Digana', tel: '0817 294 638', type: 'Farm Outlet' },
-        { name: 'Rosita Sale Center', loc: 'Kotagala', tel: '0515 675 404', type: 'Upcountry' },
-        { name: 'Koulwewa Sale Center', loc: 'Peragaswela, Kuliyapitiya', tel: '0377 294 112', type: 'Regional' },
-        { name: 'Narangalle Sale Center', loc: 'Kithalawa', tel: '0373 157 400', type: 'North Western' },
-        { name: 'Nikawaratiya Sale Center', loc: 'Nikawaratiya', tel: '0372 260 288', type: 'Regional' },
-        { name: 'Siringapatha Sale Center', loc: 'Badalgama', tel: '0312 269 204', type: 'Western' },
-        { name: 'Martin Sale Center', loc: 'Bangadeniya', tel: '0327 294 584', type: 'Regional' },
-        { name: 'Weerawila Sale Center', loc: 'Thissamaharamaya', tel: '0473 499 997', type: 'Southern' },
-        { name: 'Welisara Sale Center', loc: 'Alpitiwala, Ragama', tel: '0114 294 489', type: 'Major' },
-        { name: 'Beligama Sale Center', loc: 'Beligamuwa', tel: '0773 782 136', type: 'Regional' },
-        { name: 'Haragama Sale Center', loc: 'Haragama, Gurudeniya', tel: '0817 294 061', type: 'Regional' },
-        { name: 'Karandagolla Sale Center', loc: 'Kundasale', tel: '081 729 42 98', type: 'Regional' },
-        { name: 'Apeksha Hospital Center', loc: 'Maharagama', tel: '0114 294 489', type: 'Special' },
-        { name: 'Maawaththa Farm Center', loc: 'Maawaththa', tel: '031 225 5232', type: 'Farm Outlet' }
+        { name: 'Melsiripura Sale Center', loc: 'Melsiripura', tel: '0377 294 792', type: 'Farm Shop' },
+        { name: 'Mahaberithenna Sale Center', loc: 'Digana', tel: '0817 294 638', type: 'Farm Shop' },
+        { name: 'Rosita Sale Center', loc: 'Kotagala', tel: '0515 675 404', type: 'Farm Shop' },
+        { name: 'Koulwewa Sale Center', loc: 'Peragaswela, Kuliyapitiya', tel: '0377 294 112', type: 'Farm Shop' },
+        { name: 'Narangalle Sale Center', loc: 'Kithalawa', tel: '0373 157 400', type: 'Farm Shop' },
+        { name: 'Nikawaratiya Sale Center', loc: 'Nikawaratiya', tel: '0372 260 288', type: 'Farm Shop' },
+        { name: 'Siringapatha Sale Center', loc: 'Badalgama', tel: '0312 269 204', type: 'Farm Shop' },
+        { name: 'Martin Sale Center', loc: 'Bangadeniya', tel: '0327 294 584', type: 'Farm Shop' },
+        { name: 'Weerawila Sale Center', loc: 'Thissamaharamaya', tel: '0473 499 997', type: 'Farm Shop' },
+        { name: 'Welisara Sale Center', loc: 'Alpitiwala, Ragama', tel: '0114 294 489', type: 'Farm Shop' },
+        { name: 'Beligama Sale Center', loc: 'Beligamuwa', tel: '0773 782 136', type: 'Farm Shop' },
+        { name: 'Haragama Sale Center', loc: 'Haragama, Gurudeniya', tel: '0817 294 061', type: 'Farm Shop' },
+        { name: 'Karandagolla Sale Center', loc: 'Kundasale', tel: '081 729 42 98', type: 'Farm Shop' },
+        { name: 'Apeksha Hospital Center', loc: 'Maharagama', tel: '0114 294 489', type: 'Milk Shop' },
+        { name: 'Maawaththa Farm Center', loc: 'Maawaththa', tel: '031 225 5232', type: 'Farm Shop' }
     ];
 
-    const filteredOutlets = nldbOutlets.filter(outlet =>
-        outlet.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        outlet.loc.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const activeOutlets = publicOutlets.length > 0 ? publicOutlets : nldbOutlets;
+
+    const filteredOutlets = activeOutlets.filter(outlet => {
+        const matchesSearch =
+            outlet.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (outlet.loc || '').toLowerCase().includes(searchQuery.toLowerCase());
+        const tLower = (outlet.type || '').toLowerCase();
+        const matchesType =
+            outletTypeFilter === 'ALL' ||
+            (outletTypeFilter === 'Milk Shop' && tLower.includes('milk')) ||
+            (outletTypeFilter === 'Farm Shop' && !tLower.includes('milk'));
+        return matchesSearch && matchesType;
+    });
 
     const handleViewMap = (outlet) => {
         const query = encodeURIComponent(`NLDB ${outlet.name} ${outlet.loc} Sri Lanka`);
@@ -206,7 +257,7 @@ const Home = () => {
                                 <div className="modal-img-badges">
                                     <span className={`modal-status-pill ${selectedProduct.isPerishable ? 'fresh' : 'standard'}`}>
                                         {selectedProduct.isPerishable ? <LuSnowflake size={12} /> : <LuCircleCheck size={12} />}
-                                        {selectedProduct.isPerishable ? 'Cold-Chain Fresh' : 'Standard Stock'}
+                                        {selectedProduct.isPerishable ? t.products.coldChainFresh : t.products.standardStock}
                                     </span>
                                 </div>
                                 <div className="modal-img-frame">
@@ -215,7 +266,7 @@ const Home = () => {
                             </div>
                             <div className="modal-info-col modal-info-col-modern">
                                 <div className="modal-header-modern">
-                                    <span className="modal-cat-pill">{selectedProduct.categoryName}</span>
+                                    <span className="modal-cat-pill">{translateCategoryName(selectedProduct.categoryName, lang)}</span>
                                     {selectedProduct.sku && (
                                         <span className="modal-sku-pill">
                                             <LuTag size={11} /> {selectedProduct.sku}
@@ -230,35 +281,35 @@ const Home = () => {
                                 <div className="modal-pricing-grid">
                                     <div className="price-tier-card retail">
                                         <div className="tier-header">
-                                            <span className="tier-label">Retail Price</span>
-                                            <span className="tier-badge">Direct</span>
+                                            <span className="tier-label">{t.products.retailPrice}</span>
+                                            <span className="tier-badge">{t.products.direct}</span>
                                         </div>
                                         <div className="tier-value">
                                             Rs. {selectedProduct.retailPrice != null ? selectedProduct.retailPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A'}
                                         </div>
-                                        <div className="tier-unit">per {selectedProduct.unit}</div>
+                                        <div className="tier-unit">{t.products.per} {selectedProduct.unit}</div>
                                     </div>
 
                                     <div className="price-tier-card wholesale">
                                         <div className="tier-header">
-                                            <span className="tier-label">Wholesale Price</span>
-                                            <span className="tier-badge">Bulk</span>
+                                            <span className="tier-label">{t.products.wholesalePrice}</span>
+                                            <span className="tier-badge">{t.products.bulk}</span>
                                         </div>
                                         <div className="tier-value">
                                             Rs. {selectedProduct.wholesalePrice != null ? selectedProduct.wholesalePrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A'}
                                         </div>
-                                        <div className="tier-unit">per {selectedProduct.unit}</div>
+                                        <div className="tier-unit">{t.products.per} {selectedProduct.unit}</div>
                                     </div>
                                 </div>
 
                                 <div className="modal-meta-row">
                                     <div className="meta-chip">
                                         <LuMapPin size={14} />
-                                        <span>Origin: <strong>NLDB Farms</strong></span>
+                                        <span>{t.products.origin}: <strong>{t.products.nldbFarms}</strong></span>
                                     </div>
                                     <div className="meta-chip">
                                         <LuPackage size={14} />
-                                        <span>Unit: <strong style={{ textTransform: 'capitalize' }}>{selectedProduct.unit}</strong></span>
+                                        <span>{t.products.unit}: <strong style={{ textTransform: 'capitalize' }}>{selectedProduct.unit}</strong></span>
                                     </div>
                                 </div>
 
@@ -271,7 +322,7 @@ const Home = () => {
                                         }}
                                     >
                                         <LuMapPin size={16} />
-                                        <span>Locate in Store</span>
+                                        <span>{t.products.locateInStore}</span>
                                         <LuArrowRight size={16} />
                                     </button>
                                 </div>
@@ -307,31 +358,47 @@ const Home = () => {
 
                     <nav className={`main-nav ${isMobileMenuOpen ? 'mobile-active' : ''}`}>
                         <ul>
-                            <li><a href="#about" onClick={() => setIsMobileMenuOpen(false)}>About Us</a></li>
-                            <li><a href="#products" onClick={() => setIsMobileMenuOpen(false)}>Products</a></li>
-                            <li><a href="#outlets" onClick={() => setIsMobileMenuOpen(false)}>Our Shops</a></li>
-                            <li><a href="#contact" onClick={() => setIsMobileMenuOpen(false)}>Contact Us</a></li>
+                            <li><a href="#about" onClick={() => setIsMobileMenuOpen(false)}>{t.nav.about}</a></li>
+                            <li><a href="#products" onClick={() => setIsMobileMenuOpen(false)}>{t.nav.products}</a></li>
+                            <li><a href="#outlets" onClick={() => setIsMobileMenuOpen(false)}>{t.nav.shops}</a></li>
+                            <li><a href="#contact" onClick={() => setIsMobileMenuOpen(false)}>{t.nav.contact}</a></li>
+                            <li>
+                                <div className="lang-switcher-pill" role="group" aria-label="Language switcher">
+                                    {[
+                                        { code: 'en', label: 'EN' },
+                                        { code: 'si', label: 'සිං' },
+                                        { code: 'ta', label: 'தமி' },
+                                    ].map((opt) => (
+                                        <button
+                                            key={opt.code}
+                                            type="button"
+                                            onClick={() => handleChangeLang(opt.code)}
+                                            className={`lang-btn ${lang === opt.code ? 'active' : ''}`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </li>
                         </ul>
                     </nav>
                 </div>
             </header>
 
             {/* High-Impact Hero */}
-            <section className="hero-premium" style={{ backgroundImage: `url(${premiumHeroBg})` }}>
+            <section className="hero-premium" style={{ backgroundImage: `url(${landingSettings?.hero_bg_url || premiumHeroBg})` }}>
                 <div className="container">
                     <div className="hero-content animate-fade">
                         <div className="hero-badge-v2">
-                            <span className="dot"></span> Pioneering Sustainable Agriculture
+                            <span className="dot"></span> {lang === 'en' ? (landingSettings?.hero_badge || t.hero.badge) : t.hero.badge}
                         </div>
-                        <h1>Reshaping the National <br /><span className="text-green">Livestock Frontier.</span></h1>
+                        <h1>{t.hero.title1} <br /><span className="text-green">{t.hero.title2}</span></h1>
                         <p>
-                            Leading Sri Lanka through advanced genetic research,
-                            precision engineering, and a state-of-the-art biological
-                            infrastructure ensuring national food sovereignty.
+                            {lang === 'en' ? (landingSettings?.hero_subtitle || t.hero.subtitle) : t.hero.subtitle}
                         </p>
                         <div className="hero-btns">
-                            <a href="#products" className="btn-gradient">Explore Products</a>
-                            <a href="#about" className="btn-glass">Corporate Overview</a>
+                            <a href="#products" className="btn-gradient">{t.hero.exploreBtn}</a>
+                            <a href="#about" className="btn-glass">{t.hero.overviewBtn}</a>
                         </div>
                     </div>
                 </div>
@@ -344,31 +411,29 @@ const Home = () => {
                 <div className="container">
                     <div className="mission-v2">
                         <div className="mission-text-side">
-                            <div className="section-tag">Governing Body since 1973</div>
-                            <h2 className="headline-h2">A Legacy of <span className="text-green">Integrity & Precision.</span></h2>
+                            <div className="section-tag">{t.about.tag}</div>
+                            <h2 className="headline-h2">{t.about.title1} <span className="text-green">{t.about.title2}</span></h2>
                             <p className="p-large">
-                                As the national authority, NLDB bridges the gap between traditional
-                                Sri Lankan farming and high-tech digital precision. We operate 40+
-                                specialized farms focused on genetic optimization and production excellence.
+                                {lang === 'en' ? (landingSettings?.about_description || t.about.desc) : t.about.desc}
                             </p>
                             <div className="stats-horizontal">
                                 <div className="stat-node">
                                     <span className="sc-val">40+</span>
-                                    <span className="sc-lbl">Regional Farms</span>
+                                    <span className="sc-lbl">{t.about.statFarms}</span>
                                 </div>
                                 <div className="stat-node">
                                     <span className="sc-val">100+</span>
-                                    <span className="sc-lbl">Output Centers</span>
+                                    <span className="sc-lbl">{t.about.statCenters}</span>
                                 </div>
                                 <div className="stat-node">
                                     <span className="sc-val">5K+</span>
-                                    <span className="sc-lbl">Technical Staff</span>
+                                    <span className="sc-lbl">{t.about.statStaff}</span>
                                 </div>
                             </div>
                         </div>
                         <div className="mission-visual-side">
-                            <img src={organizationHq} alt="NLDB HQ" />
-                            <img src={qualityBadge} alt="Quality Seal" className="badge-float" />
+                            <img src={landingSettings?.hq_image_url || organizationHq} alt="NLDB HQ" />
+                            <img src={landingSettings?.quality_badge_url || qualityBadge} alt="Quality Seal" className="badge-float" />
                         </div>
                     </div>
                 </div>
@@ -383,8 +448,8 @@ const Home = () => {
             <section id="products" className="section-padding-fluid">
                 <div className="container-fluid">
                     <div className="section-title-box">
-                        <h2 className="headline-h2">The Product <span className="text-green">Registry</span></h2>
-                        <p className="subtitle-p">A definitive collection of NLDB's premium output, refined for excellence.</p>
+                        <h2 className="headline-h2">{t.products.title1} <span className="text-green">{t.products.title2}</span></h2>
+                        <p className="subtitle-p">{t.products.subtitle}</p>
                     </div>
 
                     <div className="text-center">
@@ -402,7 +467,7 @@ const Home = () => {
                                                 cat.name.toLowerCase().includes('agro') || cat.name.toLowerCase().includes('coconut') ? '🥥' :
                                                     '📦'}
                                     </span>
-                                    {cat.name}
+                                    {translateCategoryName(cat.name, lang)}
                                 </button>
                             ))}
                         </div>
@@ -415,30 +480,30 @@ const Home = () => {
                                     <div className="p-card-img">
                                         <img src={p.img} alt={p.name} />
                                         <div className="p-card-availability">
-                                            <span className="dot-live"></span> Available in Outlets
+                                            <span className="dot-live"></span> {t.products.available}
                                         </div>
                                         <div className="p-card-overlay-modern">
-                                            <button className="btn-quick-view" onClick={() => setSelectedProduct(p)}>Quick View</button>
+                                            <button className="btn-quick-view" onClick={() => setSelectedProduct(p)}>{t.products.quickView}</button>
                                         </div>
                                     </div>
                                     <div className="p-card-info">
                                         <div className="p-card-header-flex">
-                                            <span className="p-category">{p.categoryName}</span>
-                                            <span className="p-tag">{p.tag}</span>
+                                            <span className="p-category">{translateCategoryName(p.categoryName, lang)}</span>
+                                            <span className="p-tag">{p.isPerishable ? t.products.fresh : t.products.standard}</span>
                                         </div>
                                         <h3>{p.name}</h3>
                                         <p>{p.desc}</p>
 
                                         <div className="p-card-pricing-strip">
                                             <div className="p-price-col">
-                                                <span className="p-price-label">Retail</span>
+                                                <span className="p-price-label">{t.products.retail}</span>
                                                 <span className="p-price-amount retail">
                                                     Rs. {p.retailPrice != null ? p.retailPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
                                                 </span>
                                             </div>
                                             <div className="p-price-divider" />
                                             <div className="p-price-col">
-                                                <span className="p-price-label">Wholesale</span>
+                                                <span className="p-price-label">{t.products.wholesale}</span>
                                                 <span className="p-price-amount wholesale">
                                                     Rs. {p.wholesalePrice != null ? p.wholesalePrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
                                                 </span>
@@ -450,7 +515,7 @@ const Home = () => {
                                                 className="btn-outlet-modern"
                                                 onClick={() => setSelectedProduct(p)}
                                             >
-                                                <span>View Details</span>
+                                                <span>{t.products.viewDetails}</span>
                                                 <i className="arrow-icon">→</i>
                                             </button>
                                         </div>
@@ -459,7 +524,7 @@ const Home = () => {
                             ))
                         ) : (
                             <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', color: '#64748b' }}>
-                                <p>No products found in this category yet.</p>
+                                <p>{t.products.noProducts}</p>
                             </div>
                         )}
                     </div>
@@ -467,24 +532,41 @@ const Home = () => {
             </section>
 
             {/* Outlet Locator Section */}
-            <section id="outlets" className="section-padding-fluid outlets-immersive-bg" style={{ backgroundImage: `url(${naturalHeroBg})` }}>
+            <section id="outlets" className="section-padding-fluid outlets-immersive-bg" style={{ backgroundImage: `url(${landingSettings?.outlets_bg_url || naturalHeroBg})` }}>
                 <div className="bg-overlay-dark"></div>
                 <div className="container-fluid relative-z">
                     <div className="section-title-box dark-text-fix">
-                        <h2 className="headline-h2 text-white">Global <span className="text-green-bright">Outlets</span></h2>
-                        <p className="subtitle-p text-white-op">Experience farm-to-table freshness at any of our official sales centers nationwide.</p>
+                        <h2 className="headline-h2 text-white">{t.outlets.title1} <span className="text-green-bright">{t.outlets.title2}</span></h2>
+                        <p className="subtitle-p text-white-op">{t.outlets.subtitle}</p>
                     </div>
 
                     <div className="outlet-search-box">
                         <div className="search-pill glass-search">
                             <input
                                 type="text"
-                                placeholder="Search your nearest city (e.g. Narahenpita, Digana...)"
+                                placeholder={t.outlets.searchPlaceholder}
                                 className="outlet-input"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
-                            <button className="btn-search-outlet">Find Nearest</button>
+                            <button className="btn-search-outlet">{t.outlets.findNearest}</button>
+                        </div>
+
+                        <div className="outlet-type-tabs" role="tablist" aria-label="Filter outlets by type">
+                            {[
+                                { value: 'ALL', label: t.outlets.allTypes },
+                                { value: 'Farm Shop', label: t.outlets.farmShop },
+                                { value: 'Milk Shop', label: t.outlets.milkShop },
+                            ].map((tab) => (
+                                <button
+                                    key={tab.value}
+                                    type="button"
+                                    onClick={() => setOutletTypeFilter(tab.value)}
+                                    className={`outlet-type-pill ${outletTypeFilter === tab.value ? 'active' : ''}`}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
                         </div>
                     </div>
 
@@ -492,7 +574,9 @@ const Home = () => {
                         {filteredOutlets.length > 0 ? (
                             filteredOutlets.map((outlet, idx) => (
                                 <div key={idx} className="outlet-card-glass animate-fade">
-                                    <div className="outlet-type-tag">{outlet.type}</div>
+                                    <div className="outlet-type-tag">
+                                        {outlet.type === 'Milk Shop' ? 'Milk Shop' : 'Farm Shop'}
+                                    </div>
                                     <div className="outlet-icon-box">
                                         <div className="location-pin-circle">
                                             <span className="dot-pulse"></span>
@@ -511,14 +595,18 @@ const Home = () => {
                                             className="btn-directions-modern"
                                             onClick={() => handleViewMap(outlet)}
                                         >
-                                            Get Directions
+                                            {t.outlets.getDirections}
                                         </button>
                                     </div>
                                 </div>
                             ))
                         ) : (
                             <div className="no-results">
-                                <p className="text-white">No outlets found matching "{searchQuery}". Please check the spelling or try a different city.</p>
+                                <p className="text-white">
+                                    {searchQuery
+                                        ? `${t.outlets.noResults} "${searchQuery}".`
+                                        : t.outlets.noResultsCategory || 'No outlets found in this category yet.'}
+                                </p>
                             </div>
                         )}
                     </div>
@@ -529,30 +617,30 @@ const Home = () => {
             <section id="contact" className="container section-padding">
                 <div className="contact-grid-modern">
                     <div className="contact-info-panel">
-                        <div className="section-tag">National Headquarters</div>
-                        <h2 className="headline-h2">Get in <span className="text-green">Touch.</span></h2>
-                        <p className="p-large">Our team is available for corporate inquiries, farm visit requests, and official tenders.</p>
+                        <div className="section-tag">{t.contact.tag}</div>
+                        <h2 className="headline-h2">{t.contact.title1} <span className="text-green">{t.contact.title2}</span></h2>
+                        <p className="p-large">{lang === 'en' ? (landingSettings?.contact_subtitle || t.contact.subtitle) : t.contact.subtitle}</p>
 
                         <div className="contact-nodes">
                             <div className="c-node">
                                 <span className="c-icon">🏢</span>
                                 <div>
-                                    <strong>Narahenpita HQ</strong>
-                                    <p>No. 40, Narahenpita Road, Colombo 05</p>
+                                    <strong>{lang === 'en' ? (landingSettings?.hq_title || t.contact.hqTitle) : t.contact.hqTitle}</strong>
+                                    <p>{lang === 'en' ? (landingSettings?.hq_address || t.contact.hqAddress) : t.contact.hqAddress}</p>
                                 </div>
                             </div>
                             <div className="c-node">
                                 <span className="c-icon">📞</span>
                                 <div>
-                                    <strong>Hotline</strong>
-                                    <p>+94 11 250 1701</p>
+                                    <strong>{t.contact.hotlineLabel}</strong>
+                                    <p>{landingSettings?.hotline || '+94 11 250 1701'}</p>
                                 </div>
                             </div>
                             <div className="c-node">
                                 <span className="c-icon">✉️</span>
                                 <div>
-                                    <strong>Email</strong>
-                                    <p>info@nldb.gov.lk</p>
+                                    <strong>{t.contact.emailLabel}</strong>
+                                    <p>{landingSettings?.email || 'info@nldb.gov.lk'}</p>
                                 </div>
                             </div>
                         </div>
@@ -560,7 +648,7 @@ const Home = () => {
                     <div className="contact-action-panel">
                         <div className="map-embed-container animate-fade">
                             <iframe
-                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.9960470593082!2d79.878808!3d6.891075!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ae25a30109230c7%3A0xfe80b3970bc8ed86!2sNational%20Livestock%20Development%20Board%20Head%20Office!5e0!3m2!1sen!2slk!4v1767198104940!5m2!1sen!2slk"
+                                src={landingSettings?.map_embed_url || 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.9960470593082!2d79.878808!3d6.891075!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ae25a30109230c7%3A0xfe80b3970bc8ed86!2sNational%20Livestock%20Development%20Board%20Head%20Office!5e0!3m2!1sen!2slk!4v1767198104940!5m2!1sen!2slk'}
                                 width="100%"
                                 height="100%"
                                 style={{ border: 0, borderRadius: '32px' }}
@@ -585,7 +673,7 @@ const Home = () => {
                                 <span className="en">National Livestock Development Board</span>
                             </div>
                             <p className="f-description">
-                                A premier state organization dedicated to the elevation of the national livestock sector through scientific breeding and sustainable farming since 1973.
+                                {t.footer.desc}
                             </p>
                             <div className="f-social-integrated">
                                 <a href="#" className="s-link">Facebook</a>
@@ -596,27 +684,27 @@ const Home = () => {
 
                         <div className="footer-nav-hub">
                             <div className="f-nav-group">
-                                <h5>The Registry</h5>
+                                <h5>{t.footer.registryTitle}</h5>
                                 <ul>
-                                    <li><a href="#products">Dairy Catalog</a></li>
-                                    <li><a href="#products">Meat Catalog</a></li>
-                                    <li><a href="#products">Agro Exports</a></li>
+                                    <li><a href="#products">{t.footer.dairyCatalog}</a></li>
+                                    <li><a href="#products">{t.footer.meatCatalog}</a></li>
+                                    <li><a href="#products">{t.footer.agroExports}</a></li>
                                 </ul>
                             </div>
                             <div className="f-nav-group">
-                                <h5>Corporate</h5>
+                                <h5>{t.footer.corporateTitle}</h5>
                                 <ul>
-                                    <li><a href="#about">Our Mission</a></li>
-                                    <li><a href="#">Official Tenders</a></li>
-                                    <li><a href="#">Annual Reports</a></li>
+                                    <li><a href="#about">{t.footer.ourMission}</a></li>
+                                    <li><a href="#">{t.footer.officialTenders}</a></li>
+                                    <li><a href="#">{t.footer.annualReports}</a></li>
                                 </ul>
                             </div>
                             <div className="f-nav-group">
-                                <h5>Portal</h5>
+                                <h5>{t.footer.portalTitle}</h5>
                                 <ul>
-                                    <li><Link to="/login">Employee Login</Link></li>
-                                    <li><Link to="/login">Manager Access</Link></li>
-                                    <li><Link to="/login">Storekeeping</Link></li>
+                                    <li><Link to="/login">{t.footer.employeeLogin}</Link></li>
+                                    <li><Link to="/login">{t.footer.managerAccess}</Link></li>
+                                    <li><Link to="/login">{t.footer.storekeeping}</Link></li>
                                 </ul>
                             </div>
                         </div>
@@ -624,10 +712,10 @@ const Home = () => {
 
                     <div className="footer-legal-bar">
                         <div className="legal-flex">
-                            <p>© 2025 National Livestock Development Board. All Rights Reserved.</p>
+                            <p>{t.footer.rights}</p>
                             <div className="legal-links">
-                                <a href="#">Privacy Policy</a>
-                                <a href="#">Terms of Service</a>
+                                <a href="#">{t.footer.privacy}</a>
+                                <a href="#">{t.footer.terms}</a>
                             </div>
                         </div>
                     </div>
