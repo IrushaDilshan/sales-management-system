@@ -16,6 +16,7 @@ import {
   LuSearch,
   LuLogOut,
   LuX,
+  LuGlobe,
 } from 'react-icons/lu';
 import './Sidebar.css';
 
@@ -312,6 +313,12 @@ const Sidebar = ({ isCollapsed, onToggleCollapse, isMobileOpen, onCloseMobile, o
                 <LuSlidersHorizontal className="w-4 h-4 shrink-0" />
                 {!isCollapsed && (
                   <span className="sb-hide truncate flex-1 text-left">System Config</span>
+                )}
+              </NavLink>
+              <NavLink to="/website-content" className={navLinkClass} title="Website Content">
+                <LuGlobe className="w-4 h-4 shrink-0" />
+                {!isCollapsed && (
+                  <span className="sb-hide truncate flex-1 text-left">Website Content</span>
                 )}
               </NavLink>
             </div>
